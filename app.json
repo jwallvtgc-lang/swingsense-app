@@ -1,0 +1,44 @@
+{
+  "expo": {
+    "name": "SwingSense",
+    "slug": "SwingSense",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": false,
+    "backgroundColor": "#0A0A0A",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0A0A0A"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "backgroundColor": "#0A0A0A"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#1B4D3E",
+        "foregroundImage": "./assets/icon.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "backgroundColor": "#0A0A0A",
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-video",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 200,
+          "backgroundColor": "#0A0A0A"
+        }
+      ]
+    ]
+  }
+}
