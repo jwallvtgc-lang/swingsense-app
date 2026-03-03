@@ -267,6 +267,7 @@
 				VERSIONING_SYSTEM = "apple-generic";
 				TARGETED_DEVICE_FAMILY = "1,2";
 				CODE_SIGN_ENTITLEMENTS = SwingSense/SwingSense.entitlements;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 			};
 			name = Debug;
 		};
@@ -295,6 +296,7 @@
 				VERSIONING_SYSTEM = "apple-generic";
 				TARGETED_DEVICE_FAMILY = "1,2";
 				CODE_SIGN_ENTITLEMENTS = SwingSense/SwingSense.entitlements;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 			};
 			name = Release;
 		};
