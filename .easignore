@@ -1,2 +1,3 @@
 # Exclude from EAS upload - prevents permission issues during prebuild
 .expo/
+ios/.xcode.env.local

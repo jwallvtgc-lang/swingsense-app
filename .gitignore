@@ -50,3 +50,6 @@ venv/
 
 # generated native folders (ios committed for EAS; prebuild runs on server for android)
 /android
+
+# Xcode env - let EAS build generate with correct permissions
+ios/.xcode.env.local
