@@ -48,6 +48,5 @@ venv/
 # typescript
 *.tsbuildinfo
 
-# generated native folders
-/ios
+# generated native folders (ios committed for EAS; prebuild runs on server for android)
 /android
