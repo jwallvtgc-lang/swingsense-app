@@ -19,6 +19,11 @@ jobs:
 
       - run: npm ci
 
+      - name: Create Expo cache directory (workaround for EACCES in icon generation)
+        run: |
+          mkdir -p .expo/web
+          chmod -R 777 .expo 2>/dev/null || true
+
       - run: npx expo prebuild --platform ios --no-install
 
       - name: Commit and push ios folder

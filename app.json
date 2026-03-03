@@ -70,7 +70,8 @@
             "default": true
           }
         }
-      ]
+      ],
+      "expo-font"
     ],
     "extra": {
       "eas": {
