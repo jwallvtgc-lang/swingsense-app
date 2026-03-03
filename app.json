@@ -15,7 +15,14 @@
     },
     "ios": {
       "supportsTablet": true,
-      "backgroundColor": "#0A0A0A"
+      "backgroundColor": "#0A0A0A",
+      "bundleIdentifier": "com.swingsense.app",
+      "infoPlist": {
+        "NSPhotoLibraryUsageDescription": "SwingSense needs access to your photo library to select swing videos.",
+        "NSCameraUsageDescription": "SwingSense needs camera access to record your swing.",
+        "NSMicrophoneUsageDescription": "SwingSense needs microphone access to record video with audio.",
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -24,13 +31,21 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "backgroundColor": "#0A0A0A",
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-video",
+      [
+        "expo-video",
+        {
+          "supportsBackgroundPlayback": false
+        }
+      ],
       [
         "expo-splash-screen",
         {
@@ -38,7 +53,35 @@
           "imageWidth": 200,
           "backgroundColor": "#0A0A0A"
         }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "SwingSense needs access to your photo library to select swing videos.",
+          "cameraPermission": "SwingSense needs camera access to record your swing."
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "SwingSense needs camera access to record your swing.",
+          "microphonePermission": "SwingSense needs microphone access to record video with audio.",
+          "recordAudioAndroid": {
+            "default": true
+          }
+        }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "be4f3253-ce54-488b-b457-f2d3900dfbc8"
+      }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/be4f3253-ce54-488b-b457-f2d3900dfbc8"
+    }
   }
 }

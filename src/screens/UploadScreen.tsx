@@ -25,59 +25,85 @@ export default function UploadScreen() {
   const [thumbnail, setThumbnail] = useState<string | null>(null);
 
   const checkQuota = async (): Promise<boolean> => {
-    if (!user) return false;
-    const result = await canUserAnalyze(user.id);
-    if (!result.allowed) {
-      Alert.alert('Limit Reached', result.reason ?? 'Upgrade to continue.');
+    if (!user) {
+      Alert.alert('Not signed in', 'Please sign in to analyze swings.');
       return false;
     }
-    return true;
+    try {
+      const result = await canUserAnalyze(user.id);
+      if (!result.allowed) {
+        Alert.alert('Limit Reached', result.reason ?? 'Upgrade to continue.');
+        return false;
+      }
+      return true;
+    } catch (err) {
+      console.warn('[Quota] Check failed, allowing anyway:', err);
+      return true;
+    }
   };
 
   const pickVideo = async () => {
-    const ok = await checkQuota();
-    if (!ok) return;
+    try {
+      const ok = await checkQuota();
+      if (!ok) return;
 
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permission.granted) {
-      Alert.alert('Permission needed', 'Please allow access to your photo library.');
-      return;
-    }
+      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permission.granted) {
+        Alert.alert(
+          'Permission needed',
+          'Please allow full access to your photo library in Settings > SwingSense > Photos.',
+        );
+        return;
+      }
 
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['videos'],
-      quality: 1,
-      videoMaxDuration: 60,
-    });
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['videos', 'images'],
+        allowsEditing: false,
+        quality: 1,
+      });
 
-    if (!result.canceled && result.assets[0]) {
-      const asset = result.assets[0];
-      setSelectedVideo(asset.uri);
-      setThumbnail(asset.uri);
+      if (!result.canceled && result.assets[0]) {
+        const asset = result.assets[0];
+        if (asset.type !== 'video') {
+          Alert.alert('Video required', 'Please select a video, not a photo.');
+          return;
+        }
+        setSelectedVideo(asset.uri);
+        setThumbnail(asset.uri);
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error('[UploadScreen] pickVideo error:', msg);
+      Alert.alert('Picker Error', msg);
     }
   };
 
   const recordVideo = async () => {
-    const ok = await checkQuota();
-    if (!ok) return;
+    try {
+      const ok = await checkQuota();
+      if (!ok) return;
 
-    const permission = await ImagePicker.requestCameraPermissionsAsync();
-    if (!permission.granted) {
-      Alert.alert('Permission needed', 'Please allow camera access to record.');
-      return;
-    }
+      const permission = await ImagePicker.requestCameraPermissionsAsync();
+      if (!permission.granted) {
+        Alert.alert('Permission needed', 'Please allow camera access to record.');
+        return;
+      }
 
-    const result = await ImagePicker.launchCameraAsync({
-      mediaTypes: ['videos'],
-      quality: 1,
-      videoMaxDuration: 30,
-      videoQuality: 1,
-    });
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ['videos'],
+        quality: 1,
+        videoMaxDuration: 30,
+        videoQuality: 1,
+      });
 
-    if (!result.canceled && result.assets[0]) {
-      const asset = result.assets[0];
-      setSelectedVideo(asset.uri);
-      setThumbnail(asset.uri);
+      if (!result.canceled && result.assets[0]) {
+        const asset = result.assets[0];
+        setSelectedVideo(asset.uri);
+        setThumbnail(asset.uri);
+      }
+    } catch (err) {
+      console.error('[UploadScreen] recordVideo error:', err);
+      Alert.alert('Error', 'Could not open camera. Please try again.');
     }
   };
 
