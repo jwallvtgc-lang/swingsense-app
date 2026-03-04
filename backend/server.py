@@ -8,6 +8,7 @@ FastAPI server that runs the analysis pipeline:
   4. Return structured coaching output
 """
 
+import hashlib
 import json
 import os
 import tempfile
@@ -26,11 +27,27 @@ from pydantic import BaseModel
 
 load_dotenv()
 
+# Log config at import (helps debug Render crashes)
+import sys
+def _log(msg: str) -> None:
+    print(msg, flush=True)
+    sys.stdout.flush()
+
+_log(f"[Startup] Python {sys.version}")
+_log(f"[Startup] PORT={os.environ.get('PORT', 'not set')}")
+_log(f"[Startup] ANTHROPIC_API_KEY={'set' if os.environ.get('ANTHROPIC_API_KEY') else 'NOT SET'}")
+
 try:
     from tflite_runtime.interpreter import Interpreter
+    _log("[Startup] Using tflite_runtime")
 except ImportError:
-    import tensorflow as tf
-    Interpreter = tf.lite.Interpreter
+    try:
+        import tensorflow as tf
+        Interpreter = tf.lite.Interpreter
+        _log("[Startup] Using tensorflow.lite (tflite_runtime not available)")
+    except ImportError as e:
+        _log(f"[Startup] FATAL: Neither tflite_runtime nor tensorflow available: {e}")
+        raise
 
 app = FastAPI(title="SwingSense Analysis API", version="0.1.0")
 
@@ -174,7 +191,9 @@ You are given per-frame keypoint data from a player's swing video. Each frame \
 contains (x, y) coordinates and confidence scores for 17 body landmarks. \
 Coordinates are normalized 0–1 (origin top-left). Frames are sequential in time.
 
-Your job is to analyze this swing data and provide actionable coaching feedback.
+Your job is to analyze THIS specific swing data and provide actionable coaching feedback. \
+Each analysis request is for a different video; base your scores and feedback solely on \
+the keypoint data provided, not on assumptions or prior analyses.
 
 IMPORTANT: You MUST respond with valid JSON only. No markdown, no extra text.
 
@@ -184,7 +203,6 @@ Respond with this exact JSON structure:
     {
       "title": "string",
       "description": "string",
-      "frame_range": "string (e.g. 'Frames 10-25')",
       "type": "strength | improvement"
     }
   ],
@@ -224,19 +242,45 @@ Guidelines:
 - 1-2 drill recommendations
 - Bat speed estimate from wrist keypoint velocity
 - Similarity scores benchmarked against ideal pro mechanics
-- Calibrate scores and language to the player's age and level
-- Be encouraging but honest. Use plain language."""
+
+NO FRAME NUMBERS — ENFORCED IN ALL SECTIONS:
+- Do NOT include any frame numbers or frame ranges (e.g. F100, F128-F183, Frames 10-25) anywhere in \
+your output. Users cannot scrub to frames and do not understand them.
+- Describe timing using plain language only: "during your load," "as you start your swing," \
+"through contact," "when you're driving through the ball," "at the point of contact," etc.
+- This applies to: observations (title and description), priority_fixes, drill_recommendations, \
+bat_speed_estimate.reasoning, and overall_summary. Never use frame references in any field.
+
+AGE-APPROPRIATE LANGUAGE (use the player's age from the profile):
+- Under 16: Use simple words and short sentences. Avoid terms like "hip-shoulder separation," \
+"rotational power," "kinetic chain." Use plain-language equivalents (e.g. "hips lead, then shoulders" \
+instead of "separation," "using your legs and core" instead of "kinetic chain").
+- 18+: You may use more technical terms if they are useful.
+- Match tone to age: Younger players — encouraging, coach-like, cues they'd hear at practice. \
+Older players — can be more technical if helpful.
+
+BAT SPEED SECTION:
+- The "reasoning" field is shown to the user. Use plain language only. Never mention "2D projection," \
+"normalized coordinates," "keypoint velocity," or other technical terms. Explain in simple terms \
+(e.g. "Based on how fast your hands moved through the zone" or "Estimated from your swing motion").
+
+KEEP IT ACTIONABLE:
+- Drills and fixes should be concrete and specific, but described in language the player will understand.
+- Be encouraging but honest."""
 
 
-def summarize_keypoints_for_prompt(data: dict) -> str:
+def summarize_keypoints_for_prompt(data: dict, analysis_id: str | None = None) -> str:
     """Condense keypoint data for the Claude prompt."""
-    lines = [
+    lines = []
+    if analysis_id:
+        lines.append(f"Analysis ID: {analysis_id}")
+    lines.extend([
         f"Video: {data['video_file']}",
         f"FPS: {data['fps']}",
         f"Total frames processed: {data['frames_processed']}",
         f"Resolution: {data.get('resolution', {}).get('width', '?')}x{data.get('resolution', {}).get('height', '?')}",
         "",
-    ]
+    ])
 
     frames = data["frames"]
     total = len(frames)
@@ -259,7 +303,7 @@ def summarize_keypoints_for_prompt(data: dict) -> str:
     return "\n".join(lines)
 
 
-def analyze_with_claude(keypoint_data: dict, player_profile: dict) -> dict:
+def analyze_with_claude(keypoint_data: dict, player_profile: dict, analysis_id: str | None = None) -> dict:
     """Send keypoints to Claude and get structured coaching output."""
     api_key = os.environ.get("ANTHROPIC_API_KEY")
     if not api_key:
@@ -275,7 +319,7 @@ def analyze_with_claude(keypoint_data: dict, player_profile: dict) -> dict:
         h = f"{player_profile['height_feet']}'{player_profile.get('height_inches', 0)}\""
         profile_lines.append(f"Height: {h}")
 
-    keypoint_summary = summarize_keypoints_for_prompt(keypoint_data)
+    keypoint_summary = summarize_keypoints_for_prompt(keypoint_data, analysis_id)
 
     user_message = (
         f"Here is the player profile:\n\n"
@@ -336,25 +380,36 @@ async def analyze(request: AnalyzeRequest):
     2. Extract keypoints with MoveNet
     3. Analyze with Claude
     4. Return structured results
+
+    Each request is independent: no caching. We download the video, run MoveNet,
+    and call Claude fresh for every analyze call.
     """
     start_time = time.time()
+    url_hash = hashlib.sha256(request.video_url.encode()).hexdigest()[:12]
+    _log(f"[Analyze] Analyzing video analysis_id={request.analysis_id} url_hash={url_hash} url={request.video_url[:100]}...")
 
     with tempfile.NamedTemporaryFile(suffix=".mp4", delete=False) as tmp:
         tmp_path = tmp.name
 
     try:
+        _log(f"[Analyze] Downloading video from provided URL (no cache)...")
         async with httpx.AsyncClient(timeout=120.0) as client:
             resp = await client.get(request.video_url)
             resp.raise_for_status()
             with open(tmp_path, "wb") as f:
                 f.write(resp.content)
+        _log(f"[Analyze] Downloaded {len(resp.content)} bytes")
 
+        _log(f"[Analyze] Extracting keypoints from downloaded file (MoveNet per-request)...")
         keypoint_data = extract_keypoints(tmp_path, sample_rate=2)
+        _log(f"[Analyze] Extracted {len(keypoint_data['frames'])} frames")
 
         profile = request.player_profile or {}
-        coaching_output = analyze_with_claude(keypoint_data, profile)
+        _log("[Analyze] Calling Claude with fresh keypoint data...")
+        coaching_output = analyze_with_claude(keypoint_data, profile, analysis_id=request.analysis_id)
 
         elapsed = time.time() - start_time
+        _log(f"[Analyze] Done in {elapsed:.1f}s")
 
         return {
             "analysis_id": request.analysis_id,
@@ -363,7 +418,15 @@ async def analyze(request: AnalyzeRequest):
             "processing_time_seconds": round(elapsed, 1),
         }
     except httpx.HTTPStatusError as e:
+        _log(f"[Analyze] Video download failed: {e}")
         raise HTTPException(status_code=400, detail=f"Failed to download video: {e}")
+    except HTTPException:
+        raise
+    except Exception as e:
+        _log(f"[Analyze] Error: {type(e).__name__}: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
     finally:
         Path(tmp_path).unlink(missing_ok=True)
 
@@ -371,10 +434,14 @@ async def analyze(request: AnalyzeRequest):
 @app.on_event("startup")
 async def startup():
     """Pre-load the MoveNet model on server start."""
+    _log("[Startup] Loading MoveNet model...")
     try:
         get_interpreter()
+        _log("[Startup] MoveNet loaded successfully")
     except Exception as e:
-        print(f"Warning: Could not pre-load MoveNet model: {e}")
+        _log(f"[Startup] WARNING: Could not pre-load MoveNet model: {e}")
+        import traceback
+        traceback.print_exc()
 
 
 if __name__ == "__main__":
