@@ -243,6 +243,14 @@ Guidelines:
 - Bat speed estimate from wrist keypoint velocity
 - Similarity scores benchmarked against ideal pro mechanics
 
+MECHANICAL OBSERVATIONS — STRUCTURE AND TONE:
+- Order: List all strengths first, then all work-ons (improvements). Do not mix them.
+- Work-ons: Order by priority — most important fix first.
+- Length: Each observation must be 1–2 sentences max. No long paragraphs. Easy to scan on a phone.
+- Language: Use plain language and coaching cues. No jargon — e.g. "hips lead, then shoulders" not \
+"hip-shoulder separation," "using your legs and core" not "kinetic chain." Match the player's age \
+from the profile: simpler words and shorter sentences for younger players.
+
 NO FRAME NUMBERS — ENFORCED IN ALL SECTIONS:
 - Do NOT include any frame numbers or frame ranges (e.g. F100, F128-F183, Frames 10-25) anywhere in \
 your output. Users cannot scrub to frames and do not understand them.
@@ -260,9 +268,10 @@ instead of "separation," "using your legs and core" instead of "kinetic chain").
 Older players — can be more technical if helpful.
 
 BAT SPEED SECTION:
-- The "reasoning" field is shown to the user. Use plain language only. Never mention "2D projection," \
-"normalized coordinates," "keypoint velocity," or other technical terms. Explain in simple terms \
-(e.g. "Based on how fast your hands moved through the zone" or "Estimated from your swing motion").
+- The "reasoning" field is optional and shown to the user. If included, it must be ONE short sentence \
+only (e.g. "Based on your swing through the zone"). Do NOT include: methodology, frame references, \
+coordinate math, barrel travel, projection explanations, calibration reasoning, or any technical detail. \
+Users only need the mph number and a clear disclaimer — keep all technical explanation internal.
 
 KEEP IT ACTIONABLE:
 - Drills and fixes should be concrete and specific, but described in language the player will understand.

@@ -6,6 +6,7 @@ import {
   StyleSheet,
   Alert,
   Image,
+  Platform,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
@@ -42,6 +43,9 @@ export default function UploadScreen() {
     }
   };
 
+  const ICLOUD_ERROR_MSG =
+    'This video may be in iCloud and not fully downloaded. Try again (ensure Wi‑Fi), or use a video saved on this device.';
+
   const pickVideo = async () => {
     try {
       const ok = await checkQuota();
@@ -56,11 +60,18 @@ export default function UploadScreen() {
         return;
       }
 
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ['videos', 'images'],
+      const pickerOptions: ImagePicker.ImagePickerOptions = {
+        mediaTypes: ['videos'],
         allowsEditing: false,
         quality: 1,
-      });
+        // Use HighestQuality on iOS to avoid PHPhotosErrorDomain 3164 with iCloud videos.
+        // Passthrough fails for iCloud assets; HighestQuality transcodes and can download.
+        ...(Platform.OS === 'ios' && {
+          videoExportPreset: ImagePicker.VideoExportPreset.HighestQuality,
+        }),
+      };
+
+      const result = await ImagePicker.launchImageLibraryAsync(pickerOptions);
 
       if (!result.canceled && result.assets[0]) {
         const asset = result.assets[0];
@@ -74,7 +85,27 @@ export default function UploadScreen() {
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       console.error('[UploadScreen] pickVideo error:', msg);
-      Alert.alert('Picker Error', msg);
+
+      const isICloudError =
+        msg.includes('PHPhotosErrorDomain') ||
+        msg.includes('3164') ||
+        msg.includes('network request failed');
+
+      if (isICloudError && Platform.OS === 'ios') {
+        Alert.alert(
+          'Video in iCloud',
+          ICLOUD_ERROR_MSG,
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Try Again', onPress: pickVideo },
+          ]
+        );
+      } else {
+        Alert.alert(
+          'Could not load video',
+          isICloudError ? ICLOUD_ERROR_MSG : msg
+        );
+      }
     }
   };
 

@@ -16,6 +16,7 @@ import ProcessingScreen from '../screens/ProcessingScreen';
 import ResultsScreen from '../screens/ResultsScreen';
 import HistoryScreen from '../screens/HistoryScreen';
 import ProfileScreen from '../screens/ProfileScreen';
+import EditProfileScreen from '../screens/EditProfileScreen';
 
 import type { MainStackParamList, TabParamList } from './types';
 
@@ -111,6 +112,7 @@ function MainNavigator() {
         options={{ gestureEnabled: false }}
       />
       <Stack.Screen name="Results" component={ResultsScreen} />
+      <Stack.Screen name="EditProfile" component={EditProfileScreen} />
     </Stack.Navigator>
   );
 }
@@ -119,12 +121,16 @@ export default function AppNavigator() {
   const { session, loading, hasProfile } = useAuth();
 
   const onLayoutReady = useCallback(async () => {
-    if (!loading) {
+    try {
       await SplashScreen.hideAsync();
+      console.log('[AppNavigator] Splash hidden');
+    } catch (e) {
+      console.warn('[AppNavigator] Splash hide error:', e);
     }
-  }, [loading]);
+  }, []);
 
   if (loading) {
+    console.log('[AppNavigator] Loading auth...');
     return (
       <View
         style={{
@@ -134,6 +140,7 @@ export default function AppNavigator() {
           justifyContent: 'center',
           gap: 12,
         }}
+        onLayout={onLayoutReady}
       >
         <Text style={{ fontSize: 36, fontWeight: '800', color: COLORS.accent, letterSpacing: 1 }}>
           SwingSense

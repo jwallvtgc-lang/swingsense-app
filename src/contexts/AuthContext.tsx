@@ -11,11 +11,14 @@ interface AuthState {
   hasProfile: boolean;
 }
 
+type ProfileUpdateData = Partial<Pick<Profile, 'first_name' | 'age' | 'primary_position' | 'batting_side' | 'height_feet' | 'height_inches'>>;
+
 interface AuthContextValue extends AuthState {
   signUp: (email: string, password: string) => Promise<{ error: Error | null }>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   createProfile: (data: Omit<Profile, 'id' | 'role' | 'leaderboard_opt_in' | 'created_at' | 'updated_at'>) => Promise<{ error: Error | null }>;
+  updateProfile: (data: ProfileUpdateData) => Promise<{ error: Error | null }>;
   refreshProfile: () => Promise<void>;
 }
 
@@ -52,21 +55,45 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [state.user, fetchProfile]);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setState((s) => ({
-        ...s,
-        session,
-        user: session?.user ?? null,
-        loading: false,
-      }));
-      if (session?.user) {
-        fetchProfile(session.user.id);
-      }
-    });
+    const SESSION_TIMEOUT_MS = 8_000;
+
+    console.log('[Auth] Starting getSession...');
+
+    const timeoutId = setTimeout(() => {
+      setState((s) => {
+        if (s.loading) {
+          console.warn('[Auth] getSession timed out after 8s');
+          return { ...s, loading: false };
+        }
+        return s;
+      });
+    }, SESSION_TIMEOUT_MS);
+
+    supabase.auth
+      .getSession()
+      .then(({ data: { session } }) => {
+        clearTimeout(timeoutId);
+        console.log('[Auth] getSession done, session:', session ? 'yes' : 'no');
+        setState((s) => ({
+          ...s,
+          session,
+          user: session?.user ?? null,
+          loading: false,
+        }));
+        if (session?.user) {
+          fetchProfile(session.user.id);
+        }
+      })
+      .catch((err) => {
+        clearTimeout(timeoutId);
+        console.warn('[Auth] getSession failed:', err?.message ?? err);
+        setState((s) => ({ ...s, session: null, user: null, loading: false }));
+      });
 
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
+      clearTimeout(timeoutId);
       setState((s) => ({
         ...s,
         session,
@@ -80,7 +107,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      clearTimeout(timeoutId);
+      subscription.unsubscribe();
+    };
   }, [fetchProfile]);
 
   const signUp = async (email: string, password: string) => {
@@ -123,6 +153,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { error: error as Error | null };
   };
 
+  const updateProfile = async (data: ProfileUpdateData) => {
+    if (!state.user) return { error: new Error('Not authenticated') };
+
+    const { error } = await supabase
+      .from('profiles')
+      .update({ ...data, updated_at: new Date().toISOString() })
+      .eq('id', state.user.id);
+
+    if (!error) {
+      await fetchProfile(state.user.id);
+    }
+
+    return { error: error as Error | null };
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -131,6 +176,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         signIn,
         signOut,
         createProfile,
+        updateProfile,
         refreshProfile,
       }}
     >

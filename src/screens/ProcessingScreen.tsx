@@ -1,11 +1,11 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ActivityIndicator,
   Animated,
-  Alert,
+  TouchableOpacity,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -36,9 +36,66 @@ export default function ProcessingScreen() {
   const [currentStep, setCurrentStep] = useState(0);
   const [statusMessage, setStatusMessage] = useState('Preparing...');
   const [error, setError] = useState<string | null>(null);
+  const [retryKey, setRetryKey] = useState(0);
 
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const progressAnim = useRef(new Animated.Value(0)).current;
+
+  const animateProgress = useCallback((toValue: number) => {
+    Animated.timing(progressAnim, {
+      toValue,
+      duration: 600,
+      useNativeDriver: false,
+    }).start();
+  }, [progressAnim]);
+
+  const runPipeline = useCallback(async () => {
+    if (!user) return;
+    setError(null);
+    setCurrentStep(0);
+    animateProgress(0);
+    setStatusMessage('Preparing...');
+
+    try {
+      const { analysis, error: pipelineError } = await startAnalysisPipeline(
+        user.id,
+        videoUri,
+        (status, message) => {
+          setStatusMessage(message);
+          if (status === 'uploading') {
+            setCurrentStep(0);
+            animateProgress(0.25);
+          } else if (status === 'processing') {
+            if (message.includes('keypoint')) {
+              setCurrentStep(1);
+              animateProgress(0.5);
+            } else {
+              setCurrentStep(2);
+              animateProgress(0.75);
+            }
+          } else if (status === 'completed') {
+            setCurrentStep(3);
+            animateProgress(1);
+          }
+        },
+        profile
+      );
+
+      if (pipelineError) {
+        setError(pipelineError.message);
+        return;
+      }
+
+      if (analysis) {
+        await incrementAnalysisCount(user.id);
+        setTimeout(() => {
+          navigation.replace('Results', { analysisId: analysis.id });
+        }, 1200);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unknown error');
+    }
+  }, [user, videoUri, profile, navigation, animateProgress]);
 
   useEffect(() => {
     const pulse = Animated.loop(
@@ -60,77 +117,8 @@ export default function ProcessingScreen() {
   }, [pulseAnim]);
 
   useEffect(() => {
-    if (!user) return;
-
-    let cancelled = false;
-
-    const runPipeline = async () => {
-      try {
-        const { analysis, error: pipelineError } = await startAnalysisPipeline(
-          user.id,
-          videoUri,
-          (status, message) => {
-            console.log(`[Pipeline] ${status}: ${message}`);
-            if (cancelled) return;
-            setStatusMessage(message);
-
-            if (status === 'uploading') {
-              setCurrentStep(0);
-              animateProgress(0.25);
-            } else if (status === 'processing') {
-              if (message.includes('keypoint')) {
-                setCurrentStep(1);
-                animateProgress(0.5);
-              } else {
-                setCurrentStep(2);
-                animateProgress(0.75);
-              }
-            } else if (status === 'completed') {
-              setCurrentStep(3);
-              animateProgress(1);
-            }
-          },
-          profile
-        );
-
-        if (cancelled) return;
-
-        if (pipelineError) {
-          console.error('[Pipeline] Error:', pipelineError.message);
-          setError(pipelineError.message);
-          return;
-        }
-
-        if (analysis) {
-          await incrementAnalysisCount(user.id);
-
-          setTimeout(() => {
-            if (!cancelled) {
-              navigation.replace('Results', { analysisId: analysis.id });
-            }
-          }, 1200);
-        }
-      } catch (err) {
-        if (!cancelled) {
-          setError(err instanceof Error ? err.message : 'Unknown error');
-        }
-      }
-    };
-
     runPipeline();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [user, videoUri, navigation]);
-
-  const animateProgress = (toValue: number) => {
-    Animated.timing(progressAnim, {
-      toValue,
-      duration: 600,
-      useNativeDriver: false,
-    }).start();
-  };
+  }, [retryKey, runPipeline]);
 
   if (error) {
     return (
@@ -139,12 +127,22 @@ export default function ProcessingScreen() {
           <Ionicons name="alert-circle" size={64} color={COLORS.error} />
           <Text style={styles.errorTitle}>Analysis Failed</Text>
           <Text style={styles.errorMessage}>{error}</Text>
-          <Text
-            style={styles.retryLink}
-            onPress={() => navigation.goBack()}
-          >
-            Go back and try again
-          </Text>
+          <View style={styles.errorActions}>
+            <TouchableOpacity
+              style={styles.tryAgainButton}
+              onPress={() => setRetryKey((k) => k + 1)}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="refresh" size={20} color={COLORS.black} />
+              <Text style={styles.tryAgainText}>Try Again</Text>
+            </TouchableOpacity>
+            <Text
+              style={styles.retryLink}
+              onPress={() => navigation.goBack()}
+            >
+              Choose a different video
+            </Text>
+          </View>
         </View>
       </View>
     );
@@ -318,10 +316,29 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 22,
   },
-  retryLink: {
+  errorActions: {
+    marginTop: SPACING.lg,
+    alignItems: 'center',
+    gap: SPACING.md,
+  },
+  tryAgainButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: SPACING.sm,
+    backgroundColor: COLORS.accent,
+    paddingVertical: SPACING.md,
+    paddingHorizontal: SPACING.xl,
+    borderRadius: 14,
+  },
+  tryAgainText: {
     fontSize: FONT_SIZE.md,
+    fontWeight: '700',
+    color: COLORS.black,
+  },
+  retryLink: {
+    fontSize: FONT_SIZE.sm,
     color: COLORS.accent,
     fontWeight: '600',
-    marginTop: SPACING.md,
   },
 });

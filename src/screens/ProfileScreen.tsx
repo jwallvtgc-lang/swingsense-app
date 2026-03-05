@@ -6,14 +6,28 @@ import {
   TouchableOpacity,
   ScrollView,
   Alert,
+  Linking,
 } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, SPACING, FONT_SIZE } from '../config/constants';
+import Constants from 'expo-constants';
+import { COLORS, SPACING, FONT_SIZE, FEEDBACK_EMAIL } from '../config/constants';
 import { useAuth } from '../contexts/AuthContext';
 import { POSITION_LABELS, BATTING_SIDE_LABELS } from '../types';
 
 export default function ProfileScreen() {
+  const navigation = useNavigation();
   const { profile, user, signOut } = useAuth();
+
+  const appVersion = Constants.expoConfig?.version ?? '1.0.0';
+
+  const openFeedback = () => {
+    const subject = encodeURIComponent('SwingSense Beta Feedback');
+    const body = encodeURIComponent(
+      'What worked? What didn\'t? (Even one word helps.)'
+    );
+    Linking.openURL(`mailto:${FEEDBACK_EMAIL}?subject=${subject}&body=${body}`);
+  };
 
   const handleSignOut = () => {
     Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
@@ -40,7 +54,16 @@ export default function ProfileScreen() {
       </View>
 
       <View style={styles.card}>
-        <Text style={styles.cardTitle}>Player Profile</Text>
+        <View style={styles.cardHeaderRow}>
+          <Text style={styles.cardTitle}>Player Profile</Text>
+          <TouchableOpacity
+            style={styles.editButton}
+            onPress={() => navigation.navigate('EditProfile')}
+          >
+            <Ionicons name="pencil" size={18} color={COLORS.accent} />
+            <Text style={styles.editButtonText}>Edit</Text>
+          </TouchableOpacity>
+        </View>
         <ProfileRow label="Age" value={String(profile?.age ?? '—')} />
         <ProfileRow
           label="Position"
@@ -63,12 +86,20 @@ export default function ProfileScreen() {
         </TouchableOpacity>
       </View>
 
+      <TouchableOpacity
+        style={styles.feedbackLink}
+        onPress={openFeedback}
+      >
+        <Ionicons name="mail-outline" size={20} color={COLORS.accent} />
+        <Text style={styles.feedbackLinkText}>Send Feedback</Text>
+      </TouchableOpacity>
+
       <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
         <Ionicons name="log-out-outline" size={20} color={COLORS.error} />
         <Text style={styles.signOutText}>Sign Out</Text>
       </TouchableOpacity>
 
-      <Text style={styles.version}>SwingSense v1.0.0 — Phase 0</Text>
+      <Text style={styles.version}>SwingSense v{appVersion}</Text>
     </ScrollView>
   );
 }
@@ -165,13 +196,26 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: COLORS.black,
   },
+  feedbackLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: SPACING.sm,
+    padding: SPACING.md,
+    marginTop: SPACING.sm,
+  },
+  feedbackLinkText: {
+    fontSize: FONT_SIZE.md,
+    fontWeight: '600',
+    color: COLORS.accent,
+  },
   signOutButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: SPACING.sm,
     padding: SPACING.md,
-    marginTop: SPACING.md,
+    marginTop: SPACING.sm,
   },
   signOutText: {
     fontSize: FONT_SIZE.md,

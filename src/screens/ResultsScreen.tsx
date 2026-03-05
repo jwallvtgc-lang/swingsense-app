@@ -6,6 +6,8 @@ import {
   ScrollView,
   ActivityIndicator,
   TouchableOpacity,
+  TextInput,
+  Linking,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -123,6 +125,8 @@ export default function ResultsScreen() {
 
   const [analysis, setAnalysis] = useState<SwingAnalysis | null>(null);
   const [loading, setLoading] = useState(true);
+  const [feedbackHelpful, setFeedbackHelpful] = useState<'thumbs_up' | 'thumbs_down' | null>(null);
+  const [feedbackText, setFeedbackText] = useState('');
 
   useEffect(() => {
     const fetchAnalysis = async () => {
@@ -133,19 +137,39 @@ export default function ResultsScreen() {
     fetchAnalysis();
   }, [analysisId]);
 
+  const goToHistory = () => {
+    navigation.navigate('MainTabs', { screen: 'History' });
+  };
+
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={COLORS.accent} />
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.backButton} onPress={goToHistory} activeOpacity={0.7}>
+            <Ionicons name="chevron-back" size={24} color={COLORS.accent} />
+            <Text style={styles.backLabel}>History</Text>
+          </TouchableOpacity>
+        </View>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={COLORS.accent} />
+        </View>
       </View>
     );
   }
 
   if (!analysis) {
     return (
-      <View style={styles.loadingContainer}>
-        <Ionicons name="alert-circle" size={48} color={COLORS.error} />
-        <Text style={styles.errorText}>Analysis not found</Text>
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.backButton} onPress={goToHistory} activeOpacity={0.7}>
+            <Ionicons name="chevron-back" size={24} color={COLORS.accent} />
+            <Text style={styles.backLabel}>History</Text>
+          </TouchableOpacity>
+        </View>
+        <View style={styles.loadingContainer}>
+          <Ionicons name="alert-circle" size={48} color={COLORS.error} />
+          <Text style={styles.errorText}>Analysis not found</Text>
+        </View>
       </View>
     );
   }
@@ -154,10 +178,17 @@ export default function ResultsScreen() {
   const breakdown = analysis.similarity_breakdown as SimilarityBreakdown | null;
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.scrollContent}
-    >
+    <View style={styles.container}>
+      <View style={styles.header}>
+        <TouchableOpacity style={styles.backButton} onPress={goToHistory} activeOpacity={0.7}>
+          <Ionicons name="chevron-back" size={24} color={COLORS.accent} />
+          <Text style={styles.backLabel}>History</Text>
+        </TouchableOpacity>
+      </View>
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+      >
       <View style={styles.heroSection}>
         <Text style={styles.heroTitle}>Swing Analysis</Text>
         <Text style={styles.heroDate}>
@@ -200,54 +231,68 @@ export default function ResultsScreen() {
         </SectionCard>
       )}
 
+      {/* Coach's Summary */}
+      {coaching?.overall_summary && (
+        <SectionCard title="Coach's Summary" icon="chatbubble-ellipses">
+          <Text style={styles.summaryText}>{coaching.overall_summary}</Text>
+        </SectionCard>
+      )}
+
       {/* Bat Speed */}
       {analysis.bat_speed_mph != null && (
         <SectionCard title="Bat Speed" icon="speedometer">
           <View style={styles.batSpeedRow}>
             <Text style={styles.batSpeedValue}>
-              {Math.round(analysis.bat_speed_mph)}
+              ~{Math.round(analysis.bat_speed_mph)}
             </Text>
             <Text style={styles.batSpeedUnit}>mph</Text>
           </View>
-          {coaching?.bat_speed_estimate?.confidence && (
-            <Text style={styles.confidenceLabel}>
-              Confidence: {coaching.bat_speed_estimate.confidence}
-            </Text>
-          )}
-          {coaching?.bat_speed_estimate?.reasoning && (
-            <Text style={styles.reasoningText}>
-              {coaching.bat_speed_estimate.reasoning}
-            </Text>
-          )}
+          <Text style={styles.confidenceLabel}>
+            Estimate only — not radar-accurate
+          </Text>
+          {(() => {
+            const r = coaching?.bat_speed_estimate?.reasoning?.trim();
+            const isSimple = r && r.length <= 80 && !/frame|F\d|coordinate|projection|velocity|calibrat|barrel|math|normalized|keypoint/i.test(r);
+            return isSimple ? (
+              <Text style={styles.reasoningText}>{r}</Text>
+            ) : null;
+          })()}
         </SectionCard>
       )}
 
-      {/* Observations */}
+      {/* Observations — grouped: Strengths first, then Work on */}
       {coaching?.observations && coaching.observations.length > 0 && (
         <SectionCard title="Mechanical Observations" icon="eye">
-          {coaching.observations.map((obs, i) => (
-            <View key={i} style={styles.observationItem}>
-              <View style={styles.observationHeader}>
-                <View
-                  style={[
-                    styles.obsBadge,
-                    obs.type === 'strength'
-                      ? styles.obsBadgeStrength
-                      : styles.obsBadgeImprovement,
-                  ]}
-                >
-                  <Text style={styles.obsBadgeText}>
-                    {obs.type === 'strength' ? 'Strength' : 'Work On'}
-                  </Text>
-                </View>
-                {obs.frame_range && (
-                  <Text style={styles.frameRange}>{obs.frame_range}</Text>
+          {(() => {
+            const strengths = coaching.observations.filter((o) => o.type === 'strength');
+            const workOns = coaching.observations.filter((o) => o.type === 'improvement');
+            return (
+              <>
+                {strengths.length > 0 && (
+                  <View style={styles.obsGroup}>
+                    <Text style={styles.obsGroupHeading}>Strengths</Text>
+                    {strengths.map((obs, i) => (
+                      <View key={`s-${i}`} style={styles.observationItem}>
+                        <Text style={styles.obsTitle}>{obs.title}</Text>
+                        <Text style={styles.obsDescription}>{obs.description}</Text>
+                      </View>
+                    ))}
+                  </View>
                 )}
-              </View>
-              <Text style={styles.obsTitle}>{obs.title}</Text>
-              <Text style={styles.obsDescription}>{obs.description}</Text>
-            </View>
-          ))}
+                {workOns.length > 0 && (
+                  <View style={styles.obsGroup}>
+                    <Text style={styles.obsGroupHeading}>Work on</Text>
+                    {workOns.map((obs, i) => (
+                      <View key={`w-${i}`} style={styles.observationItem}>
+                        <Text style={styles.obsTitle}>{obs.title}</Text>
+                        <Text style={styles.obsDescription}>{obs.description}</Text>
+                      </View>
+                    ))}
+                  </View>
+                )}
+              </>
+            );
+          })()}
         </SectionCard>
       )}
 
@@ -296,12 +341,55 @@ export default function ResultsScreen() {
           </SectionCard>
         )}
 
-      {/* Overall Summary */}
-      {coaching?.overall_summary && (
-        <SectionCard title="Coach's Summary" icon="chatbubble-ellipses">
-          <Text style={styles.summaryText}>{coaching.overall_summary}</Text>
-        </SectionCard>
-      )}
+      {/* Did this help? */}
+      <View style={styles.feedbackSection}>
+        <Text style={styles.feedbackPrompt}>Did this help?</Text>
+        {feedbackHelpful == null ? (
+          <View style={styles.thumbsRow}>
+            <TouchableOpacity
+              style={styles.thumbButton}
+              onPress={() => setFeedbackHelpful('thumbs_up')}
+            >
+              <Text style={styles.thumbEmoji}>👍</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.thumbButton}
+              onPress={() => setFeedbackHelpful('thumbs_down')}
+            >
+              <Text style={styles.thumbEmoji}>👎</Text>
+            </TouchableOpacity>
+          </View>
+        ) : feedbackHelpful === 'thumbs_up' ? (
+          <Text style={styles.feedbackThanks}>Thanks!</Text>
+        ) : (
+          <View style={styles.feedbackNegative}>
+            <TextInput
+              style={styles.feedbackInput}
+              value={feedbackText}
+              onChangeText={setFeedbackText}
+              placeholder="Tell us more (optional)"
+              placeholderTextColor={COLORS.textMuted}
+              multiline
+              numberOfLines={3}
+            />
+            <TouchableOpacity
+              style={styles.sendFeedbackButton}
+              onPress={() => {
+                const subject = encodeURIComponent('SwingSense Beta Feedback');
+                const body = encodeURIComponent(
+                  feedbackText.trim()
+                    ? feedbackText.trim()
+                    : 'What worked? What didn\'t? (Even one word helps.)'
+                );
+                Linking.openURL(`mailto:${FEEDBACK_EMAIL}?subject=${subject}&body=${body}`);
+              }}
+            >
+              <Ionicons name="mail-outline" size={18} color={COLORS.black} />
+              <Text style={styles.sendFeedbackText}>Send feedback</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+      </View>
 
       <TouchableOpacity
         style={styles.newAnalysisButton}
@@ -312,7 +400,8 @@ export default function ResultsScreen() {
       </TouchableOpacity>
 
       <View style={styles.bottomPadding} />
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }
 
@@ -320,6 +409,28 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: SPACING.lg,
+    paddingTop: SPACING.xl + SPACING.md,
+    paddingBottom: SPACING.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.surfaceBorder,
+  },
+  backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  backLabel: {
+    fontSize: FONT_SIZE.md,
+    fontWeight: '600',
+    color: COLORS.accent,
+  },
+  scrollView: {
+    flex: 1,
   },
   scrollContent: {
     padding: SPACING.lg,
@@ -389,6 +500,17 @@ const styles = StyleSheet.create({
     marginTop: SPACING.sm,
     lineHeight: 20,
   },
+  obsGroup: {
+    marginBottom: SPACING.lg,
+  },
+  obsGroupHeading: {
+    fontSize: FONT_SIZE.sm,
+    fontWeight: '700',
+    color: COLORS.accent,
+    marginBottom: SPACING.sm,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
   observationItem: {
     marginBottom: SPACING.md,
     paddingBottom: SPACING.md,
@@ -416,10 +538,6 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZE.xs,
     fontWeight: '700',
     color: COLORS.text,
-  },
-  frameRange: {
-    fontSize: FONT_SIZE.xs,
-    color: COLORS.textMuted,
   },
   obsTitle: {
     fontSize: FONT_SIZE.md,
@@ -527,6 +645,63 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZE.md,
     color: COLORS.textSecondary,
     lineHeight: 24,
+  },
+  feedbackSection: {
+    marginBottom: SPACING.xl,
+    paddingVertical: SPACING.md,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.surfaceBorder,
+  },
+  feedbackPrompt: {
+    fontSize: FONT_SIZE.md,
+    fontWeight: '600',
+    color: COLORS.textSecondary,
+    marginBottom: SPACING.sm,
+  },
+  thumbsRow: {
+    flexDirection: 'row',
+    gap: SPACING.lg,
+  },
+  thumbButton: {
+    padding: SPACING.sm,
+  },
+  thumbEmoji: {
+    fontSize: 32,
+  },
+  feedbackThanks: {
+    fontSize: FONT_SIZE.md,
+    color: COLORS.success,
+    fontWeight: '600',
+  },
+  feedbackNegative: {
+    gap: SPACING.md,
+  },
+  feedbackInput: {
+    backgroundColor: COLORS.surfaceLight,
+    borderRadius: 10,
+    padding: SPACING.md,
+    fontSize: FONT_SIZE.md,
+    color: COLORS.text,
+    borderWidth: 1,
+    borderColor: COLORS.surfaceBorder,
+    minHeight: 80,
+    textAlignVertical: 'top',
+  },
+  sendFeedbackButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: SPACING.sm,
+    backgroundColor: COLORS.accent,
+    paddingVertical: SPACING.sm,
+    paddingHorizontal: SPACING.md,
+    borderRadius: 10,
+    marginTop: SPACING.sm,
+  },
+  sendFeedbackText: {
+    fontSize: FONT_SIZE.sm,
+    fontWeight: '700',
+    color: COLORS.black,
   },
   newAnalysisButton: {
     backgroundColor: COLORS.accent,

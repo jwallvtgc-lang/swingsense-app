@@ -1,8 +1,17 @@
 export const BACKEND_API_URL =
   process.env.EXPO_PUBLIC_BACKEND_URL ?? 'http://localhost:8000';
 
+/** Email for feedback / report a problem. */
+export const FEEDBACK_EMAIL = 'jwallvtgc@gmail.com';
+
 export async function getBackendUrl(): Promise<string> {
   return BACKEND_API_URL;
+}
+
+export function logConfig() {
+  const backend = BACKEND_API_URL;
+  const isLocalhost = backend.includes('localhost') || backend.includes('127.0.0.1');
+  console.log('[Config] BACKEND_URL:', isLocalhost ? `${backend} (set EXPO_PUBLIC_BACKEND_URL for prod)` : backend);
 }
 
 export const COLORS = {

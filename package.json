@@ -9,7 +9,8 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "optimize-icons": "node scripts/optimize-icon.js"
+    "optimize-icons": "node scripts/optimize-icon.js",
+    "fix-splash": "node scripts/fix-splash-background.js"
   },
   "dependencies": {
     "@expo/ngrok": "^4.1.3",

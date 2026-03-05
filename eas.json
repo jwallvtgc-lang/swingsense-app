@@ -13,7 +13,10 @@
       "env": {
         "XDG_CACHE_HOME": "/tmp/.cache",
         "TMPDIR": "/tmp",
-        "EXPO_IMAGE_UTILS_NO_SHARP": "1"
+        "EXPO_IMAGE_UTILS_NO_SHARP": "1",
+        "EXPO_PUBLIC_BACKEND_URL": "https://swingsense-api.onrender.com",
+        "EXPO_PUBLIC_SUPABASE_URL": "https://qwzkgyyvtqhdeqkandaf.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF3emtneXl2dHFoZGVxa2FuZGFmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIzOTk5MzEsImV4cCI6MjA4Nzk3NTkzMX0.llvIOj1u19NcoKXgNcECd7BP6z9mk9RMC8R0KaCHy3M"
       }
     },
     "development": {
@@ -27,7 +30,10 @@
     "production": {
       "channel": "production",
       "env": {
-        "XDG_CACHE_HOME": "/tmp/.cache"
+        "XDG_CACHE_HOME": "/tmp/.cache",
+        "EXPO_PUBLIC_BACKEND_URL": "https://swingsense-api.onrender.com",
+        "EXPO_PUBLIC_SUPABASE_URL": "https://qwzkgyyvtqhdeqkandaf.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF3emtneXl2dHFoZGVxa2FuZGFmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIzOTk5MzEsImV4cCI6MjA4Nzk3NTkzMX0.llvIOj1u19NcoKXgNcECd7BP6z9mk9RMC8R0KaCHy3M"
       }
     }
   }

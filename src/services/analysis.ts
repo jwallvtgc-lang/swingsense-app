@@ -65,7 +65,8 @@ export async function startAnalysisPipeline(
     onStatusChange?.('processing', 'Extracting body keypoints with MoveNet...');
 
     const backendUrl = await getBackendUrl();
-    console.log(`[Pipeline] Calling backend at: ${backendUrl}/analyze`);
+    const urlPreview = videoUrl.length > 80 ? `${videoUrl.slice(0, 80)}...` : videoUrl;
+    console.log(`[Pipeline] Analyzing video analysis_id=${analysisId} url=${urlPreview}`);
 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 180_000);
@@ -160,6 +161,7 @@ export async function getUserAnalyses(
     .from('swing_analyses')
     .select('*')
     .eq('user_id', userId)
+    .eq('status', 'completed')
     .order('created_at', { ascending: false })
     .limit(limit);
 

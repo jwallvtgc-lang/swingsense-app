@@ -56,6 +56,36 @@ const badgeStyles = StyleSheet.create({
   },
 });
 
+function formatHistoryDate(createdAt: string): string {
+  const date = new Date(createdAt);
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const itemDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+
+  const timeStr = date.toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  });
+
+  if (itemDate.getTime() === today.getTime()) {
+    return `Today, ${timeStr}`;
+  }
+  if (itemDate.getTime() === yesterday.getTime()) {
+    return `Yesterday, ${timeStr}`;
+  }
+  return date.toLocaleDateString('en-US', {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  });
+}
+
 export default function HistoryScreen() {
   const navigation = useNavigation<Nav>();
   const { user } = useAuth();
@@ -80,6 +110,10 @@ export default function HistoryScreen() {
     loadAnalyses();
   };
 
+  const goToAnalyze = () => {
+    navigation.navigate('MainTabs', { screen: 'UploadTab' });
+  };
+
   const renderItem = ({ item }: { item: SwingAnalysis }) => (
     <TouchableOpacity
       style={styles.card}
@@ -89,24 +123,24 @@ export default function HistoryScreen() {
         }
       }}
       disabled={item.status !== 'completed'}
+      activeOpacity={0.7}
     >
       <View style={styles.cardLeft}>
-        <Ionicons
-          name={item.status === 'completed' ? 'baseball' : 'hourglass'}
-          size={28}
-          color={item.status === 'completed' ? COLORS.accent : COLORS.textMuted}
-        />
+        {item.status === 'completed' && item.similarity_score != null ? (
+          <View style={styles.scoreCircle}>
+            <Text style={styles.scoreCircleText}>{item.similarity_score}</Text>
+          </View>
+        ) : (
+          <Ionicons
+            name={item.status === 'completed' ? 'baseball' : 'hourglass'}
+            size={28}
+            color={item.status === 'completed' ? COLORS.accent : COLORS.textMuted}
+          />
+        )}
       </View>
       <View style={styles.cardContent}>
         <View style={styles.cardTopRow}>
-          <Text style={styles.cardDate}>
-            {new Date(item.created_at).toLocaleDateString('en-US', {
-              month: 'short',
-              day: 'numeric',
-              hour: 'numeric',
-              minute: '2-digit',
-            })}
-          </Text>
+          <Text style={styles.cardDate}>{formatHistoryDate(item.created_at)}</Text>
           <StatusBadge status={item.status} />
         </View>
         {item.status === 'completed' && (
@@ -114,7 +148,7 @@ export default function HistoryScreen() {
             {item.similarity_score != null && (
               <View style={styles.stat}>
                 <Text style={styles.statValue}>{item.similarity_score}</Text>
-                <Text style={styles.statLabel}>Score</Text>
+                <Text style={styles.statLabel}>Swing score</Text>
               </View>
             )}
             {item.bat_speed_mph != null && (
@@ -154,14 +188,32 @@ export default function HistoryScreen() {
           <Ionicons name="baseball-outline" size={64} color={COLORS.textMuted} />
           <Text style={styles.emptyTitle}>No swings yet</Text>
           <Text style={styles.emptyText}>
-            Upload your first swing video to get started
+            Tap Analyze to record your first one
           </Text>
+          <TouchableOpacity
+            style={styles.emptyCtaButton}
+            onPress={goToAnalyze}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="add-circle" size={22} color={COLORS.black} />
+            <Text style={styles.emptyCtaText}>Analyze Swing</Text>
+          </TouchableOpacity>
         </View>
       ) : (
         <FlatList
           data={analyses}
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
+          ListHeaderComponent={
+            <TouchableOpacity
+              style={styles.recordButton}
+              onPress={goToAnalyze}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="add-circle" size={22} color={COLORS.black} />
+              <Text style={styles.recordButtonText}>Record Swing</Text>
+            </TouchableOpacity>
+          }
           contentContainerStyle={styles.list}
           refreshControl={
             <RefreshControl
@@ -200,6 +252,22 @@ const styles = StyleSheet.create({
     paddingTop: 0,
     gap: SPACING.sm,
   },
+  recordButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: SPACING.sm,
+    backgroundColor: COLORS.accent,
+    paddingVertical: SPACING.md,
+    paddingHorizontal: SPACING.lg,
+    borderRadius: 14,
+    marginBottom: SPACING.md,
+  },
+  recordButtonText: {
+    fontSize: FONT_SIZE.md,
+    fontWeight: '700',
+    color: COLORS.black,
+  },
   card: {
     backgroundColor: COLORS.surface,
     borderRadius: 14,
@@ -217,6 +285,20 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surfaceLight,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  scoreCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 2,
+    borderColor: COLORS.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  scoreCircleText: {
+    fontSize: FONT_SIZE.sm,
+    fontWeight: '800',
+    color: COLORS.accent,
   },
   cardContent: {
     flex: 1,
@@ -266,5 +348,21 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZE.md,
     color: COLORS.textMuted,
     textAlign: 'center',
+  },
+  emptyCtaButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: SPACING.sm,
+    backgroundColor: COLORS.accent,
+    paddingVertical: SPACING.md,
+    paddingHorizontal: SPACING.xl,
+    borderRadius: 14,
+    marginTop: SPACING.lg,
+  },
+  emptyCtaText: {
+    fontSize: FONT_SIZE.md,
+    fontWeight: '700',
+    color: COLORS.black,
   },
 });
