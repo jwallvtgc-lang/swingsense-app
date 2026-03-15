@@ -7,14 +7,15 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
+  Alert,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, SPACING, FONT_SIZE } from '../config/constants';
 import { useAuth } from '../contexts/AuthContext';
-import { getUserAnalyses } from '../services/analysis';
-import type { SwingAnalysis } from '../types';
+import { getUserAnalyses, deleteAnalysis } from '../services/analysis';
+import type { SwingAnalysis, CoachingOutput } from '../types';
 import type { MainStackParamList } from '../navigation/types';
 
 type Nav = NativeStackNavigationProp<MainStackParamList>;
@@ -55,6 +56,52 @@ const badgeStyles = StyleSheet.create({
     fontWeight: '600',
   },
 });
+
+function TrendIndicator({
+  trend,
+}: {
+  trend: 'better' | 'same' | 'worse' | null;
+}) {
+  if (!trend) return null;
+  const config = {
+    better: { icon: 'trending-up' as const, label: 'Better', color: COLORS.success },
+    same: { icon: 'remove' as const, label: 'Same', color: COLORS.textMuted },
+    worse: { icon: 'trending-down' as const, label: 'Worse', color: COLORS.error },
+  };
+  const { icon, label, color } = config[trend];
+  return (
+    <View style={[trendStyles.badge, { backgroundColor: color + '25' }]}>
+      <Ionicons name={icon} size={12} color={color} />
+      <Text style={[trendStyles.label, { color }]}>{label}</Text>
+    </View>
+  );
+}
+
+const trendStyles = StyleSheet.create({
+  badge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+  },
+  label: {
+    fontSize: FONT_SIZE.xs,
+    fontWeight: '600',
+  },
+});
+
+function getPreviewLine(analysis: SwingAnalysis): string | null {
+  const coaching = analysis.coaching_output as CoachingOutput | null;
+  if (coaching?.primary_mechanical_issue?.title) {
+    return coaching.primary_mechanical_issue.title;
+  }
+  if (coaching?.drill) {
+    return coaching.drill.length > 60 ? coaching.drill.slice(0, 57) + '...' : coaching.drill;
+  }
+  return null;
+}
 
 function formatHistoryDate(createdAt: string): string {
   const date = new Date(createdAt);
@@ -114,59 +161,116 @@ export default function HistoryScreen() {
     navigation.navigate('MainTabs', { screen: 'UploadTab' });
   };
 
-  const renderItem = ({ item }: { item: SwingAnalysis }) => (
-    <TouchableOpacity
-      style={styles.card}
-      onPress={() => {
-        if (item.status === 'completed') {
-          navigation.navigate('Results', { analysisId: item.id });
-        }
-      }}
-      disabled={item.status !== 'completed'}
-      activeOpacity={0.7}
-    >
-      <View style={styles.cardLeft}>
-        {item.status === 'completed' && item.similarity_score != null ? (
-          <View style={styles.scoreCircle}>
-            <Text style={styles.scoreCircleText}>{item.similarity_score}</Text>
-          </View>
-        ) : (
-          <Ionicons
-            name={item.status === 'completed' ? 'baseball' : 'hourglass'}
-            size={28}
-            color={item.status === 'completed' ? COLORS.accent : COLORS.textMuted}
-          />
-        )}
-      </View>
-      <View style={styles.cardContent}>
-        <View style={styles.cardTopRow}>
-          <Text style={styles.cardDate}>{formatHistoryDate(item.created_at)}</Text>
-          <StatusBadge status={item.status} />
-        </View>
-        {item.status === 'completed' && (
-          <View style={styles.cardStats}>
-            {item.similarity_score != null && (
-              <View style={styles.stat}>
-                <Text style={styles.statValue}>{item.similarity_score}</Text>
-                <Text style={styles.statLabel}>Swing score</Text>
-              </View>
-            )}
-            {item.bat_speed_mph != null && (
-              <View style={styles.stat}>
-                <Text style={styles.statValue}>
-                  {Math.round(item.bat_speed_mph)}
-                </Text>
-                <Text style={styles.statLabel}>MPH</Text>
-              </View>
-            )}
-          </View>
-        )}
-      </View>
-      {item.status === 'completed' && (
-        <Ionicons name="chevron-forward" size={20} color={COLORS.textMuted} />
-      )}
-    </TouchableOpacity>
+  const handleDelete = useCallback(
+    (item: SwingAnalysis) => {
+      Alert.alert(
+        'Delete analysis?',
+        'This will permanently remove this swing from your history.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Delete',
+            style: 'destructive',
+            onPress: async () => {
+              if (!user) return;
+              const { error } = await deleteAnalysis(user.id, item.id);
+              if (error) {
+                Alert.alert('Error', error.message);
+              } else {
+                setAnalyses((prev) => prev.filter((a) => a.id !== item.id));
+              }
+            },
+          },
+        ]
+      );
+    },
+    [user]
   );
+
+  const renderItem = ({ item, index }: { item: SwingAnalysis; index: number }) => {
+    const prevScore = index < analyses.length - 1 ? analyses[index + 1]?.similarity_score : null;
+    const currScore = item.similarity_score;
+    let trend: 'better' | 'same' | 'worse' | null = null;
+    if (prevScore != null && currScore != null) {
+      if (currScore > prevScore) trend = 'better';
+      else if (currScore < prevScore) trend = 'worse';
+      else trend = 'same';
+    }
+    const preview = getPreviewLine(item);
+
+    return (
+      <View style={styles.cardWrapper}>
+        <TouchableOpacity
+          style={styles.card}
+          onPress={() => {
+            if (item.status === 'completed') {
+              navigation.navigate('Results', { analysisId: item.id });
+            }
+          }}
+          disabled={item.status !== 'completed'}
+          activeOpacity={0.7}
+        >
+          <View style={styles.cardLeft}>
+            {item.status === 'completed' && item.similarity_score != null ? (
+              <View style={styles.scoreCircle}>
+                <Text style={styles.scoreCircleText}>{item.similarity_score}</Text>
+              </View>
+            ) : (
+              <Ionicons
+                name={item.status === 'completed' ? 'baseball' : 'hourglass'}
+                size={28}
+                color={item.status === 'completed' ? COLORS.accent : COLORS.textMuted}
+              />
+            )}
+          </View>
+          <View style={styles.cardContent}>
+            <View style={styles.cardTopRow}>
+              <Text style={styles.cardDate}>{formatHistoryDate(item.created_at)}</Text>
+              <View style={styles.cardTopRight}>
+                <TrendIndicator trend={trend} />
+                <StatusBadge status={item.status} />
+              </View>
+            </View>
+            {preview && (
+              <Text style={styles.cardPreview} numberOfLines={1}>
+                {preview}
+              </Text>
+            )}
+            {item.status === 'completed' && (
+              <View style={styles.cardStats}>
+                {item.similarity_score != null && (
+                  <View style={styles.stat}>
+                    <Text style={styles.statValue}>{item.similarity_score}</Text>
+                    <Text style={styles.statLabel}>Swing score</Text>
+                  </View>
+                )}
+                {item.bat_speed_mph != null && (
+                  <View style={styles.stat}>
+                    <Text style={styles.statValue}>
+                      {Math.round(item.bat_speed_mph)}
+                    </Text>
+                    <Text style={styles.statLabel}>MPH</Text>
+                  </View>
+                )}
+              </View>
+            )}
+          </View>
+          <View style={styles.cardRight}>
+            <TouchableOpacity
+              style={styles.deleteButton}
+              onPress={() => handleDelete(item)}
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            >
+              <Ionicons name="trash-outline" size={20} color={COLORS.textMuted} />
+            </TouchableOpacity>
+            {item.status === 'completed' && (
+              <Ionicons name="chevron-forward" size={20} color={COLORS.textMuted} />
+            )}
+          </View>
+        </TouchableOpacity>
+      </View>
+    );
+  };
 
   if (loading) {
     return (
@@ -268,6 +372,9 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: COLORS.black,
   },
+  cardWrapper: {
+    marginBottom: SPACING.sm,
+  },
   card: {
     backgroundColor: COLORS.surface,
     borderRadius: 14,
@@ -277,6 +384,24 @@ const styles = StyleSheet.create({
     gap: SPACING.md,
     borderWidth: 1,
     borderColor: COLORS.surfaceBorder,
+  },
+  cardRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.xs,
+  },
+  deleteButton: {
+    padding: SPACING.xs,
+  },
+  cardTopRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+  },
+  cardPreview: {
+    fontSize: FONT_SIZE.xs,
+    color: COLORS.textMuted,
+    marginTop: SPACING.xs,
   },
   cardLeft: {
     width: 44,

@@ -182,6 +182,19 @@ export async function getUserAnalyses(
   return (data as SwingAnalysis[]) ?? [];
 }
 
+export async function deleteAnalysis(
+  userId: string,
+  analysisId: string
+): Promise<{ error: Error | null }> {
+  const { error } = await supabase
+    .from('swing_analyses')
+    .delete()
+    .eq('id', analysisId)
+    .eq('user_id', userId);
+
+  return { error: error ? new Error(error.message) : null };
+}
+
 async function updateAnalysisStatus(
   analysisId: string,
   status: 'completed' | 'failed'
