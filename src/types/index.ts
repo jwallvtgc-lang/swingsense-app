@@ -56,12 +56,22 @@ export interface FrameKeypoints {
 }
 
 export interface CoachingOutput {
-  observations: Observation[];
-  priority_fixes: PriorityFix[];
-  drill_recommendations: DrillRecommendation[];
+  primary_mechanical_issue: PrimaryMechanicalIssue | null;
+  drill: string | null;
   bat_speed_estimate: BatSpeedEstimate;
   similarity_scores: SimilarityBreakdown;
   overall_summary: string;
+  /** @deprecated Legacy format — use primary_mechanical_issue and drill */
+  observations?: Observation[];
+  /** @deprecated Legacy format — use primary_mechanical_issue */
+  priority_fixes?: PriorityFix[];
+  /** @deprecated Legacy format — use drill */
+  drill_recommendations?: DrillRecommendation[];
+}
+
+export interface PrimaryMechanicalIssue {
+  title: string;
+  description: string;
 }
 
 export interface Observation {

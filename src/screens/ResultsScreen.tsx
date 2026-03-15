@@ -202,7 +202,7 @@ export default function ResultsScreen() {
         </Text>
       </View>
 
-      {/* Overall Score */}
+      {/* 1. Swing Score */}
       {analysis.similarity_score != null && (
         <SectionCard title="Swing Score" icon="trophy">
           <View style={styles.overallScoreRow}>
@@ -231,14 +231,33 @@ export default function ResultsScreen() {
         </SectionCard>
       )}
 
-      {/* Coach's Summary */}
+      {/* 2. Coach's Summary */}
       {coaching?.overall_summary && (
         <SectionCard title="Coach's Summary" icon="chatbubble-ellipses">
-          <Text style={styles.summaryText}>{coaching.overall_summary}</Text>
+          <Text style={styles.tileContentText}>{coaching.overall_summary}</Text>
         </SectionCard>
       )}
 
-      {/* Bat Speed */}
+      {/* 3. Your Action Plan */}
+      {(coaching?.primary_mechanical_issue || coaching?.drill) && (
+        <SectionCard title="Your Action Plan" icon="construct">
+          {coaching?.primary_mechanical_issue && (
+            <View style={styles.actionPlanBlock}>
+              <Text style={styles.actionPlanLabel}>Focus on</Text>
+              <Text style={styles.actionPlanFixTitle}>{coaching.primary_mechanical_issue.title}</Text>
+              <Text style={styles.tileContentText}>{coaching.primary_mechanical_issue.description}</Text>
+            </View>
+          )}
+          {coaching?.drill && (
+            <View style={[styles.actionPlanBlock, !coaching?.primary_mechanical_issue && styles.actionPlanBlockFirst]}>
+              <Text style={styles.actionPlanLabel}>Try this drill</Text>
+              <Text style={styles.tileContentText}>{coaching.drill}</Text>
+            </View>
+          )}
+        </SectionCard>
+      )}
+
+      {/* 4. Bat Speed */}
       {analysis.bat_speed_mph != null && (
         <SectionCard title="Bat Speed" icon="speedometer">
           <View style={styles.batSpeedRow}>
@@ -259,87 +278,6 @@ export default function ResultsScreen() {
           })()}
         </SectionCard>
       )}
-
-      {/* Observations — grouped: Strengths first, then Work on */}
-      {coaching?.observations && coaching.observations.length > 0 && (
-        <SectionCard title="Mechanical Observations" icon="eye">
-          {(() => {
-            const strengths = coaching.observations.filter((o) => o.type === 'strength');
-            const workOns = coaching.observations.filter((o) => o.type === 'improvement');
-            return (
-              <>
-                {strengths.length > 0 && (
-                  <View style={styles.obsGroup}>
-                    <Text style={styles.obsGroupHeading}>Strengths</Text>
-                    {strengths.map((obs, i) => (
-                      <View key={`s-${i}`} style={styles.observationItem}>
-                        <Text style={styles.obsTitle}>{obs.title}</Text>
-                        <Text style={styles.obsDescription}>{obs.description}</Text>
-                      </View>
-                    ))}
-                  </View>
-                )}
-                {workOns.length > 0 && (
-                  <View style={styles.obsGroup}>
-                    <Text style={styles.obsGroupHeading}>Work on</Text>
-                    {workOns.map((obs, i) => (
-                      <View key={`w-${i}`} style={styles.observationItem}>
-                        <Text style={styles.obsTitle}>{obs.title}</Text>
-                        <Text style={styles.obsDescription}>{obs.description}</Text>
-                      </View>
-                    ))}
-                  </View>
-                )}
-              </>
-            );
-          })()}
-        </SectionCard>
-      )}
-
-      {/* Priority Fixes */}
-      {coaching?.priority_fixes && coaching.priority_fixes.length > 0 && (
-        <SectionCard title="Priority Fixes" icon="build">
-          {coaching.priority_fixes.map((fix, i) => (
-            <View key={i} style={styles.fixItem}>
-              <View style={styles.fixNumber}>
-                <Text style={styles.fixNumberText}>{i + 1}</Text>
-              </View>
-              <View style={styles.fixContent}>
-                <Text style={styles.fixTitle}>{fix.title}</Text>
-                <Text style={styles.fixDescription}>{fix.description}</Text>
-                {fix.what_it_should_look_like && (
-                  <View style={styles.idealBox}>
-                    <Text style={styles.idealLabel}>What it should look like:</Text>
-                    <Text style={styles.idealText}>
-                      {fix.what_it_should_look_like}
-                    </Text>
-                  </View>
-                )}
-              </View>
-            </View>
-          ))}
-        </SectionCard>
-      )}
-
-      {/* Drill Recommendations */}
-      {coaching?.drill_recommendations &&
-        coaching.drill_recommendations.length > 0 && (
-          <SectionCard title="Recommended Drills" icon="fitness">
-            {coaching.drill_recommendations.map((drill, i) => (
-              <View key={i} style={styles.drillItem}>
-                <Text style={styles.drillName}>{drill.name}</Text>
-                <Text style={styles.drillTargets}>Targets: {drill.targets}</Text>
-                <Text style={styles.drillDescription}>{drill.description}</Text>
-                {drill.how_to && (
-                  <View style={styles.howToBox}>
-                    <Text style={styles.howToLabel}>How to do it:</Text>
-                    <Text style={styles.howToText}>{drill.how_to}</Text>
-                  </View>
-                )}
-              </View>
-            ))}
-          </SectionCard>
-        )}
 
       {/* Did this help? */}
       <View style={styles.feedbackSection}>
@@ -500,148 +438,37 @@ const styles = StyleSheet.create({
     marginTop: SPACING.sm,
     lineHeight: 20,
   },
-  obsGroup: {
-    marginBottom: SPACING.lg,
+  actionPlanBlock: {
+    marginTop: SPACING.md,
+    paddingTop: SPACING.md,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.surfaceBorder,
   },
-  obsGroupHeading: {
+  actionPlanBlockFirst: {
+    marginTop: 0,
+    paddingTop: 0,
+    borderTopWidth: 0,
+  },
+  actionPlanLabel: {
     fontSize: FONT_SIZE.sm,
     fontWeight: '700',
     color: COLORS.accent,
-    marginBottom: SPACING.sm,
+    marginBottom: SPACING.xs,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
-  observationItem: {
-    marginBottom: SPACING.md,
-    paddingBottom: SPACING.md,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.surfaceBorder,
-  },
-  observationHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.sm,
+  actionPlanFixTitle: {
+    fontSize: FONT_SIZE.lg,
+    fontWeight: '700',
+    color: COLORS.text,
     marginBottom: SPACING.xs,
-  },
-  obsBadge: {
-    paddingHorizontal: SPACING.sm,
-    paddingVertical: 2,
-    borderRadius: 8,
-  },
-  obsBadgeStrength: {
-    backgroundColor: COLORS.success + '30',
-  },
-  obsBadgeImprovement: {
-    backgroundColor: COLORS.warning + '30',
-  },
-  obsBadgeText: {
-    fontSize: FONT_SIZE.xs,
-    fontWeight: '700',
-    color: COLORS.text,
-  },
-  obsTitle: {
-    fontSize: FONT_SIZE.md,
-    fontWeight: '700',
-    color: COLORS.text,
-    marginBottom: 4,
-  },
-  obsDescription: {
-    fontSize: FONT_SIZE.sm,
-    color: COLORS.textSecondary,
-    lineHeight: 20,
-  },
-  fixItem: {
-    flexDirection: 'row',
-    gap: SPACING.md,
-    marginBottom: SPACING.md,
-  },
-  fixNumber: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: COLORS.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  fixNumberText: {
-    fontSize: FONT_SIZE.md,
-    fontWeight: '800',
-    color: COLORS.white,
-  },
-  fixContent: {
-    flex: 1,
-  },
-  fixTitle: {
-    fontSize: FONT_SIZE.md,
-    fontWeight: '700',
-    color: COLORS.text,
-    marginBottom: 4,
-  },
-  fixDescription: {
-    fontSize: FONT_SIZE.sm,
-    color: COLORS.textSecondary,
-    lineHeight: 20,
-  },
-  idealBox: {
-    backgroundColor: COLORS.surfaceLight,
-    borderRadius: 8,
-    padding: SPACING.sm,
-    marginTop: SPACING.sm,
-    borderLeftWidth: 3,
-    borderLeftColor: COLORS.primaryLight,
-  },
-  idealLabel: {
-    fontSize: FONT_SIZE.xs,
-    fontWeight: '700',
-    color: COLORS.primaryLight,
-    marginBottom: 4,
-  },
-  idealText: {
-    fontSize: FONT_SIZE.sm,
-    color: COLORS.textSecondary,
-    lineHeight: 18,
-  },
-  drillItem: {
-    marginBottom: SPACING.md,
-    paddingBottom: SPACING.md,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.surfaceBorder,
-  },
-  drillName: {
-    fontSize: FONT_SIZE.md,
-    fontWeight: '700',
-    color: COLORS.accent,
-    marginBottom: 4,
-  },
-  drillTargets: {
-    fontSize: FONT_SIZE.xs,
-    color: COLORS.primaryLight,
-    fontWeight: '600',
-    marginBottom: SPACING.xs,
-  },
-  drillDescription: {
-    fontSize: FONT_SIZE.sm,
-    color: COLORS.textSecondary,
-    lineHeight: 20,
-  },
-  howToBox: {
-    backgroundColor: COLORS.surfaceLight,
-    borderRadius: 8,
-    padding: SPACING.sm,
-    marginTop: SPACING.sm,
-  },
-  howToLabel: {
-    fontSize: FONT_SIZE.xs,
-    fontWeight: '700',
-    color: COLORS.accent,
-    marginBottom: 4,
-  },
-  howToText: {
-    fontSize: FONT_SIZE.sm,
-    color: COLORS.textSecondary,
-    lineHeight: 18,
   },
   summaryText: {
+    fontSize: FONT_SIZE.md,
+    color: COLORS.textSecondary,
+    lineHeight: 24,
+  },
+  tileContentText: {
     fontSize: FONT_SIZE.md,
     color: COLORS.textSecondary,
     lineHeight: 24,

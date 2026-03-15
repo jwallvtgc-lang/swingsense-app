@@ -102,7 +102,21 @@ export async function startAnalysisPipeline(
     if (!response.ok) {
       const errText = await response.text();
       await updateAnalysisStatus(analysisId, 'failed');
-      return { analysis: null, error: new Error(`Analysis failed (${response.status}): ${errText}`) };
+      let message = `Analysis failed (${response.status})`;
+      try {
+        const errJson = JSON.parse(errText);
+        const d = errJson?.detail ?? errJson;
+        if (typeof d === 'object' && d?.error === 'no_swing_detected' && d?.message) {
+          message = d.message;
+        } else if (typeof d === 'string') {
+          message = d;
+        } else if (typeof d === 'object' && d?.message) {
+          message = d.message;
+        }
+      } catch {
+        if (errText) message = errText;
+      }
+      return { analysis: null, error: new Error(message) };
     }
 
     onStatusChange?.('processing', 'AI coach is reviewing your swing...');

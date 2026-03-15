@@ -121,11 +121,14 @@ export default function ProcessingScreen() {
   }, [retryKey, runPipeline]);
 
   if (error) {
+    const isNoSwing = /couldn't detect a swing|no swing detected/i.test(error);
     return (
       <View style={styles.container}>
         <View style={styles.errorContainer}>
           <Ionicons name="alert-circle" size={64} color={COLORS.error} />
-          <Text style={styles.errorTitle}>Analysis Failed</Text>
+          <Text style={styles.errorTitle}>
+            {isNoSwing ? 'No Swing Detected' : 'Analysis Failed'}
+          </Text>
           <Text style={styles.errorMessage}>{error}</Text>
           <View style={styles.errorActions}>
             <TouchableOpacity

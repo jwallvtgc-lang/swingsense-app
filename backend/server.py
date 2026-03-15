@@ -180,6 +180,72 @@ def extract_keypoints(video_path: str, sample_rate: int = 2) -> dict:
     }
 
 
+def validate_swing_video(keypoint_data: dict) -> None:
+    """
+    Validate that the video contains a detectable person and swing motion.
+    Raises HTTPException with no_swing_detected if validation fails.
+    """
+    frames = keypoint_data.get("frames", [])
+    if not frames:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "error": "no_swing_detected",
+                "message": "We couldn't detect a swing in this video. Make sure you're visible in the frame and take a full swing.",
+            },
+        )
+
+    # 1. Person check: require meaningful body detection
+    CONF_THRESHOLD = 0.3
+    MIN_KEYPOINTS_PER_FRAME = 8  # at least 8 of 17 keypoints with decent confidence
+    MIN_GOOD_FRAMES_RATIO = 0.3  # at least 30% of frames must have good detection
+
+    good_frames = 0
+    for frame in frames:
+        kps = frame.get("keypoints", {})
+        high_conf_count = sum(1 for kp in kps.values() if kp.get("confidence", 0) >= CONF_THRESHOLD)
+        if high_conf_count >= MIN_KEYPOINTS_PER_FRAME:
+            good_frames += 1
+
+    if good_frames < len(frames) * MIN_GOOD_FRAMES_RATIO:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "error": "no_swing_detected",
+                "message": "We couldn't detect a swing in this video. Make sure you're visible in the frame and take a full swing.",
+            },
+        )
+
+    # 2. Swing motion check: require significant wrist/arm movement
+    WRIST_KEYS = ["left_wrist", "right_wrist"]
+    ELBOW_KEYS = ["left_elbow", "right_elbow"]
+    MIN_MOVEMENT_RANGE = 0.08  # normalized coords 0-1; 0.08 = ~8% of frame
+
+    def movement_range(keys: list[str]) -> float:
+        xs, ys = [], []
+        for frame in frames:
+            kps = frame.get("keypoints", {})
+            for key in keys:
+                if key in kps and kps[key].get("confidence", 0) >= CONF_THRESHOLD:
+                    xs.append(kps[key]["x"])
+                    ys.append(kps[key]["y"])
+        if len(xs) < 3:
+            return 0.0
+        return max(max(xs) - min(xs), max(ys) - min(ys))
+
+    wrist_range = movement_range(WRIST_KEYS)
+    elbow_range = movement_range(ELBOW_KEYS)
+
+    if wrist_range < MIN_MOVEMENT_RANGE and elbow_range < MIN_MOVEMENT_RANGE:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "error": "no_swing_detected",
+                "message": "We couldn't detect a swing in this video. Make sure you're visible in the frame and take a full swing.",
+            },
+        )
+
+
 # ── Claude Analysis ──────────────────────────────────────────────
 
 SYSTEM_PROMPT = """\
@@ -379,6 +445,8 @@ async def analyze(request: AnalyzeRequest):
         _log(f"[Analyze] Extracting keypoints from downloaded file (MoveNet per-request)...")
         keypoint_data = extract_keypoints(tmp_path, sample_rate=2)
         _log(f"[Analyze] Extracted {len(keypoint_data['frames'])} frames")
+
+        validate_swing_video(keypoint_data)
 
         profile = request.player_profile or {}
         _log("[Analyze] Calling Claude with fresh keypoint data...")

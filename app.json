@@ -25,6 +25,7 @@
       }
     },
     "android": {
+      "package": "com.swingsense.app",
       "adaptiveIcon": {
         "backgroundColor": "#1B4D3E",
         "foregroundImage": "./assets/icon.png",
