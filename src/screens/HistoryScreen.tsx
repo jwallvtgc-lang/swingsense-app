@@ -20,43 +20,6 @@ import type { MainStackParamList } from '../navigation/types';
 
 type Nav = NativeStackNavigationProp<MainStackParamList>;
 
-function StatusBadge({ status }: { status: string }) {
-  const config: Record<string, { color: string; label: string }> = {
-    completed: { color: COLORS.success, label: 'Complete' },
-    processing: { color: COLORS.accent, label: 'Processing' },
-    uploading: { color: COLORS.textMuted, label: 'Uploading' },
-    failed: { color: COLORS.error, label: 'Failed' },
-  };
-  const { color, label } = config[status] ?? config.failed;
-
-  return (
-    <View style={[badgeStyles.badge, { backgroundColor: color + '25' }]}>
-      <View style={[badgeStyles.dot, { backgroundColor: color }]} />
-      <Text style={[badgeStyles.label, { color }]}>{label}</Text>
-    </View>
-  );
-}
-
-const badgeStyles = StyleSheet.create({
-  badge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  dot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-  },
-  label: {
-    fontSize: FONT_SIZE.xs,
-    fontWeight: '600',
-  },
-});
-
 function TrendIndicator({
   trend,
 }: {
@@ -221,7 +184,6 @@ export default function HistoryScreen() {
               <Text style={styles.cardDate}>{formatHistoryDate(item.created_at)}</Text>
               <View style={styles.cardTopRight}>
                 <TrendIndicator trend={trend} />
-                <StatusBadge status={item.status} />
               </View>
             </View>
             <Text style={styles.cardPreview} numberOfLines={1}>
