@@ -4,7 +4,7 @@
   "main": "index.ts",
   "scripts": {
     "eas-build-pre-install": "node scripts/eas-build-pre-install.js",
-    "eas-build-post-install": "bash scripts/eas-build-post-install.sh",
+    "eas-build-post-install": "node scripts/eas-build-post-install.js",
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
