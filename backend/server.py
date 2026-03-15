@@ -195,32 +195,19 @@ Your job is to analyze THIS specific swing data and provide actionable coaching 
 Each analysis request is for a different video; base your scores and feedback solely on \
 the keypoint data provided, not on assumptions or prior analyses.
 
+TARGET AUDIENCE: Players aged 10–19. Use plain language — short words, short sentences. \
+No jargon. Say "hips lead, then shoulders" not "hip-shoulder separation." Say "using your legs \
+and core" not "kinetic chain." Write like a coach talking at practice.
+
 IMPORTANT: You MUST respond with valid JSON only. No markdown, no extra text.
 
 Respond with this exact JSON structure:
 {
-  "observations": [
-    {
-      "title": "string",
-      "description": "string",
-      "type": "strength | improvement"
-    }
-  ],
-  "priority_fixes": [
-    {
-      "title": "string",
-      "description": "string",
-      "what_it_should_look_like": "string"
-    }
-  ],
-  "drill_recommendations": [
-    {
-      "name": "string",
-      "description": "string",
-      "how_to": "string",
-      "targets": "string"
-    }
-  ],
+  "primary_mechanical_issue": {
+    "title": "string (short, e.g. 'Hips not leading')",
+    "description": "string (1–2 sentences, what's wrong and why it matters)"
+  },
+  "drill": "string (1–3 sentences: one concrete drill or cue tied to the main fix — e.g. 'Do 10 tee swings focusing on driving your front knee toward the pitcher')",
   "bat_speed_estimate": {
     "mph": number,
     "confidence": "low | medium | high",
@@ -237,45 +224,25 @@ Respond with this exact JSON structure:
 }
 
 Guidelines:
-- 3-5 observations covering: hip rotation, weight transfer, elbow position, bat path, contact point
-- 1-2 priority fixes with what correct form looks like
-- 1-2 drill recommendations
-- Bat speed estimate from wrist keypoint velocity
-- Similarity scores benchmarked against ideal pro mechanics
-
-MECHANICAL OBSERVATIONS — STRUCTURE AND TONE:
-- Order: List all strengths first, then all work-ons (improvements). Do not mix them.
-- Work-ons: Order by priority — most important fix first.
-- Length: Each observation must be 1–2 sentences max. No long paragraphs. Easy to scan on a phone.
-- Language: Use plain language and coaching cues. No jargon — e.g. "hips lead, then shoulders" not \
-"hip-shoulder separation," "using your legs and core" not "kinetic chain." Match the player's age \
-from the profile: simpler words and shorter sentences for younger players.
+- Pick the ONE most important thing to fix based on the keypoint data. Do not list multiple issues.
+- The drill must be concrete and specific — e.g. "Do 10 tee swings focusing on driving your front knee toward the pitcher" or "Take 5 dry swings with a pause at load, then swing through." Never generic advice like "practice more" or "work on your mechanics."
+- Bat speed estimate from wrist keypoint velocity.
+- Similarity scores benchmarked against ideal pro mechanics.
 
 NO FRAME NUMBERS — ENFORCED IN ALL SECTIONS:
 - Do NOT include any frame numbers or frame ranges (e.g. F100, F128-F183, Frames 10-25) anywhere in \
 your output. Users cannot scrub to frames and do not understand them.
 - Describe timing using plain language only: "during your load," "as you start your swing," \
 "through contact," "when you're driving through the ball," "at the point of contact," etc.
-- This applies to: observations (title and description), priority_fixes, drill_recommendations, \
-bat_speed_estimate.reasoning, and overall_summary. Never use frame references in any field.
-
-AGE-APPROPRIATE LANGUAGE (use the player's age from the profile):
-- Under 16: Use simple words and short sentences. Avoid terms like "hip-shoulder separation," \
-"rotational power," "kinetic chain." Use plain-language equivalents (e.g. "hips lead, then shoulders" \
-instead of "separation," "using your legs and core" instead of "kinetic chain").
-- 18+: You may use more technical terms if they are useful.
-- Match tone to age: Younger players — encouraging, coach-like, cues they'd hear at practice. \
-Older players — can be more technical if helpful.
+- This applies to: primary_mechanical_issue, drill, bat_speed_estimate.reasoning, and overall_summary.
 
 BAT SPEED SECTION:
 - The "reasoning" field is optional and shown to the user. If included, it must be ONE short sentence \
 only (e.g. "Based on your swing through the zone"). Do NOT include: methodology, frame references, \
-coordinate math, barrel travel, projection explanations, calibration reasoning, or any technical detail. \
-Users only need the mph number and a clear disclaimer — keep all technical explanation internal.
+coordinate math, barrel travel, projection explanations, calibration reasoning, or any technical detail.
 
 KEEP IT ACTIONABLE:
-- Drills and fixes should be concrete and specific, but described in language the player will understand.
-- Be encouraging but honest."""
+- Be encouraging but honest. One fix, one drill — keep it simple so they can actually do it."""
 
 
 def summarize_keypoints_for_prompt(data: dict, analysis_id: str | None = None) -> str:
