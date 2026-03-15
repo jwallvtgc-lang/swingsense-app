@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "main": "index.ts",
   "scripts": {
-    "eas-build-pre-install": "bash scripts/eas-build-pre-install.sh",
+    "eas-build-pre-install": "node scripts/eas-build-pre-install.js",
     "eas-build-post-install": "bash scripts/eas-build-post-install.sh",
     "start": "expo start",
     "android": "expo start --android",
