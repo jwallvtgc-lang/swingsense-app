@@ -92,7 +92,7 @@ const trendStyles = StyleSheet.create({
   },
 });
 
-function getPreviewLine(analysis: SwingAnalysis): string | null {
+function getPreviewLine(analysis: SwingAnalysis): string {
   const coaching = analysis.coaching_output as CoachingOutput | null;
   if (coaching?.primary_mechanical_issue?.title) {
     return coaching.primary_mechanical_issue.title;
@@ -100,7 +100,7 @@ function getPreviewLine(analysis: SwingAnalysis): string | null {
   if (coaching?.drill) {
     return coaching.drill.length > 60 ? coaching.drill.slice(0, 57) + '...' : coaching.drill;
   }
-  return null;
+  return '—';
 }
 
 function formatHistoryDate(createdAt: string): string {
@@ -202,25 +202,18 @@ export default function HistoryScreen() {
       <View style={styles.cardWrapper}>
         <TouchableOpacity
           style={styles.card}
-          onPress={() => {
-            if (item.status === 'completed') {
-              navigation.navigate('Results', { analysisId: item.id });
-            }
-          }}
-          disabled={item.status !== 'completed'}
+          onPress={() => navigation.navigate('Results', { analysisId: item.id })}
           activeOpacity={0.7}
         >
           <View style={styles.cardLeft}>
-            {item.status === 'completed' && item.similarity_score != null ? (
+            {item.similarity_score != null ? (
               <View style={styles.scoreCircle}>
                 <Text style={styles.scoreCircleText}>{item.similarity_score}</Text>
               </View>
             ) : (
-              <Ionicons
-                name={item.status === 'completed' ? 'baseball' : 'hourglass'}
-                size={28}
-                color={item.status === 'completed' ? COLORS.accent : COLORS.textMuted}
-              />
+              <View style={styles.scoreCircle}>
+                <Text style={styles.scoreCircleText}>—</Text>
+              </View>
             )}
           </View>
           <View style={styles.cardContent}>
@@ -231,29 +224,17 @@ export default function HistoryScreen() {
                 <StatusBadge status={item.status} />
               </View>
             </View>
-            {preview && (
-              <Text style={styles.cardPreview} numberOfLines={1}>
-                {preview}
-              </Text>
-            )}
-            {item.status === 'completed' && (
-              <View style={styles.cardStats}>
-                {item.similarity_score != null && (
-                  <View style={styles.stat}>
-                    <Text style={styles.statValue}>{item.similarity_score}</Text>
-                    <Text style={styles.statLabel}>Swing score</Text>
-                  </View>
-                )}
-                {item.bat_speed_mph != null && (
-                  <View style={styles.stat}>
-                    <Text style={styles.statValue}>
-                      {Math.round(item.bat_speed_mph)}
-                    </Text>
-                    <Text style={styles.statLabel}>MPH</Text>
-                  </View>
-                )}
+            <Text style={styles.cardPreview} numberOfLines={1}>
+              {preview}
+            </Text>
+            <View style={styles.cardStats}>
+              <View style={styles.stat}>
+                <Text style={styles.statValue}>
+                  {item.bat_speed_mph != null ? Math.round(item.bat_speed_mph) : '—'}
+                </Text>
+                <Text style={styles.statLabel}>MPH</Text>
               </View>
-            )}
+            </View>
           </View>
           <View style={styles.cardRight}>
             <TouchableOpacity
@@ -263,9 +244,7 @@ export default function HistoryScreen() {
             >
               <Ionicons name="trash-outline" size={20} color={COLORS.textMuted} />
             </TouchableOpacity>
-            {item.status === 'completed' && (
-              <Ionicons name="chevron-forward" size={20} color={COLORS.textMuted} />
-            )}
+            <Ionicons name="chevron-forward" size={20} color={COLORS.textMuted} />
           </View>
         </TouchableOpacity>
       </View>
@@ -401,7 +380,8 @@ const styles = StyleSheet.create({
   cardPreview: {
     fontSize: FONT_SIZE.xs,
     color: COLORS.textMuted,
-    marginTop: SPACING.xs,
+    marginTop: SPACING.sm,
+    minHeight: 16,
   },
   cardLeft: {
     width: 44,
@@ -442,6 +422,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: SPACING.lg,
     marginTop: SPACING.sm,
+    minHeight: 22,
   },
   stat: {
     flexDirection: 'row',

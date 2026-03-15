@@ -293,7 +293,11 @@ Guidelines:
 - Pick the ONE most important thing to fix based on the keypoint data. Do not list multiple issues.
 - The drill must be concrete and specific — e.g. "Do 10 tee swings focusing on driving your front knee toward the pitcher" or "Take 5 dry swings with a pause at load, then swing through." Never generic advice like "practice more" or "work on your mechanics."
 - Bat speed estimate from wrist keypoint velocity.
-- Similarity scores benchmarked against ideal pro mechanics.
+
+SCORING — BE STRICT AND HONEST:
+- Similarity scores compare to ideal pro mechanics. Do NOT inflate scores. Be critical.
+- Calibration: 75–100 = pro-level, clean mechanics. 50–74 = developing, minor issues. 25–49 = clear flaws, needs work. 0–24 = major issues.
+- If you identify a primary_mechanical_issue to fix, the overall score MUST reflect that. A swing with "hips not leading" or "casting" should NOT score 70+. Be honest — a bad swing gets a low score.
 
 NO FRAME NUMBERS — ENFORCED IN ALL SECTIONS:
 - Do NOT include any frame numbers or frame ranges (e.g. F100, F128-F183, Frames 10-25) anywhere in \
