@@ -1,6 +1,14 @@
 #!/usr/bin/env node
-// Fix "[Expo] Configure project" phase for EAS iOS build
+// Fix splash + iOS build issues for EAS
 const fs = require('fs');
+const { execSync } = require('child_process');
+
+// Fix splash checkerboard: flatten splash-icon.png onto solid background (all platforms)
+try {
+  execSync('node scripts/fix-splash-background.js', { stdio: 'inherit' });
+} catch (e) {
+  console.warn('fix-splash-background.js failed (sharp may be unavailable):', e.message);
+}
 
 if (process.env.EAS_BUILD_PLATFORM !== 'ios' || !fs.existsSync('ios')) {
   process.exit(0);
