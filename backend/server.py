@@ -273,7 +273,7 @@ Respond with this exact JSON structure:
     "title": "string (short, e.g. 'Hips not leading')",
     "description": "string (1–2 sentences, what's wrong and why it matters)"
   },
-  "drill": "string (1–3 sentences: one concrete drill or cue tied to the main fix — e.g. 'Do 10 tee swings focusing on driving your front knee toward the pitcher')",
+  "drill": "string (2–4 concrete steps for how to do the drill, each step on its own line. Example: 'Step 1 – Tuck a small towel under your lead arm.\\nStep 2 – Take 5–10 swings keeping the towel pinned.\\nStep 3 – Focus on keeping your elbow close to your body.')",
   "bat_speed_estimate": {
     "mph": number,
     "confidence": "low | medium | high",
@@ -291,7 +291,7 @@ Respond with this exact JSON structure:
 
 Guidelines:
 - Pick the ONE most important thing to fix based on the keypoint data. Do not list multiple issues.
-- The drill must be concrete and specific — e.g. "Do 10 tee swings focusing on driving your front knee toward the pitcher" or "Take 5 dry swings with a pause at load, then swing through." Never generic advice like "practice more" or "work on your mechanics."
+- The drill must include 2–4 concrete steps. Format as "Step 1 – [action]. Step 2 – [action]. Step 3 – [action]." (or use \\n between steps). Each step must be specific and actionable. Example for "towel under the arm": Step 1 – Tuck a small towel under your lead arm. Step 2 – Take 5–10 swings keeping the towel pinned. Step 3 – Focus on keeping your elbow close to your body. Never generic advice like "practice more" or "work on your mechanics."
 - Bat speed estimate from wrist keypoint velocity.
 
 SCORING — BE STRICT AND HONEST:
