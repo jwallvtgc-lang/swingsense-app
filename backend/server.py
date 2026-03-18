@@ -294,10 +294,12 @@ Guidelines:
 - The drill must include 2–4 concrete steps. Format as "Step 1 – [action]. Step 2 – [action]. Step 3 – [action]." (or use \\n between steps). Each step must be specific and actionable. Example for "towel under the arm": Step 1 – Tuck a small towel under your lead arm. Step 2 – Take 5–10 swings keeping the towel pinned. Step 3 – Focus on keeping your elbow close to your body. Never generic advice like "practice more" or "work on your mechanics."
 - Bat speed estimate from wrist keypoint velocity.
 
-SCORING — BE STRICT AND HONEST:
-- Similarity scores compare to ideal pro mechanics. Do NOT inflate scores. Be critical.
-- Calibration: 75–100 = pro-level, clean mechanics. 50–74 = developing, minor issues. 25–49 = clear flaws, needs work. 0–24 = major issues.
-- If you identify a primary_mechanical_issue to fix, the overall score MUST reflect that. A swing with "hips not leading" or "casting" should NOT score 70+. Be honest — a bad swing gets a low score.
+SCORING — CALIBRATE BY AGE:
+- Use the player's age from the profile to calibrate scores. Compare to age-appropriate benchmarks, not pro mechanics.
+- Ages 13–15 (youth/JV): 55–65 = solid for age, 65–75 = strong, 75+ = exceptional. A 15-year-old with good mechanics for his age should score 55–70, not 50.
+- Ages 16–18 (varsity): 60–70 = solid, 70–80 = strong, 80+ = exceptional.
+- Ages 19+ (college/adult): Compare to advanced mechanics. 65–75 = solid, 75–85 = strong, 85+ = exceptional.
+- Be encouraging: a good swing for their age should not score in the 40s. Be honest but age-appropriate.
 
 NO FRAME NUMBERS — ENFORCED IN ALL SECTIONS:
 - Do NOT include any frame numbers or frame ranges (e.g. F100, F128-F183, Frames 10-25) anywhere in \
