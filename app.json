@@ -14,9 +14,10 @@
       "backgroundColor": "#0A0A0A"
     },
     "ios": {
+      "buildNumber": "2",
       "supportsTablet": true,
       "backgroundColor": "#0A0A0A",
-      "bundleIdentifier": "com.swingsense.app",
+      "bundleIdentifier": "com.jwallvtgc.swingsense",
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "SwingSense needs access to your photo library to select swing videos.",
         "NSCameraUsageDescription": "SwingSense needs camera access to record your swing.",
@@ -25,7 +26,7 @@
       }
     },
     "android": {
-      "package": "com.swingsense.app",
+      "package": "com.jwallvtgc.swingsense",
       "adaptiveIcon": {
         "backgroundColor": "#1B4D3E",
         "foregroundImage": "./assets/icon.png",
