@@ -1,33 +1,40 @@
 /**
- * Composites splash-icon.png onto solid navy background to fix checkerboard.
+ * Composites the baseball icon onto solid black background to fix checkerboard.
  * Adds SwingSense branding. Run: node scripts/fix-splash-background.js
+ *
+ * Input: splash-icon-source.png (raw baseball with transparency) OR splash-icon.png
+ * Output: splash-icon.png (fully opaque, no checkerboard)
  */
 const sharp = require('sharp');
 const path = require('path');
 const fs = require('fs');
 
 const assetsDir = path.join(__dirname, '../assets');
-const input = path.join(assetsDir, 'splash-icon.png');
-const output = path.join(assetsDir, 'splash-icon.png');
+const sourceFile = path.join(assetsDir, 'splash-icon-source.png');
+const fallbackFile = path.join(assetsDir, 'splash-icon.png');
+const outputFile = path.join(assetsDir, 'splash-icon.png');
 
-// Navy – matches app.json splash.backgroundColor (#1e3a5f)
-const BG = { r: 30, g: 58, b: 95 };
+// Use source file if it exists (raw baseball with transparency), else fallback
+const input = fs.existsSync(sourceFile) ? sourceFile : fallbackFile;
+
+// Black – matches app (#000000)
+const BG = { r: 0, g: 0, b: 0 };
 const CANVAS_W = 512;
-const CANVAS_H = 640; // Room for icon + branding
-const ICON_SIZE = 380; // Larger, main focus
-const ACCENT = '#F5A623'; // Brand orange
+const CANVAS_H = 640;
+const ICON_SIZE = 380;
+const ACCENT = '#F5A623'; // Orange, matches Record Swing button
+const TEXT_WHITE = '#FFFFFF';
 
 if (!fs.existsSync(input)) {
-  console.warn('splash-icon.png not found, skipping');
+  console.warn('splash-icon-source.png and splash-icon.png not found, skipping');
   process.exit(0);
 }
 
 async function fix() {
   const icon = await sharp(input)
-    .resize(ICON_SIZE, ICON_SIZE)
-    .ensureAlpha();
+    .resize(ICON_SIZE, ICON_SIZE, { fit: 'contain', background: BG });
 
-  // Solid navy canvas – no alpha, prevents checkerboard
+  // Solid black canvas – channels 3 = no alpha channel at all
   const bg = sharp({
     create: {
       width: CANVAS_W,
@@ -38,38 +45,49 @@ async function fix() {
   });
 
   const iconBuf = await icon.png().toBuffer();
-  const iconTop = Math.round((CANVAS_H - ICON_SIZE) / 2) - 40; // Slightly above center for text
+  const iconTop = Math.round((CANVAS_H - ICON_SIZE) / 2) - 40;
   const iconLeft = Math.round((CANVAS_W - ICON_SIZE) / 2);
 
-  // SVG for "SwingSense" – works on Linux (EAS build) and Windows
+  // Match app typography: fontWeight 800 (Swing History), white + orange accent
   const textSvg = Buffer.from(`
-<svg xmlns="http://www.w3.org/2000/svg" width="${CANVAS_W}" height="80">
-  <text x="${CANVAS_W / 2}" y="55" font-family="DejaVu Sans, Arial, Helvetica, sans-serif" font-size="36" font-weight="bold" fill="${ACCENT}" text-anchor="middle">SwingSense</text>
+<svg xmlns="http://www.w3.org/2000/svg" width="${CANVAS_W}" height="90">
+  <text x="${CANVAS_W / 2}" y="58" font-family="DejaVu Sans, Arial, Helvetica, sans-serif" font-size="48" font-weight="800" letter-spacing="1" text-anchor="middle">
+    <tspan fill="${TEXT_WHITE}">Swing</tspan><tspan fill="${ACCENT}">Sense</tspan>
+  </text>
 </svg>
 `);
 
-  let textBuf;
+  let textBuf = null;
   try {
     textBuf = await sharp(textSvg).png().toBuffer();
   } catch (e) {
-    console.warn('Could not render text, outputting icon only:', e.message);
-    textBuf = null;
+    console.warn('Could not render text:', e.message);
   }
 
   const composites = [
     { input: iconBuf, top: iconTop, left: iconLeft },
-    ...(textBuf ? [{ input: textBuf, top: CANVAS_H - 90, left: 0 }] : []),
+    ...(textBuf ? [{ input: textBuf, top: CANVAS_H - 100, left: 0 }] : []),
   ];
 
   await bg
     .composite(composites)
     .flatten({ background: BG })
-    .removeAlpha({ background: BG }) // Ensure no transparency – prevents checkerboard
+    .removeAlpha({ background: BG })
     .png({ compressionLevel: 9 })
-    .toFile(output.replace('.png', '-tmp.png'));
+    .toFile(outputFile.replace('.png', '-tmp.png'));
 
-  fs.renameSync(output.replace('.png', '-tmp.png'), output);
-  console.log('Fixed splash-icon.png: navy #1e3a5f background, branding added');
+  fs.renameSync(outputFile.replace('.png', '-tmp.png'), outputFile);
+  console.log('Fixed splash-icon.png: solid black background, no transparency');
+
+  // Copy to iOS imageset so native splash uses the fixed image
+  const imagesetDir = path.join(__dirname, '../ios/SwingSense/Images.xcassets/SplashScreenLogo.imageset');
+  if (fs.existsSync(imagesetDir)) {
+    const fixed = await sharp(outputFile).png().toBuffer();
+    for (const f of ['image.png', 'image@2x.png', 'image@3x.png']) {
+      fs.writeFileSync(path.join(imagesetDir, f), fixed);
+    }
+    console.log('Updated iOS SplashScreenLogo imageset');
+  }
 }
 
 fix().catch((err) => {

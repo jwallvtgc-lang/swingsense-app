@@ -127,32 +127,49 @@ function MainNavigator() {
 const SPLASH_MIN_MS = 1800; // Show splash at least 1.8s so user sees the logo
 const SPLASH_ICON_SIZE = 320; // Main focus – branded graphic (icon + SwingSense)
 
+const SPLASH_ANIM_DURATION = 600; // ~0.6s – within 0.5–1s spec
+const SPLASH_PULSE_DURATION = 350; // Light pulse when stopped
+
 function AnimatedSplashView({ onLayout }: { onLayout?: () => void }) {
-  const translateX = useRef(new Animated.Value(-150)).current;
-  const scale = useRef(new Animated.Value(0.6)).current;
+  const translateX = useRef(new Animated.Value(-100)).current;
+  const scale = useRef(new Animated.Value(0.8)).current;
+  const opacity = useRef(new Animated.Value(0.85)).current;
   const pulseScale = useRef(new Animated.Value(1)).current;
 
   const animRef = useRef<{ sweep?: Animated.CompositeAnimation; pulse?: Animated.CompositeAnimation }>({});
 
   useEffect(() => {
-    // Delay sweep until native splash typically hides (~1.8s) so user sees the animation
+    // Start when native splash typically hides (~1.8s) – doesn't slow app launch
     const t = setTimeout(() => {
       const sweep = Animated.parallel([
         Animated.timing(translateX, {
           toValue: 0,
-          duration: 600,
+          duration: SPLASH_ANIM_DURATION,
           useNativeDriver: true,
         }),
         Animated.timing(scale, {
           toValue: 1,
-          duration: 600,
+          duration: SPLASH_ANIM_DURATION,
+          useNativeDriver: true,
+        }),
+        Animated.timing(opacity, {
+          toValue: 1,
+          duration: SPLASH_ANIM_DURATION,
           useNativeDriver: true,
         }),
       ]);
       const pulse = Animated.loop(
         Animated.sequence([
-          Animated.timing(pulseScale, { toValue: 1.05, duration: 600, useNativeDriver: true }),
-          Animated.timing(pulseScale, { toValue: 1, duration: 600, useNativeDriver: true }),
+          Animated.timing(pulseScale, {
+            toValue: 1.04,
+            duration: SPLASH_PULSE_DURATION,
+            useNativeDriver: true,
+          }),
+          Animated.timing(pulseScale, {
+            toValue: 1,
+            duration: SPLASH_PULSE_DURATION,
+            useNativeDriver: true,
+          }),
         ])
       );
       animRef.current = { sweep, pulse };
@@ -163,7 +180,7 @@ function AnimatedSplashView({ onLayout }: { onLayout?: () => void }) {
       animRef.current.sweep?.stop();
       animRef.current.pulse?.stop();
     };
-  }, [translateX, scale, pulseScale]);
+  }, [translateX, scale, opacity, pulseScale]);
 
   return (
     <View style={splashStyles.container} onLayout={onLayout}>
@@ -171,6 +188,7 @@ function AnimatedSplashView({ onLayout }: { onLayout?: () => void }) {
         style={[
           splashStyles.iconWrap,
           {
+            opacity,
             transform: [
               { translateX },
               { scale: Animated.multiply(scale, pulseScale) },
@@ -206,7 +224,7 @@ const splashStyles = StyleSheet.create({
   },
   tagline: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.75)',
+    color: COLORS.textSecondary,
   },
   spinner: {
     marginTop: 24,
