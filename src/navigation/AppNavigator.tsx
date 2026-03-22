@@ -125,7 +125,7 @@ function MainNavigator() {
 }
 
 const SPLASH_MIN_MS = 1800; // Show splash at least 1.8s so user sees the logo
-const ICON_SIZE = 280; // ~2–3x larger than previous 200px for native splash
+const SPLASH_ICON_SIZE = 320; // Main focus – branded graphic (icon + SwingSense)
 
 function AnimatedSplashView({ onLayout }: { onLayout?: () => void }) {
   const translateX = useRef(new Animated.Value(-150)).current;
@@ -180,11 +180,10 @@ function AnimatedSplashView({ onLayout }: { onLayout?: () => void }) {
       >
         <Image
           source={require('../../assets/splash-icon.png')}
-          style={[splashStyles.icon, { width: ICON_SIZE, height: ICON_SIZE }]}
+          style={[splashStyles.icon, { width: SPLASH_ICON_SIZE, aspectRatio: 512 / 640 }]}
           resizeMode="contain"
         />
       </Animated.View>
-      <Text style={splashStyles.title}>SwingSense</Text>
       <Text style={splashStyles.tagline}>AI-Powered Swing Coaching</Text>
       <ActivityIndicator size="small" color={COLORS.accent} style={splashStyles.spinner} />
     </View>
@@ -203,14 +202,7 @@ const splashStyles = StyleSheet.create({
     marginBottom: 8,
   },
   icon: {
-    width: ICON_SIZE,
-    height: ICON_SIZE,
-  },
-  title: {
-    fontSize: 36,
-    fontWeight: '800',
-    color: COLORS.accent,
-    letterSpacing: 1,
+    width: SPLASH_ICON_SIZE,
   },
   tagline: {
     fontSize: 14,

@@ -37,5 +37,13 @@
         "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF3emtneXl2dHFoZGVxa2FuZGFmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIzOTk5MzEsImV4cCI6MjA4Nzk3NTkzMX0.llvIOj1u19NcoKXgNcECd7BP6z9mk9RMC8R0KaCHy3M"
       }
     }
+  },
+  "submit": {
+    "production": {
+      "ios": {},
+      "android": {
+        "track": "internal"
+      }
+    }
   }
 }
