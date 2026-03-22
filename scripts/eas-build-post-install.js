@@ -14,7 +14,25 @@ if (process.env.EAS_BUILD_PLATFORM !== 'ios' || !fs.existsSync('ios')) {
   process.exit(0);
 }
 
-// 0. Strip CRLF from env files (fixes "unexpected end of file" when repo was edited on Windows)
+// 0. Force iOS build number (avoids duplicate build number rejection)
+const appJson = JSON.parse(fs.readFileSync('app.json', 'utf8'));
+const buildNumber = appJson?.expo?.ios?.buildNumber || '2';
+const infoPlistPath = 'ios/SwingSense/Info.plist';
+const projectPath = 'ios/SwingSense.xcodeproj/project.pbxproj';
+if (fs.existsSync(infoPlistPath)) {
+  let plist = fs.readFileSync(infoPlistPath, 'utf8');
+  plist = plist.replace(/(<key>CFBundleVersion<\/key>\s*<string>)[^<]+(<\/string>)/, `$1${buildNumber}$2`);
+  fs.writeFileSync(infoPlistPath, plist);
+  console.log('Set CFBundleVersion to', buildNumber);
+}
+if (fs.existsSync(projectPath)) {
+  let proj = fs.readFileSync(projectPath, 'utf8');
+  proj = proj.replace(/CURRENT_PROJECT_VERSION = \d+;/g, `CURRENT_PROJECT_VERSION = ${buildNumber};`);
+  fs.writeFileSync(projectPath, proj);
+  console.log('Set CURRENT_PROJECT_VERSION to', buildNumber);
+}
+
+// 1. Strip CRLF from env files (fixes "unexpected end of file" when repo was edited on Windows)
 for (const f of ['ios/.xcode.env', 'ios/.xcode.env.local']) {
   if (fs.existsSync(f)) {
     let content = fs.readFileSync(f, 'utf8');

@@ -1,13 +1,20 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect, useRef } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
-import { ActivityIndicator, View, Text } from 'react-native';
+import {
+  ActivityIndicator,
+  View,
+  Text,
+  Image,
+  Animated,
+  StyleSheet,
+} from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
 
 import { useAuth } from '../contexts/AuthContext';
-import { COLORS } from '../config/constants';
+import { COLORS, SPLASH_BACKGROUND } from '../config/constants';
 
 import AuthScreen from '../screens/AuthScreen';
 import OnboardingScreen from '../screens/OnboardingScreen';
@@ -117,10 +124,113 @@ function MainNavigator() {
   );
 }
 
+const SPLASH_MIN_MS = 1800; // Show splash at least 1.8s so user sees the logo
+const ICON_SIZE = 280; // ~2–3x larger than previous 200px for native splash
+
+function AnimatedSplashView({ onLayout }: { onLayout?: () => void }) {
+  const translateX = useRef(new Animated.Value(-150)).current;
+  const scale = useRef(new Animated.Value(0.6)).current;
+  const pulseScale = useRef(new Animated.Value(1)).current;
+
+  const animRef = useRef<{ sweep?: Animated.CompositeAnimation; pulse?: Animated.CompositeAnimation }>({});
+
+  useEffect(() => {
+    // Delay sweep until native splash typically hides (~1.8s) so user sees the animation
+    const t = setTimeout(() => {
+      const sweep = Animated.parallel([
+        Animated.timing(translateX, {
+          toValue: 0,
+          duration: 600,
+          useNativeDriver: true,
+        }),
+        Animated.timing(scale, {
+          toValue: 1,
+          duration: 600,
+          useNativeDriver: true,
+        }),
+      ]);
+      const pulse = Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseScale, { toValue: 1.05, duration: 600, useNativeDriver: true }),
+          Animated.timing(pulseScale, { toValue: 1, duration: 600, useNativeDriver: true }),
+        ])
+      );
+      animRef.current = { sweep, pulse };
+      sweep.start(() => pulse.start());
+    }, SPLASH_MIN_MS);
+    return () => {
+      clearTimeout(t);
+      animRef.current.sweep?.stop();
+      animRef.current.pulse?.stop();
+    };
+  }, [translateX, scale, pulseScale]);
+
+  return (
+    <View style={splashStyles.container} onLayout={onLayout}>
+      <Animated.View
+        style={[
+          splashStyles.iconWrap,
+          {
+            transform: [
+              { translateX },
+              { scale: Animated.multiply(scale, pulseScale) },
+            ],
+          },
+        ]}
+      >
+        <Image
+          source={require('../../assets/splash-icon.png')}
+          style={[splashStyles.icon, { width: ICON_SIZE, height: ICON_SIZE }]}
+          resizeMode="contain"
+        />
+      </Animated.View>
+      <Text style={splashStyles.title}>SwingSense</Text>
+      <Text style={splashStyles.tagline}>AI-Powered Swing Coaching</Text>
+      <ActivityIndicator size="small" color={COLORS.accent} style={splashStyles.spinner} />
+    </View>
+  );
+}
+
+const splashStyles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: SPLASH_BACKGROUND,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+  },
+  iconWrap: {
+    marginBottom: 8,
+  },
+  icon: {
+    width: ICON_SIZE,
+    height: ICON_SIZE,
+  },
+  title: {
+    fontSize: 36,
+    fontWeight: '800',
+    color: COLORS.accent,
+    letterSpacing: 1,
+  },
+  tagline: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.75)',
+  },
+  spinner: {
+    marginTop: 24,
+  },
+});
+
 export default function AppNavigator() {
   const { session, loading, hasProfile } = useAuth();
+  const appStartTime = useRef(Date.now());
 
   const onLayoutReady = useCallback(async () => {
+    const elapsed = Date.now() - appStartTime.current;
+    const waitMs = Math.max(0, SPLASH_MIN_MS - elapsed);
+    if (waitMs > 0) {
+      await new Promise((r) => setTimeout(r, waitMs));
+    }
     try {
       await SplashScreen.hideAsync();
       console.log('[AppNavigator] Splash hidden');
@@ -131,26 +241,7 @@ export default function AppNavigator() {
 
   if (loading) {
     console.log('[AppNavigator] Loading auth...');
-    return (
-      <View
-        style={{
-          flex: 1,
-          backgroundColor: COLORS.background,
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: 12,
-        }}
-        onLayout={onLayoutReady}
-      >
-        <Text style={{ fontSize: 36, fontWeight: '800', color: COLORS.accent, letterSpacing: 1 }}>
-          SwingSense
-        </Text>
-        <Text style={{ fontSize: 14, color: COLORS.textSecondary }}>
-          AI-Powered Swing Coaching
-        </Text>
-        <ActivityIndicator size="small" color={COLORS.accent} style={{ marginTop: 24 }} />
-      </View>
-    );
+    return <AnimatedSplashView onLayout={onLayoutReady} />;
   }
 
   return (

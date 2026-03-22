@@ -9,7 +9,8 @@ const fs = require('fs');
 const assetsDir = path.join(__dirname, '../assets');
 const input = path.join(assetsDir, 'splash-icon.png');
 const output = path.join(assetsDir, 'splash-icon.png');
-const BG = { r: 10, g: 10, b: 10 }; // #0A0A0A
+// Dark blue/charcoal – matches app.json splash.backgroundColor to avoid transparency checkerboard
+const BG = { r: 15, g: 23, b: 42 }; // #0f172a
 const SIZE = 512;
 
 if (!fs.existsSync(input)) {
@@ -30,7 +31,7 @@ async function fix() {
     .png({ compressionLevel: 9 })
     .toFile(output.replace('.png', '-tmp.png'));
   fs.renameSync(output.replace('.png', '-tmp.png'), output);
-  console.log('Fixed splash-icon.png with solid #0A0A0A background');
+  console.log('Fixed splash-icon.png with solid #0f172a background');
 }
 
 fix().catch((err) => {

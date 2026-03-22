@@ -14,6 +14,9 @@ export function logConfig() {
   console.log('[Config] BACKEND_URL:', isLocalhost ? `${backend} (set EXPO_PUBLIC_BACKEND_URL for prod)` : backend);
 }
 
+/** Splash screen background – dark blue/charcoal, matches native splash */
+export const SPLASH_BACKGROUND = '#0f172a';
+
 export const COLORS = {
   primary: '#1B4D3E',
   primaryLight: '#2D7A5F',

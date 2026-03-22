@@ -96,6 +96,29 @@ function SectionCard({
   );
 }
 
+/** Parse drill text into numbered steps for display */
+function parseDrillSteps(drill: string): Array<{ num: number; text: string }> {
+  if (!drill?.trim()) return [];
+  const steps: Array<{ num: number; text: string }> = [];
+  // Match "Step N –", "Step N:", "Step N -", "N." (backend uses "Step 1 – action. Step 2 – ...")
+  const re = /Step\s+(\d+)\s*[–:-]\s*([^]*?)(?=Step\s+\d+\s*[–:-]|$)/gi;
+  let m;
+  while ((m = re.exec(drill)) !== null) {
+    const text = m[2].trim().replace(/\s+/g, ' ');
+    if (text) steps.push({ num: parseInt(m[1], 10), text });
+  }
+  // Fallback: try "1. " or "1) " style
+  if (steps.length === 0) {
+    const alt = drill.split(/(?=\d+[.)]\s)/).filter(Boolean);
+    alt.forEach((part, i) => {
+      const t = part.replace(/^\d+[.)]\s*/, '').trim();
+      if (t) steps.push({ num: i + 1, text: t.replace(/\s+/g, ' ') });
+    });
+  }
+  if (steps.length === 0) return [{ num: 1, text: drill.trim() }];
+  return steps;
+}
+
 const cardStyles = StyleSheet.create({
   card: {
     backgroundColor: COLORS.surface,
@@ -251,7 +274,16 @@ export default function ResultsScreen() {
           {coaching?.drill && (
             <View style={[styles.actionPlanBlock, !coaching?.primary_mechanical_issue && styles.actionPlanBlockFirst]}>
               <Text style={styles.actionPlanLabel}>Try this drill</Text>
-              <Text style={styles.tileContentText}>{coaching.drill}</Text>
+              <View style={styles.drillSteps}>
+                {parseDrillSteps(coaching.drill).map((step) => (
+                  <View key={step.num} style={styles.drillStepRow}>
+                    <View style={styles.drillStepBullet}>
+                      <Text style={styles.drillStepNum}>{step.num}</Text>
+                    </View>
+                    <Text style={styles.drillStepText}>{step.text}</Text>
+                  </View>
+                ))}
+              </View>
             </View>
           )}
         </SectionCard>
@@ -469,6 +501,36 @@ const styles = StyleSheet.create({
     lineHeight: 24,
   },
   tileContentText: {
+    fontSize: FONT_SIZE.md,
+    color: COLORS.textSecondary,
+    lineHeight: 24,
+  },
+  drillSteps: {
+    gap: SPACING.sm,
+  },
+  drillStepRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: SPACING.sm,
+    paddingLeft: SPACING.xs,
+    borderLeftWidth: 3,
+    borderLeftColor: COLORS.accent,
+  },
+  drillStepBullet: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: COLORS.accent + '20',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  drillStepNum: {
+    fontSize: FONT_SIZE.sm,
+    fontWeight: '700',
+    color: COLORS.accent,
+  },
+  drillStepText: {
+    flex: 1,
     fontSize: FONT_SIZE.md,
     color: COLORS.textSecondary,
     lineHeight: 24,

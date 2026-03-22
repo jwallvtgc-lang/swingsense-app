@@ -29,6 +29,7 @@
     },
     "production": {
       "channel": "production",
+      "autoIncrement": true,
       "env": {
         "XDG_CACHE_HOME": "/tmp/.cache",
         "EXPO_PUBLIC_BACKEND_URL": "https://swingsense-api.onrender.com",

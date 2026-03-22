@@ -52,9 +52,24 @@ export default function AuthScreen() {
         </View>
 
         <View style={styles.form}>
-          <Text style={styles.formTitle}>
-            {mode === 'signin' ? 'Welcome Back' : 'Create Account'}
-          </Text>
+          <View style={styles.tabs}>
+            <TouchableOpacity
+              style={[styles.tab, mode === 'signin' && styles.tabActive]}
+              onPress={() => setMode('signin')}
+            >
+              <Text style={[styles.tabText, mode === 'signin' && styles.tabTextActive]}>
+                Sign In
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.tab, mode === 'signup' && styles.tabActive]}
+              onPress={() => setMode('signup')}
+            >
+              <Text style={[styles.tabText, mode === 'signup' && styles.tabTextActive]}>
+                Sign Up
+              </Text>
+            </TouchableOpacity>
+          </View>
 
           <View style={styles.inputContainer}>
             <Text style={styles.label}>Email</Text>
@@ -95,17 +110,6 @@ export default function AuthScreen() {
               </Text>
             )}
           </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.switchMode}
-            onPress={() => setMode(mode === 'signin' ? 'signup' : 'signin')}
-          >
-            <Text style={styles.switchText}>
-              {mode === 'signin'
-                ? "Don't have an account? Sign Up"
-                : 'Already have an account? Sign In'}
-            </Text>
-          </TouchableOpacity>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -144,12 +148,29 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.surfaceBorder,
   },
-  formTitle: {
-    fontSize: FONT_SIZE.xl,
-    fontWeight: '700',
-    color: COLORS.text,
+  tabs: {
+    flexDirection: 'row',
     marginBottom: SPACING.lg,
-    textAlign: 'center',
+    backgroundColor: COLORS.surfaceLight,
+    borderRadius: 10,
+    padding: 4,
+  },
+  tab: {
+    flex: 1,
+    paddingVertical: SPACING.sm,
+    alignItems: 'center',
+    borderRadius: 8,
+  },
+  tabActive: {
+    backgroundColor: COLORS.primary,
+  },
+  tabText: {
+    fontSize: FONT_SIZE.md,
+    fontWeight: '600',
+    color: COLORS.textSecondary,
+  },
+  tabTextActive: {
+    color: COLORS.white,
   },
   inputContainer: {
     marginBottom: SPACING.md,
@@ -183,13 +204,5 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZE.lg,
     fontWeight: '700',
     color: COLORS.white,
-  },
-  switchMode: {
-    marginTop: SPACING.lg,
-    alignItems: 'center',
-  },
-  switchText: {
-    fontSize: FONT_SIZE.sm,
-    color: COLORS.accent,
   },
 });
