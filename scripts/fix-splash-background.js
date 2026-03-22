@@ -1,9 +1,9 @@
 /**
- * Composites the baseball icon onto solid black background to fix checkerboard.
- * Adds SwingSense branding. Run: node scripts/fix-splash-background.js
+ * Composites the baseball icon onto solid black background. Adds "Swing Sense" branding.
+ * Run: node scripts/fix-splash-background.js
  *
- * Input: splash-icon-source.png (raw baseball with transparency) OR splash-icon.png
- * Output: splash-icon.png (fully opaque, no checkerboard)
+ * Input priority: splash-icon-source.png (raw baseball only) > icon.png (app icon)
+ * Output: splash-icon.png – baseball + "Swing Sense" only, no duplicates
  */
 const sharp = require('sharp');
 const path = require('path');
@@ -11,12 +11,11 @@ const fs = require('fs');
 
 const assetsDir = path.join(__dirname, '../assets');
 const sourceFile = path.join(assetsDir, 'splash-icon-source.png');
-const fallbackFile = path.join(assetsDir, 'splash-icon.png');
+const iconFile = path.join(assetsDir, 'icon.png');
 const outputFile = path.join(assetsDir, 'splash-icon.png');
 
-// Prefer source (raw baseball); fallback already has icon + branding – don't add text again
-const isSource = fs.existsSync(sourceFile);
-const input = isSource ? sourceFile : fallbackFile;
+// Use raw baseball source if present; else app icon (baseball only, no embedded text)
+const input = fs.existsSync(sourceFile) ? sourceFile : iconFile;
 
 // Black – matches app (#000000)
 const BG = { r: 0, g: 0, b: 0 };
@@ -27,7 +26,7 @@ const ACCENT = '#F5A623'; // Orange, matches Record Swing button
 const TEXT_WHITE = '#FFFFFF';
 
 if (!fs.existsSync(input)) {
-  console.warn('splash-icon-source.png and splash-icon.png not found, skipping');
+  console.warn('splash-icon-source.png and icon.png not found, skipping');
   process.exit(0);
 }
 
@@ -49,9 +48,9 @@ async function fix() {
   const iconTop = Math.round((CANVAS_H - ICON_SIZE) / 2) - 40;
   const iconLeft = Math.round((CANVAS_W - ICON_SIZE) / 2);
 
-  // Only add "Swing Sense" when using raw baseball source – fallback already has it
+  // Add "Swing Sense" – both source and icon.png are graphic-only (no embedded text)
   let textBuf = null;
-  if (isSource) {
+  {
     const textSvg = Buffer.from(`
 <svg xmlns="http://www.w3.org/2000/svg" width="${CANVAS_W}" height="90">
   <text x="${CANVAS_W / 2}" y="58" font-family="DejaVu Sans, Arial, Helvetica, sans-serif" font-size="48" font-weight="800" letter-spacing="1" text-anchor="middle">

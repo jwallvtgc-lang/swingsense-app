@@ -1,8 +1,9 @@
 # Splash Icon Source (Optional)
 
-For the cleanest checkerboard fix, add **splash-icon-source.png** – the raw baseball icon with a transparent background from your design tool.
+The splash shows: **baseball icon** + **"Swing Sense"** (Swing white, Sense orange) on black.
 
-- If present: the fix script uses it as the source (best quality, no checkerboard).
-- If absent: the script uses splash-icon.png as fallback.
+- **splash-icon-source.png**: Raw baseball with transparent background (best quality). Add this for a custom baseball graphic.
+- **icon.png**: Used when splash-icon-source.png is absent – the app icon provides the baseball graphic.
+- **splash-icon.png**: Generated output. Do not edit.
 
-Export from Figma/Sketch/etc. as PNG with transparency, save as `splash-icon-source.png` in this folder, then run `npm run fix-splash`.
+Run `npm run fix-splash` after adding or changing assets.
