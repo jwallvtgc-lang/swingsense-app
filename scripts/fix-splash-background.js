@@ -14,8 +14,9 @@ const sourceFile = path.join(assetsDir, 'splash-icon-source.png');
 const fallbackFile = path.join(assetsDir, 'splash-icon.png');
 const outputFile = path.join(assetsDir, 'splash-icon.png');
 
-// Use source file if it exists (raw baseball with transparency), else fallback
-const input = fs.existsSync(sourceFile) ? sourceFile : fallbackFile;
+// Prefer source (raw baseball); fallback already has icon + branding – don't add text again
+const isSource = fs.existsSync(sourceFile);
+const input = isSource ? sourceFile : fallbackFile;
 
 // Black – matches app (#000000)
 const BG = { r: 0, g: 0, b: 0 };
@@ -48,20 +49,21 @@ async function fix() {
   const iconTop = Math.round((CANVAS_H - ICON_SIZE) / 2) - 40;
   const iconLeft = Math.round((CANVAS_W - ICON_SIZE) / 2);
 
-  // Match app typography: fontWeight 800 (Swing History), white + orange accent
-  const textSvg = Buffer.from(`
+  // Only add "Swing Sense" when using raw baseball source – fallback already has it
+  let textBuf = null;
+  if (isSource) {
+    const textSvg = Buffer.from(`
 <svg xmlns="http://www.w3.org/2000/svg" width="${CANVAS_W}" height="90">
   <text x="${CANVAS_W / 2}" y="58" font-family="DejaVu Sans, Arial, Helvetica, sans-serif" font-size="48" font-weight="800" letter-spacing="1" text-anchor="middle">
     <tspan fill="${TEXT_WHITE}">Swing</tspan><tspan fill="${ACCENT}">Sense</tspan>
   </text>
 </svg>
 `);
-
-  let textBuf = null;
-  try {
-    textBuf = await sharp(textSvg).png().toBuffer();
-  } catch (e) {
-    console.warn('Could not render text:', e.message);
+    try {
+      textBuf = await sharp(textSvg).png().toBuffer();
+    } catch (e) {
+      console.warn('Could not render text:', e.message);
+    }
   }
 
   const composites = [
