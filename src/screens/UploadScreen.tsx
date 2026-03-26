@@ -2,28 +2,36 @@ import React, { useState } from 'react';
 import {
   View,
   Text,
-  TouchableOpacity,
+  Pressable,
   StyleSheet,
   Alert,
-  Image,
   Platform,
+  ScrollView,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { COLORS, SPACING, FONT_SIZE } from '../config/constants';
+import { COLORS, SPACING, FONT_SIZE, FONTS } from '../config/constants';
 import { useAuth } from '../contexts/AuthContext';
 import { canUserAnalyze } from '../services/subscription';
 import type { MainStackParamList } from '../navigation/types';
 
 type Nav = NativeStackNavigationProp<MainStackParamList, 'Upload'>;
 
+const TIPS = [
+  'Film from the side (3rd base or 1st base line)',
+  'Full body visible from feet to bat',
+  'Good lighting, minimal background movement',
+  '5–30 seconds, one swing per clip',
+];
+
 export default function UploadScreen() {
+  const insets = useSafeAreaInsets();
   const navigation = useNavigation<Nav>();
   const { user, profile } = useAuth();
   const [selectedVideo, setSelectedVideo] = useState<string | null>(null);
-  const [thumbnail, setThumbnail] = useState<string | null>(null);
 
   const checkQuota = async (): Promise<boolean> => {
     if (!user) {
@@ -64,8 +72,6 @@ export default function UploadScreen() {
         mediaTypes: ['videos'],
         allowsEditing: false,
         quality: 1,
-        // Use HighestQuality on iOS to avoid PHPhotosErrorDomain 3164 with iCloud videos.
-        // Passthrough fails for iCloud assets; HighestQuality transcodes and can download.
         ...(Platform.OS === 'ios' && {
           videoExportPreset: ImagePicker.VideoExportPreset.HighestQuality,
         }),
@@ -80,7 +86,6 @@ export default function UploadScreen() {
           return;
         }
         setSelectedVideo(asset.uri);
-        setThumbnail(asset.uri);
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -130,7 +135,6 @@ export default function UploadScreen() {
       if (!result.canceled && result.assets[0]) {
         const asset = result.assets[0];
         setSelectedVideo(asset.uri);
-        setThumbnail(asset.uri);
       }
     } catch (err) {
       console.error('[UploadScreen] recordVideo error:', err);
@@ -142,91 +146,117 @@ export default function UploadScreen() {
     if (!selectedVideo) return;
     navigation.navigate('Processing', { videoUri: selectedVideo });
     setSelectedVideo(null);
-    setThumbnail(null);
+  };
+
+  const clearVideo = () => {
+    setSelectedVideo(null);
   };
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.greeting}>
-          Hey{profile?.first_name ? `, ${profile.first_name}` : ''}
-        </Text>
-        <Text style={styles.headerTitle}>Analyze Your Swing</Text>
-        <Text style={styles.headerSub}>
-          Upload a side-angle video of your swing (5-30 seconds, full body visible)
-        </Text>
-      </View>
+      <ScrollView
+        style={styles.scrollContent}
+        contentContainerStyle={styles.scrollInner}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
+          <View style={styles.glow} />
+          <Text style={styles.greeting}>
+            Hey{profile?.first_name ? `, ${profile.first_name}` : ''}
+          </Text>
+          <Text style={styles.headline}>
+            Analyze{'\n'}Your <Text style={styles.headlineAccent}>Swing</Text>
+          </Text>
+          <Text style={styles.subtext}>
+            Upload a side-angle video (5–30 sec, full body visible)
+          </Text>
+        </View>
 
-      {selectedVideo ? (
-        <View style={styles.previewContainer}>
-          <View style={styles.previewBox}>
-            <Ionicons name="videocam" size={48} color={COLORS.accent} />
-            <Text style={styles.previewText}>Video selected</Text>
-            <Text style={styles.previewSubtext}>Ready to analyze</Text>
+        {selectedVideo ? (
+          <View style={styles.previewSection}>
+            <Pressable
+              style={({ pressed }) => [
+                styles.actionCard,
+                styles.actionCardPrimary,
+                pressed && styles.actionCardPressed,
+              ]}
+            >
+              <View style={styles.cardIcon}>
+                <Ionicons name="videocam" size={24} color={COLORS.accent} />
+              </View>
+              <View style={styles.cardText}>
+                <Text style={styles.cardLabel}>Video selected</Text>
+                <Text style={styles.cardDesc}>Ready to analyze</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={COLORS.textMuted} />
+            </Pressable>
+
+            <Pressable
+              style={({ pressed }) => [
+                styles.ctaButton,
+                pressed && styles.ctaButtonPressed,
+              ]}
+              onPress={startAnalysis}
+            >
+              <Ionicons name="flash" size={20} color={COLORS.black} />
+              <Text style={styles.ctaButtonText}>Analyze This Swing</Text>
+            </Pressable>
+
+            <Pressable onPress={clearVideo} style={styles.changeButton}>
+              <Text style={styles.changeButtonText}>Choose Different Video</Text>
+            </Pressable>
           </View>
+        ) : (
+          <View style={styles.actionCards}>
+            <Pressable
+              style={({ pressed }) => [
+                styles.actionCard,
+                styles.actionCardPrimary,
+                pressed && styles.actionCardPressed,
+              ]}
+              onPress={pickVideo}
+            >
+              <View style={styles.cardIcon}>
+                <Ionicons name="cloud-upload-outline" size={24} color={COLORS.accent} />
+              </View>
+              <View style={styles.cardText}>
+                <Text style={styles.cardLabel}>Upload from Library</Text>
+                <Text style={styles.cardDesc}>Select a swing video from your camera roll</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={COLORS.textMuted} />
+            </Pressable>
 
-          <TouchableOpacity style={styles.analyzeButton} onPress={startAnalysis}>
-            <Ionicons name="flash" size={22} color={COLORS.black} />
-            <Text style={styles.analyzeButtonText}>Analyze This Swing</Text>
-          </TouchableOpacity>
+            <Pressable
+              style={({ pressed }) => [
+                styles.actionCard,
+                pressed && styles.actionCardPressed,
+              ]}
+              onPress={recordVideo}
+            >
+              <View style={[styles.cardIcon, styles.cardIconTeal]}>
+                <Ionicons name="camera-outline" size={24} color="#14B8A6" />
+              </View>
+              <View style={styles.cardText}>
+                <Text style={styles.cardLabel}>Record Now</Text>
+                <Text style={styles.cardDesc}>Film your swing with front or back camera</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={COLORS.textMuted} />
+            </Pressable>
+          </View>
+        )}
 
-          <TouchableOpacity
-            style={styles.changeButton}
-            onPress={() => {
-              setSelectedVideo(null);
-              setThumbnail(null);
-            }}
-          >
-            <Text style={styles.changeButtonText}>Choose Different Video</Text>
-          </TouchableOpacity>
-        </View>
-      ) : (
-        <View style={styles.uploadOptions}>
-          <TouchableOpacity style={styles.uploadCard} onPress={pickVideo}>
-            <View style={styles.uploadIconContainer}>
-              <Ionicons name="cloud-upload-outline" size={40} color={COLORS.accent} />
+        <View style={styles.tipsSection}>
+          <Text style={styles.tipsTitle}>Tips for best results</Text>
+          {TIPS.map((tip, i) => (
+            <View key={i} style={styles.tipItem}>
+              <View style={styles.tipDot}>
+                <Text style={styles.tipDotText}>✓</Text>
+              </View>
+              <Text style={styles.tipText}>{tip}</Text>
             </View>
-            <View style={styles.uploadCardTextContainer}>
-              <Text style={styles.uploadCardTitle}>Upload from Library</Text>
-              <Text style={styles.uploadCardSub}>
-                Select a swing video from your camera roll
-              </Text>
-            </View>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.uploadCard} onPress={recordVideo}>
-            <View style={styles.uploadIconContainer}>
-              <Ionicons name="camera-outline" size={40} color={COLORS.primaryLight} />
-            </View>
-            <View style={styles.uploadCardTextContainer}>
-              <Text style={styles.uploadCardTitle}>Record Now</Text>
-              <Text style={styles.uploadCardSub}>
-                Film your swing with front or back camera
-              </Text>
-            </View>
-          </TouchableOpacity>
+          ))}
         </View>
-      )}
-
-      <View style={styles.tips}>
-        <Text style={styles.tipsTitle}>Tips for best results</Text>
-        <View style={styles.tip}>
-          <Ionicons name="checkmark-circle" size={18} color={COLORS.success} />
-          <Text style={styles.tipText}>Film from the side (3rd base or 1st base line)</Text>
-        </View>
-        <View style={styles.tip}>
-          <Ionicons name="checkmark-circle" size={18} color={COLORS.success} />
-          <Text style={styles.tipText}>Full body visible from feet to bat</Text>
-        </View>
-        <View style={styles.tip}>
-          <Ionicons name="checkmark-circle" size={18} color={COLORS.success} />
-          <Text style={styles.tipText}>Good lighting, minimal background movement</Text>
-        </View>
-        <View style={styles.tip}>
-          <Ionicons name="checkmark-circle" size={18} color={COLORS.success} />
-          <Text style={styles.tipText}>5–30 seconds, one swing per clip</Text>
-        </View>
-      </View>
+      </ScrollView>
     </View>
   );
 }
@@ -235,129 +265,183 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
-    padding: SPACING.lg,
   },
-  header: {
-    marginTop: SPACING.xl,
-    marginBottom: SPACING.lg,
-  },
-  greeting: {
-    fontSize: FONT_SIZE.md,
-    color: COLORS.textSecondary,
-    marginBottom: SPACING.xs,
-  },
-  headerTitle: {
-    fontSize: FONT_SIZE.xxl,
-    fontWeight: '800',
-    color: COLORS.text,
-  },
-  headerSub: {
-    fontSize: FONT_SIZE.sm,
-    color: COLORS.textMuted,
-    marginTop: SPACING.xs,
-    lineHeight: 20,
-  },
-  uploadOptions: {
-    gap: SPACING.md,
-    marginBottom: SPACING.lg,
-  },
-  uploadCard: {
-    backgroundColor: COLORS.surface,
-    borderRadius: 16,
-    padding: SPACING.lg,
-    borderWidth: 1,
-    borderColor: COLORS.surfaceBorder,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.md,
-  },
-  uploadIconContainer: {
-    width: 64,
-    height: 64,
-    borderRadius: 16,
-    backgroundColor: COLORS.surfaceLight,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  uploadCardTextContainer: {
+  scrollContent: {
     flex: 1,
   },
-  uploadCardTitle: {
-    fontSize: FONT_SIZE.lg,
-    fontWeight: '700',
-    color: COLORS.text,
+  scrollInner: {
+    paddingBottom: SPACING.xl,
   },
-  uploadCardSub: {
-    fontSize: FONT_SIZE.xs,
+  header: {
+    paddingHorizontal: 28,
+    position: 'relative',
+  },
+  glow: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    backgroundColor: COLORS.accentGlow,
+  },
+  greeting: {
+    fontSize: 12,
+    fontFamily: FONTS.bodyMedium,
     color: COLORS.textMuted,
-    marginTop: 2,
+    textTransform: 'uppercase',
+    letterSpacing: 2,
+    marginBottom: 6,
   },
-  previewContainer: {
-    marginBottom: SPACING.lg,
-    gap: SPACING.md,
-  },
-  previewBox: {
-    backgroundColor: COLORS.surface,
-    borderRadius: 16,
-    padding: SPACING.xl,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: COLORS.surfaceBorder,
-    gap: SPACING.sm,
-  },
-  previewText: {
-    fontSize: FONT_SIZE.lg,
-    fontWeight: '700',
+  headline: {
+    fontFamily: FONTS.heading,
+    fontSize: 52,
     color: COLORS.text,
+    lineHeight: 52 * 0.95,
+    marginBottom: 10,
+    letterSpacing: 1,
   },
-  previewSubtext: {
-    fontSize: FONT_SIZE.sm,
-    color: COLORS.textSecondary,
+  headlineAccent: {
+    color: COLORS.accent,
   },
-  analyzeButton: {
+  subtext: {
+    fontSize: 13,
+    fontFamily: FONTS.body,
+    color: COLORS.textMuted,
+    lineHeight: 20,
+    maxWidth: 260,
+  },
+  actionCards: {
+    paddingTop: 28,
+    paddingHorizontal: 28,
+    gap: 12,
+  },
+  actionCard: {
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 20,
+    padding: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+  },
+  actionCardPrimary: {
+    backgroundColor: 'rgba(245,158,11,0.12)',
+    borderColor: 'rgba(245,158,11,0.3)',
+  },
+  actionCardPressed: {
+    backgroundColor: COLORS.surfaceHover,
+  },
+  cardIcon: {
+    width: 52,
+    height: 52,
+    borderRadius: 14,
+    backgroundColor: 'rgba(245,158,11,0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(245,158,11,0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cardIconTeal: {
+    backgroundColor: 'rgba(20,184,166,0.1)',
+    borderColor: 'rgba(20,184,166,0.2)',
+  },
+  cardText: {
+    flex: 1,
+  },
+  cardLabel: {
+    fontSize: 16,
+    fontFamily: FONTS.bodySemiBold,
+    color: COLORS.text,
+    marginBottom: 3,
+  },
+  cardDesc: {
+    fontSize: 12,
+    fontFamily: FONTS.body,
+    color: COLORS.textMuted,
+  },
+  previewSection: {
+    paddingTop: 28,
+    paddingHorizontal: 28,
+    gap: 12,
+  },
+  ctaButton: {
     backgroundColor: COLORS.accent,
-    borderRadius: 12,
-    padding: SPACING.md + 2,
+    borderRadius: 16,
+    padding: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: SPACING.sm,
+    gap: 8,
+    marginBottom: 12,
+    shadowColor: COLORS.accent,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 24,
+    elevation: 8,
   },
-  analyzeButtonText: {
-    fontSize: FONT_SIZE.lg,
-    fontWeight: '800',
+  ctaButtonPressed: {
+    opacity: 0.9,
+  },
+  ctaButtonText: {
+    fontSize: 15,
+    fontFamily: FONTS.bodySemiBold,
     color: COLORS.black,
+    letterSpacing: 0.3,
   },
   changeButton: {
     alignItems: 'center',
-    padding: SPACING.sm,
+    padding: 12,
   },
   changeButtonText: {
-    fontSize: FONT_SIZE.sm,
-    color: COLORS.textSecondary,
+    fontSize: 14,
+    fontFamily: FONTS.body,
+    color: COLORS.textMuted,
   },
-  tips: {
+  tipsSection: {
+    marginHorizontal: 28,
+    marginTop: 20,
+    marginBottom: 24,
     backgroundColor: COLORS.surface,
-    borderRadius: 14,
-    padding: SPACING.md,
     borderWidth: 1,
-    borderColor: COLORS.surfaceBorder,
-    gap: SPACING.sm,
+    borderColor: COLORS.border,
+    borderRadius: 20,
+    padding: 20,
   },
   tipsTitle: {
-    fontSize: FONT_SIZE.sm,
-    fontWeight: '700',
-    color: COLORS.textSecondary,
-    marginBottom: SPACING.xs,
+    fontSize: 11,
+    fontFamily: FONTS.bodySemiBold,
+    color: COLORS.textMuted,
+    textTransform: 'uppercase',
+    letterSpacing: 1.5,
+    marginBottom: 14,
   },
-  tip: {
+  tipItem: {
     flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    marginBottom: 10,
+  },
+  tipDot: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: COLORS.green,
     alignItems: 'center',
-    gap: SPACING.sm,
+    justifyContent: 'center',
+    marginTop: 1,
+  },
+  tipDotText: {
+    fontSize: 10,
+    color: COLORS.white,
+    fontFamily: FONTS.bodySemiBold,
   },
   tipText: {
-    fontSize: FONT_SIZE.sm,
-    color: COLORS.textMuted,
+    fontSize: 13,
+    fontFamily: FONTS.body,
+    color: COLORS.textDim,
+    lineHeight: 18,
     flex: 1,
   },
 });

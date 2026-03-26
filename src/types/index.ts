@@ -61,6 +61,8 @@ export interface CoachingOutput {
   bat_speed_estimate: BatSpeedEstimate;
   similarity_scores: SimilarityBreakdown;
   overall_summary: string;
+  /** One sentence from Claude comparing this swing to the previous one; null if first swing or N/A */
+  vs_last_swing?: string | null;
   /** @deprecated Legacy format — use primary_mechanical_issue and drill */
   observations?: Observation[];
   /** @deprecated Legacy format — use primary_mechanical_issue */

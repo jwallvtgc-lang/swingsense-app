@@ -3,19 +3,21 @@ import {
   View,
   Text,
   StyleSheet,
-  TouchableOpacity,
+  Pressable,
   ScrollView,
   Alert,
   Linking,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
-import { COLORS, SPACING, FONT_SIZE, FEEDBACK_EMAIL } from '../config/constants';
+import { COLORS, FONTS, FEEDBACK_EMAIL } from '../config/constants';
 import { useAuth } from '../contexts/AuthContext';
 import { POSITION_LABELS, BATTING_SIDE_LABELS } from '../types';
 
 export default function ProfileScreen() {
+  const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const { profile, user, signOut } = useAuth();
 
@@ -42,7 +44,10 @@ export default function ProfileScreen() {
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={[styles.content, { paddingTop: insets.top + 12 }]}
+    >
       <View style={styles.header}>
         <View style={styles.avatar}>
           <Text style={styles.avatarText}>
@@ -56,13 +61,13 @@ export default function ProfileScreen() {
       <View style={styles.card}>
         <View style={styles.cardHeaderRow}>
           <Text style={styles.cardTitle}>Player Profile</Text>
-          <TouchableOpacity
+          <Pressable
             style={styles.editButton}
             onPress={() => navigation.navigate('EditProfile')}
           >
             <Ionicons name="pencil" size={18} color={COLORS.accent} />
             <Text style={styles.editButtonText}>Edit</Text>
-          </TouchableOpacity>
+          </Pressable>
         </View>
         <ProfileRow label="Age" value={String(profile?.age ?? '—')} />
         <ProfileRow
@@ -80,24 +85,23 @@ export default function ProfileScreen() {
         <Text style={styles.cardTitle}>Subscription</Text>
         <ProfileRow label="Plan" value="Free" />
         <ProfileRow label="Analyses this month" value="—" />
-        <TouchableOpacity style={styles.upgradeButton}>
+        <Pressable
+          style={({ pressed }) => [styles.upgradeButton, pressed && styles.ctaPressed]}
+        >
           <Ionicons name="star" size={18} color={COLORS.black} />
           <Text style={styles.upgradeText}>Upgrade to Pro</Text>
-        </TouchableOpacity>
+        </Pressable>
       </View>
 
-      <TouchableOpacity
-        style={styles.feedbackLink}
-        onPress={openFeedback}
-      >
+      <Pressable style={styles.feedbackLink} onPress={openFeedback}>
         <Ionicons name="mail-outline" size={20} color={COLORS.accent} />
         <Text style={styles.feedbackLinkText}>Send Feedback</Text>
-      </TouchableOpacity>
+      </Pressable>
 
-      <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
-        <Ionicons name="log-out-outline" size={20} color={COLORS.error} />
+      <Pressable style={styles.signOutButton} onPress={handleSignOut}>
+        <Ionicons name="log-out-outline" size={20} color={COLORS.red} />
         <Text style={styles.signOutText}>Sign Out</Text>
-      </TouchableOpacity>
+      </Pressable>
 
       <Text style={styles.version}>SwingSense v{appVersion}</Text>
     </ScrollView>
@@ -119,113 +123,144 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
   },
   content: {
-    padding: SPACING.lg,
-    paddingTop: SPACING.xxl + SPACING.md,
+    paddingHorizontal: 28,
+    paddingBottom: 32,
   },
   header: {
     alignItems: 'center',
-    marginBottom: SPACING.xl,
+    marginBottom: 32,
   },
   avatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: COLORS.primary,
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    backgroundColor: COLORS.accentGlow,
+    borderWidth: 2,
+    borderColor: COLORS.accent,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: SPACING.md,
+    marginBottom: 16,
   },
   avatarText: {
-    fontSize: FONT_SIZE.hero,
-    fontWeight: '800',
-    color: COLORS.white,
+    fontSize: 36,
+    fontFamily: FONTS.heading,
+    color: COLORS.accent,
+    letterSpacing: 1,
   },
   name: {
-    fontSize: FONT_SIZE.xl,
-    fontWeight: '800',
+    fontSize: 24,
+    fontFamily: FONTS.heading,
     color: COLORS.text,
+    letterSpacing: 1,
   },
   email: {
-    fontSize: FONT_SIZE.sm,
+    fontSize: 13,
+    fontFamily: FONTS.body,
     color: COLORS.textMuted,
-    marginTop: SPACING.xs,
+    marginTop: 6,
   },
   card: {
     backgroundColor: COLORS.surface,
-    borderRadius: 14,
-    padding: SPACING.md,
-    marginBottom: SPACING.md,
+    borderRadius: 20,
+    padding: 20,
+    marginBottom: 16,
     borderWidth: 1,
-    borderColor: COLORS.surfaceBorder,
+    borderColor: COLORS.border,
   },
   cardTitle: {
-    fontSize: FONT_SIZE.lg,
-    fontWeight: '700',
+    fontSize: 16,
+    fontFamily: FONTS.bodySemiBold,
     color: COLORS.text,
-    marginBottom: SPACING.md,
+    marginBottom: 14,
+  },
+  cardHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  editButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  editButtonText: {
+    fontSize: 14,
+    fontFamily: FONTS.bodyMedium,
+    color: COLORS.accent,
   },
   row: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: SPACING.sm,
+    paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.surfaceBorder,
+    borderBottomColor: COLORS.border,
   },
   rowLabel: {
-    fontSize: FONT_SIZE.md,
-    color: COLORS.textSecondary,
+    fontSize: 14,
+    fontFamily: FONTS.body,
+    color: COLORS.textDim,
   },
   rowValue: {
-    fontSize: FONT_SIZE.md,
-    fontWeight: '600',
+    fontSize: 14,
+    fontFamily: FONTS.bodySemiBold,
     color: COLORS.text,
+  },
+  ctaPressed: {
+    opacity: 0.9,
   },
   upgradeButton: {
     backgroundColor: COLORS.accent,
-    borderRadius: 10,
-    padding: SPACING.md,
+    borderRadius: 16,
+    paddingVertical: 16,
+    paddingHorizontal: 28,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: SPACING.sm,
-    marginTop: SPACING.md,
+    gap: 8,
+    marginTop: 14,
+    shadowColor: COLORS.accent,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 24,
+    elevation: 8,
   },
   upgradeText: {
-    fontSize: FONT_SIZE.md,
-    fontWeight: '700',
+    fontSize: 15,
+    fontFamily: FONTS.bodySemiBold,
     color: COLORS.black,
   },
   feedbackLink: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: SPACING.sm,
-    padding: SPACING.md,
-    marginTop: SPACING.sm,
+    gap: 8,
+    padding: 16,
+    marginTop: 8,
   },
   feedbackLinkText: {
-    fontSize: FONT_SIZE.md,
-    fontWeight: '600',
+    fontSize: 15,
+    fontFamily: FONTS.bodySemiBold,
     color: COLORS.accent,
   },
   signOutButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: SPACING.sm,
-    padding: SPACING.md,
-    marginTop: SPACING.sm,
+    gap: 8,
+    padding: 16,
+    marginTop: 8,
   },
   signOutText: {
-    fontSize: FONT_SIZE.md,
-    fontWeight: '600',
-    color: COLORS.error,
+    fontSize: 15,
+    fontFamily: FONTS.bodySemiBold,
+    color: COLORS.red,
   },
   version: {
-    fontSize: FONT_SIZE.xs,
+    fontSize: 12,
+    fontFamily: FONTS.body,
     color: COLORS.textMuted,
     textAlign: 'center',
-    marginTop: SPACING.xl,
+    marginTop: 32,
   },
 });

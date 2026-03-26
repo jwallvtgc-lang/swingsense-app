@@ -5,17 +5,27 @@ import {
   StyleSheet,
   ScrollView,
   ActivityIndicator,
-  TouchableOpacity,
+  Pressable,
   TextInput,
   Linking,
+  useWindowDimensions,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, SPACING, FONT_SIZE } from '../config/constants';
-import { pollAnalysisStatus } from '../services/analysis';
-import type { SwingAnalysis, CoachingOutput, SimilarityBreakdown } from '../types';
+import { COLORS, FONTS, FEEDBACK_EMAIL } from '../config/constants';
+import {
+  getPreviousCompletedAnalysis,
+  pollAnalysisStatus,
+  scoreDeltaDirection,
+} from '../services/analysis';
+import type {
+  SwingAnalysis,
+  CoachingOutput,
+  SimilarityBreakdown,
+} from '../types';
 import type { MainStackParamList } from '../navigation/types';
 
 type Nav = NativeStackNavigationProp<MainStackParamList, 'Results'>;
@@ -31,31 +41,46 @@ function ScoreRing({
   size?: number;
 }) {
   const color =
-    score >= 75 ? COLORS.success : score >= 50 ? COLORS.accent : COLORS.error;
+    score >= 75 ? COLORS.green : score >= 50 ? COLORS.accent : COLORS.red;
 
   return (
-    <View style={[scoreStyles.ring, { width: size, height: size }]}>
-      <View
-        style={[
-          scoreStyles.ringInner,
-          {
-            width: size - 8,
-            height: size - 8,
-            borderRadius: (size - 8) / 2,
-            borderColor: color,
-          },
-        ]}
-      >
-        <Text style={[scoreStyles.scoreValue, { color, fontSize: size * 0.3 }]}>
-          {score}
-        </Text>
+    <View style={[scoreStyles.ringColumn, { maxWidth: '100%' }]}>
+      <View style={[scoreStyles.ring, { width: size, height: size }]}>
+        <View
+          style={[
+            scoreStyles.ringInner,
+            {
+              width: size - 8,
+              height: size - 8,
+              borderRadius: (size - 8) / 2,
+              borderColor: color,
+            },
+          ]}
+        >
+          <Text
+            style={[scoreStyles.scoreValue, { color, fontSize: size * 0.3 }]}
+            maxFontSizeMultiplier={1.4}
+          >
+            {score}
+          </Text>
+        </View>
       </View>
-      <Text style={scoreStyles.scoreLabel}>{label}</Text>
+      <Text
+        style={scoreStyles.scoreLabel}
+        numberOfLines={2}
+        maxFontSizeMultiplier={1.35}
+      >
+        {label}
+      </Text>
     </View>
   );
 }
 
 const scoreStyles = StyleSheet.create({
+  ringColumn: {
+    alignItems: 'center',
+    width: '100%',
+  },
   ring: {
     alignItems: 'center',
   },
@@ -65,14 +90,17 @@ const scoreStyles = StyleSheet.create({
     justifyContent: 'center',
   },
   scoreValue: {
-    fontWeight: '800',
+    fontFamily: FONTS.bodySemiBold,
   },
   scoreLabel: {
-    fontSize: FONT_SIZE.xs,
-    color: COLORS.textSecondary,
-    marginTop: 4,
+    fontSize: 11,
+    lineHeight: 14,
+    fontFamily: FONTS.body,
+    color: COLORS.textDim,
+    marginTop: 6,
     textAlign: 'center',
-    width: 90,
+    alignSelf: 'stretch',
+    paddingHorizontal: 2,
   },
 });
 
@@ -88,7 +116,9 @@ function SectionCard({
   return (
     <View style={cardStyles.card}>
       <View style={cardStyles.cardHeader}>
-        <Ionicons name={icon} size={20} color={COLORS.accent} />
+        <View style={cardStyles.cardIcon}>
+          <Ionicons name={icon} size={16} color={COLORS.accent} />
+        </View>
         <Text style={cardStyles.cardTitle}>{title}</Text>
       </View>
       {children}
@@ -119,45 +149,89 @@ function parseDrillSteps(drill: string): Array<{ num: number; text: string }> {
   return steps;
 }
 
+const COMPARE_KEYS: Array<{
+  key: keyof SimilarityBreakdown;
+  label: string;
+}> = [
+  { key: 'overall', label: 'Overall' },
+  { key: 'hip_rotation', label: 'Hip rotation' },
+  { key: 'weight_transfer', label: 'Weight transfer' },
+  { key: 'bat_path', label: 'Bat path' },
+  { key: 'contact_point', label: 'Contact' },
+];
+
+function formatPrevSwingDate(iso: string): string {
+  try {
+    return new Date(iso).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    });
+  } catch {
+    return iso;
+  }
+}
+
 const cardStyles = StyleSheet.create({
   card: {
     backgroundColor: COLORS.surface,
-    borderRadius: 14,
-    padding: SPACING.md,
+    borderRadius: 20,
+    padding: 20,
     borderWidth: 1,
-    borderColor: COLORS.surfaceBorder,
-    marginBottom: SPACING.md,
+    borderColor: COLORS.border,
+    marginBottom: 16,
   },
   cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: SPACING.sm,
-    marginBottom: SPACING.md,
+    gap: 10,
+    marginBottom: 14,
   },
   cardTitle: {
-    fontSize: FONT_SIZE.lg,
-    fontWeight: '700',
+    fontSize: 16,
+    fontFamily: FONTS.bodySemiBold,
     color: COLORS.text,
+  },
+  cardIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    backgroundColor: COLORS.accentGlow,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
 
 export default function ResultsScreen() {
+  const insets = useSafeAreaInsets();
+  const { width: windowWidth } = useWindowDimensions();
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
   const { analysisId } = route.params;
-
   const [analysis, setAnalysis] = useState<SwingAnalysis | null>(null);
+  const [previousAnalysis, setPreviousAnalysis] = useState<SwingAnalysis | null>(null);
   const [loading, setLoading] = useState(true);
   const [feedbackHelpful, setFeedbackHelpful] = useState<'thumbs_up' | 'thumbs_down' | null>(null);
   const [feedbackText, setFeedbackText] = useState('');
 
   useEffect(() => {
-    const fetchAnalysis = async () => {
+    let cancelled = false;
+    const load = async () => {
       const data = await pollAnalysisStatus(analysisId);
+      if (cancelled) return;
       setAnalysis(data);
       setLoading(false);
+      if (data?.user_id) {
+        const prev = await getPreviousCompletedAnalysis(data.user_id, data.created_at);
+        if (!cancelled) setPreviousAnalysis(prev);
+      } else {
+        setPreviousAnalysis(null);
+      }
     };
-    fetchAnalysis();
+    load();
+    return () => {
+      cancelled = true;
+    };
   }, [analysisId]);
 
   const goToHistory = () => {
@@ -167,11 +241,11 @@ export default function ResultsScreen() {
   if (loading) {
     return (
       <View style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={goToHistory} activeOpacity={0.7}>
-            <Ionicons name="chevron-back" size={24} color={COLORS.accent} />
+        <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
+          <Pressable style={styles.backButton} onPress={goToHistory}>
+            <Ionicons name="chevron-back" size={22} color={COLORS.accent} />
             <Text style={styles.backLabel}>History</Text>
-          </TouchableOpacity>
+          </Pressable>
         </View>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={COLORS.accent} />
@@ -183,11 +257,11 @@ export default function ResultsScreen() {
   if (!analysis) {
     return (
       <View style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={goToHistory} activeOpacity={0.7}>
-            <Ionicons name="chevron-back" size={24} color={COLORS.accent} />
+        <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
+          <Pressable style={styles.backButton} onPress={goToHistory}>
+            <Ionicons name="chevron-back" size={22} color={COLORS.accent} />
             <Text style={styles.backLabel}>History</Text>
-          </TouchableOpacity>
+          </Pressable>
         </View>
         <View style={styles.loadingContainer}>
           <Ionicons name="alert-circle" size={48} color={COLORS.error} />
@@ -199,14 +273,59 @@ export default function ResultsScreen() {
 
   const coaching = analysis.coaching_output as CoachingOutput | null;
   const breakdown = analysis.similarity_breakdown as SimilarityBreakdown | null;
+  const prevCoaching = previousAnalysis?.coaching_output as CoachingOutput | null;
+  const prevBreakdown =
+    previousAnalysis?.similarity_breakdown ??
+    prevCoaching?.similarity_scores ??
+    null;
+
+  const compareRows = previousAnalysis
+    ? COMPARE_KEYS.map(({ key, label }) => {
+        let curr: number | null | undefined;
+        let prev: number | null | undefined;
+        if (key === 'overall') {
+          curr =
+            analysis.similarity_score ??
+            breakdown?.overall ??
+            coaching?.similarity_scores?.overall;
+          prev =
+            previousAnalysis.similarity_score ??
+            prevBreakdown?.overall ??
+            prevCoaching?.similarity_scores?.overall;
+        } else {
+          curr = breakdown?.[key];
+          prev = prevBreakdown?.[key];
+        }
+        const dir = scoreDeltaDirection(curr, prev);
+        const diff =
+          curr != null && prev != null ? Math.round(curr - prev) : null;
+        return { key, label, dir, diff };
+      }).filter((r) => r.dir != null || r.diff != null)
+    : [];
+
+  /** Inner width of SectionCard content: scroll padding + card padding */
+  const scrollHorizontalPad = 28;
+  const cardHorizontalPad = 20;
+  const scoreCardInnerWidth = Math.max(
+    260,
+    windowWidth - scrollHorizontalPad * 2 - cardHorizontalPad * 2
+  );
+  const breakdownColWidth = scoreCardInnerWidth / 2;
+  const smallRingSize = Math.round(
+    Math.min(56, Math.max(42, breakdownColWidth * 0.36))
+  );
+  const overallRingSize = Math.min(
+    100,
+    Math.max(76, Math.round(scoreCardInnerWidth * 0.34))
+  );
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={goToHistory} activeOpacity={0.7}>
-          <Ionicons name="chevron-back" size={24} color={COLORS.accent} />
+      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
+        <Pressable style={styles.backButton} onPress={goToHistory}>
+          <Ionicons name="chevron-back" size={22} color={COLORS.accent} />
           <Text style={styles.backLabel}>History</Text>
-        </TouchableOpacity>
+        </Pressable>
       </View>
       <ScrollView
         style={styles.scrollView}
@@ -232,23 +351,75 @@ export default function ResultsScreen() {
             <ScoreRing
               score={analysis.similarity_score}
               label="Overall"
-              size={100}
+              size={overallRingSize}
             />
           </View>
           {breakdown && (
             <View style={styles.breakdownGrid}>
               <View style={styles.breakdownCell}>
-                <ScoreRing score={breakdown.hip_rotation} label="Hip Rotation" size={56} />
+                <ScoreRing
+                  score={breakdown.hip_rotation}
+                  label="Hip Rotation"
+                  size={smallRingSize}
+                />
               </View>
               <View style={styles.breakdownCell}>
-                <ScoreRing score={breakdown.weight_transfer} label="Weight Transfer" size={56} />
+                <ScoreRing
+                  score={breakdown.weight_transfer}
+                  label="Weight Transfer"
+                  size={smallRingSize}
+                />
               </View>
               <View style={styles.breakdownCell}>
-                <ScoreRing score={breakdown.bat_path} label="Bat Path" size={56} />
+                <ScoreRing
+                  score={breakdown.bat_path}
+                  label="Bat Path"
+                  size={smallRingSize}
+                />
               </View>
               <View style={styles.breakdownCell}>
-                <ScoreRing score={breakdown.contact_point} label="Contact" size={56} />
+                <ScoreRing
+                  score={breakdown.contact_point}
+                  label="Contact"
+                  size={smallRingSize}
+                />
               </View>
+            </View>
+          )}
+        </SectionCard>
+      )}
+
+      {previousAnalysis && (compareRows.length > 0 || coaching?.vs_last_swing) && (
+        <SectionCard title="Compared to your last swing" icon="git-compare-outline">
+          <Text style={styles.comparePrevDate}>
+            Last swing: {formatPrevSwingDate(previousAnalysis.created_at)}
+          </Text>
+          {!!coaching?.vs_last_swing?.trim() && (
+            <Text style={styles.compareSentence}>{coaching.vs_last_swing.trim()}</Text>
+          )}
+          {compareRows.length > 0 && (
+            <View style={styles.compareDeltas}>
+              {compareRows.map(({ key, label, dir, diff }) => {
+                const color =
+                  dir === 'up'
+                    ? COLORS.green
+                    : dir === 'down'
+                      ? COLORS.red
+                      : COLORS.textMuted;
+                const arrow =
+                  dir === 'up' ? '↑' : dir === 'down' ? '↓' : '→';
+                return (
+                  <View key={key} style={styles.compareRow}>
+                    <Text style={styles.compareLabel} numberOfLines={1}>
+                      {label}
+                    </Text>
+                    <Text style={[styles.compareDeltaText, { color }]}>
+                      {diff != null ? `${diff > 0 ? '+' : ''}${diff}` : '—'}{' '}
+                      {arrow}
+                    </Text>
+                  </View>
+                );
+              })}
             </View>
           )}
         </SectionCard>
@@ -261,19 +432,12 @@ export default function ResultsScreen() {
         </SectionCard>
       )}
 
-      {/* 3. Your Action Plan */}
+      {/* 3. Your Action Plan — drill first (what to do); quick context after (why, compact) */}
       {(coaching?.primary_mechanical_issue || coaching?.drill) && (
         <SectionCard title="Your Action Plan" icon="construct">
-          {coaching?.primary_mechanical_issue && (
-            <View style={styles.actionPlanBlock}>
-              <Text style={styles.actionPlanLabel}>Focus on</Text>
-              <Text style={styles.actionPlanFixTitle}>{coaching.primary_mechanical_issue.title}</Text>
-              <Text style={styles.tileContentText}>{coaching.primary_mechanical_issue.description}</Text>
-            </View>
-          )}
           {coaching?.drill && (
-            <View style={[styles.actionPlanBlock, !coaching?.primary_mechanical_issue && styles.actionPlanBlockFirst]}>
-              <Text style={styles.actionPlanLabel}>Try this drill</Text>
+            <View style={styles.actionPlanBlockFirst}>
+              <Text style={[styles.actionPlanLabel, styles.drillLabel]}>Try this drill</Text>
               <View style={styles.drillSteps}>
                 {parseDrillSteps(coaching.drill).map((step) => (
                   <View key={step.num} style={styles.drillStepRow}>
@@ -284,6 +448,17 @@ export default function ResultsScreen() {
                   </View>
                 ))}
               </View>
+            </View>
+          )}
+          {coaching?.primary_mechanical_issue && (
+            <View style={[styles.actionPlanBlock, !!coaching?.drill && styles.actionPlanBlockAfterDrill]}>
+              <Text style={styles.actionPlanLabelMuted}>Quick context</Text>
+              <Text style={styles.actionPlanFixTitleCompact}>{coaching.primary_mechanical_issue.title}</Text>
+              {!!coaching.primary_mechanical_issue.description?.trim() && (
+                <Text style={styles.actionPlanDescriptionCompact} numberOfLines={4}>
+                  {coaching.primary_mechanical_issue.description}
+                </Text>
+              )}
             </View>
           )}
         </SectionCard>
@@ -316,18 +491,18 @@ export default function ResultsScreen() {
         <Text style={styles.feedbackPrompt}>Did this help?</Text>
         {feedbackHelpful == null ? (
           <View style={styles.thumbsRow}>
-            <TouchableOpacity
+            <Pressable
               style={styles.thumbButton}
               onPress={() => setFeedbackHelpful('thumbs_up')}
             >
               <Text style={styles.thumbEmoji}>👍</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
+            </Pressable>
+            <Pressable
               style={styles.thumbButton}
               onPress={() => setFeedbackHelpful('thumbs_down')}
             >
               <Text style={styles.thumbEmoji}>👎</Text>
-            </TouchableOpacity>
+            </Pressable>
           </View>
         ) : feedbackHelpful === 'thumbs_up' ? (
           <Text style={styles.feedbackThanks}>Thanks!</Text>
@@ -342,7 +517,7 @@ export default function ResultsScreen() {
               multiline
               numberOfLines={3}
             />
-            <TouchableOpacity
+            <Pressable
               style={styles.sendFeedbackButton}
               onPress={() => {
                 const subject = encodeURIComponent('SwingSense Beta Feedback');
@@ -356,18 +531,18 @@ export default function ResultsScreen() {
             >
               <Ionicons name="mail-outline" size={18} color={COLORS.black} />
               <Text style={styles.sendFeedbackText}>Send feedback</Text>
-            </TouchableOpacity>
+            </Pressable>
           </View>
         )}
       </View>
 
-      <TouchableOpacity
-        style={styles.newAnalysisButton}
+      <Pressable
+        style={({ pressed }) => [styles.newAnalysisButton, pressed && styles.ctaPressed]}
         onPress={() => navigation.navigate('Upload')}
       >
-        <Ionicons name="add-circle" size={22} color={COLORS.black} />
+        <Text style={styles.newAnalysisPlus}>+</Text>
         <Text style={styles.newAnalysisText}>Analyze Another Swing</Text>
-      </TouchableOpacity>
+      </Pressable>
 
       <View style={styles.bottomPadding} />
       </ScrollView>
@@ -383,11 +558,8 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: SPACING.lg,
-    paddingTop: SPACING.xl + SPACING.md,
-    paddingBottom: SPACING.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.surfaceBorder,
+    paddingHorizontal: 28,
+    paddingBottom: 20,
   },
   backButton: {
     flexDirection: 'row',
@@ -395,184 +567,266 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   backLabel: {
-    fontSize: FONT_SIZE.md,
-    fontWeight: '600',
+    fontSize: 14,
+    fontFamily: FONTS.bodyMedium,
     color: COLORS.accent,
   },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
-    padding: SPACING.lg,
+    paddingHorizontal: 28,
+    paddingBottom: 28,
+    paddingTop: 0,
   },
   loadingContainer: {
     flex: 1,
     backgroundColor: COLORS.background,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: SPACING.md,
+    gap: 16,
   },
   errorText: {
-    fontSize: FONT_SIZE.lg,
-    color: COLORS.textSecondary,
+    fontSize: 18,
+    fontFamily: FONTS.body,
+    color: COLORS.textDim,
   },
   heroSection: {
-    marginBottom: SPACING.lg,
-    marginTop: SPACING.md,
+    marginBottom: 24,
+    marginTop: 0,
+    paddingTop: 8,
   },
   heroTitle: {
-    fontSize: FONT_SIZE.xxl,
-    fontWeight: '800',
+    fontFamily: FONTS.heading,
+    fontSize: 48,
     color: COLORS.text,
+    letterSpacing: 1,
+    lineHeight: 48,
   },
   heroDate: {
-    fontSize: FONT_SIZE.sm,
+    fontSize: 13,
+    fontFamily: FONTS.body,
     color: COLORS.textMuted,
-    marginTop: SPACING.xs,
+    marginTop: 6,
+  },
+  comparePrevDate: {
+    fontSize: 12,
+    fontFamily: FONTS.body,
+    color: COLORS.textMuted,
+    marginBottom: 8,
+  },
+  compareSentence: {
+    fontSize: 14,
+    fontFamily: FONTS.body,
+    color: COLORS.textDim,
+    lineHeight: 21,
+    marginBottom: 12,
+  },
+  compareDeltas: {
+    gap: 8,
+    marginTop: 4,
+  },
+  compareRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  compareLabel: {
+    flex: 1,
+    fontSize: 13,
+    fontFamily: FONTS.bodyMedium,
+    color: COLORS.text,
+  },
+  compareDeltaText: {
+    fontSize: 13,
+    fontFamily: FONTS.bodySemiBold,
+    minWidth: 56,
+    textAlign: 'right',
   },
   overallScoreRow: {
     alignItems: 'center',
-    marginBottom: SPACING.md,
+    marginBottom: 16,
   },
   breakdownGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
+    marginHorizontal: -4,
   },
   breakdownCell: {
     width: '50%',
+    minWidth: 0,
     alignItems: 'center',
-    paddingVertical: SPACING.sm,
+    paddingVertical: 10,
+    paddingHorizontal: 4,
   },
   batSpeedRow: {
     flexDirection: 'row',
     alignItems: 'baseline',
-    gap: SPACING.xs,
+    gap: 4,
   },
   batSpeedValue: {
     fontSize: 48,
-    fontWeight: '800',
+    fontFamily: FONTS.bodySemiBold,
     color: COLORS.accent,
   },
   batSpeedUnit: {
-    fontSize: FONT_SIZE.xl,
-    fontWeight: '600',
-    color: COLORS.textSecondary,
+    fontSize: 22,
+    fontFamily: FONTS.bodySemiBold,
+    color: COLORS.textDim,
   },
   confidenceLabel: {
-    fontSize: FONT_SIZE.xs,
+    fontSize: 12,
+    fontFamily: FONTS.body,
     color: COLORS.textMuted,
-    marginTop: SPACING.xs,
+    marginTop: 4,
     textTransform: 'capitalize',
   },
   reasoningText: {
-    fontSize: FONT_SIZE.sm,
-    color: COLORS.textSecondary,
-    marginTop: SPACING.sm,
+    fontSize: 14,
+    fontFamily: FONTS.body,
+    color: COLORS.textDim,
+    marginTop: 8,
     lineHeight: 20,
   },
   actionPlanBlock: {
-    marginTop: SPACING.md,
-    paddingTop: SPACING.md,
+    marginTop: 16,
+    paddingTop: 16,
     borderTopWidth: 1,
-    borderTopColor: COLORS.surfaceBorder,
+    borderTopColor: COLORS.border,
   },
   actionPlanBlockFirst: {
     marginTop: 0,
     paddingTop: 0,
     borderTopWidth: 0,
   },
+  actionPlanBlockAfterDrill: {
+    marginTop: 14,
+    paddingTop: 14,
+  },
   actionPlanLabel: {
-    fontSize: FONT_SIZE.sm,
-    fontWeight: '700',
+    fontSize: 10,
+    fontFamily: FONTS.bodySemiBold,
     color: COLORS.accent,
-    marginBottom: SPACING.xs,
+    marginBottom: 6,
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: 2,
+  },
+  /** De-emphasized label for the mechanical-issue block (below drill) */
+  actionPlanLabelMuted: {
+    fontSize: 9,
+    fontFamily: FONTS.bodySemiBold,
+    color: COLORS.textMuted,
+    marginBottom: 4,
+    textTransform: 'uppercase',
+    letterSpacing: 1.2,
   },
   actionPlanFixTitle: {
-    fontSize: FONT_SIZE.lg,
-    fontWeight: '700',
+    fontSize: 17,
+    fontFamily: FONTS.bodySemiBold,
     color: COLORS.text,
-    marginBottom: SPACING.xs,
+    lineHeight: 22,
+    marginBottom: 10,
+  },
+  actionPlanFixTitleCompact: {
+    fontSize: 14,
+    fontFamily: FONTS.bodySemiBold,
+    color: COLORS.textDim,
+    lineHeight: 20,
+    marginBottom: 4,
+  },
+  actionPlanDescriptionCompact: {
+    fontSize: 12,
+    fontFamily: FONTS.body,
+    color: COLORS.textMuted,
+    lineHeight: 18,
+  },
+  drillLabel: {
+    color: COLORS.green,
+    marginBottom: 8,
   },
   summaryText: {
-    fontSize: FONT_SIZE.md,
-    color: COLORS.textSecondary,
-    lineHeight: 24,
+    fontSize: 14,
+    fontFamily: FONTS.body,
+    color: COLORS.textDim,
+    lineHeight: 23,
   },
   tileContentText: {
-    fontSize: FONT_SIZE.md,
-    color: COLORS.textSecondary,
-    lineHeight: 24,
+    fontSize: 14,
+    fontFamily: FONTS.body,
+    color: COLORS.textDim,
+    lineHeight: 23,
   },
   drillSteps: {
-    gap: SPACING.sm,
+    gap: 8,
   },
   drillStepRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: SPACING.sm,
-    paddingLeft: SPACING.xs,
+    gap: 10,
+    paddingLeft: 4,
     borderLeftWidth: 3,
-    borderLeftColor: COLORS.accent,
+    borderLeftColor: COLORS.green,
   },
   drillStepBullet: {
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: COLORS.accent + '20',
+    backgroundColor: COLORS.accentGlow,
     alignItems: 'center',
     justifyContent: 'center',
   },
   drillStepNum: {
-    fontSize: FONT_SIZE.sm,
-    fontWeight: '700',
-    color: COLORS.accent,
+    fontSize: 13,
+    fontFamily: FONTS.bodySemiBold,
+    color: COLORS.green,
   },
   drillStepText: {
     flex: 1,
-    fontSize: FONT_SIZE.md,
-    color: COLORS.textSecondary,
-    lineHeight: 24,
+    fontSize: 14,
+    fontFamily: FONTS.body,
+    color: COLORS.textDim,
+    lineHeight: 23,
   },
   feedbackSection: {
-    marginBottom: SPACING.xl,
-    paddingVertical: SPACING.md,
+    marginBottom: 32,
+    paddingVertical: 16,
     borderTopWidth: 1,
-    borderTopColor: COLORS.surfaceBorder,
+    borderTopColor: COLORS.border,
   },
   feedbackPrompt: {
-    fontSize: FONT_SIZE.md,
-    fontWeight: '600',
-    color: COLORS.textSecondary,
-    marginBottom: SPACING.sm,
+    fontSize: 15,
+    fontFamily: FONTS.bodySemiBold,
+    color: COLORS.textDim,
+    marginBottom: 8,
   },
   thumbsRow: {
     flexDirection: 'row',
-    gap: SPACING.lg,
+    gap: 24,
   },
   thumbButton: {
-    padding: SPACING.sm,
+    padding: 8,
   },
   thumbEmoji: {
     fontSize: 32,
   },
   feedbackThanks: {
-    fontSize: FONT_SIZE.md,
-    color: COLORS.success,
-    fontWeight: '600',
+    fontSize: 15,
+    fontFamily: FONTS.bodySemiBold,
+    color: COLORS.green,
   },
   feedbackNegative: {
-    gap: SPACING.md,
+    gap: 16,
   },
   feedbackInput: {
-    backgroundColor: COLORS.surfaceLight,
-    borderRadius: 10,
-    padding: SPACING.md,
-    fontSize: FONT_SIZE.md,
+    backgroundColor: COLORS.surfaceHover,
+    borderRadius: 12,
+    padding: 16,
+    fontSize: 15,
+    fontFamily: FONTS.body,
     color: COLORS.text,
     borderWidth: 1,
-    borderColor: COLORS.surfaceBorder,
+    borderColor: COLORS.border,
     minHeight: 80,
     textAlignVertical: 'top',
   },
@@ -580,34 +834,49 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: SPACING.sm,
+    gap: 8,
     backgroundColor: COLORS.accent,
-    paddingVertical: SPACING.sm,
-    paddingHorizontal: SPACING.md,
-    borderRadius: 10,
-    marginTop: SPACING.sm,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    marginTop: 8,
   },
   sendFeedbackText: {
-    fontSize: FONT_SIZE.sm,
-    fontWeight: '700',
+    fontSize: 14,
+    fontFamily: FONTS.bodySemiBold,
     color: COLORS.black,
+  },
+  ctaPressed: {
+    opacity: 0.9,
   },
   newAnalysisButton: {
     backgroundColor: COLORS.accent,
-    borderRadius: 12,
-    padding: SPACING.md + 2,
+    borderRadius: 16,
+    paddingVertical: 16,
+    paddingHorizontal: 28,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: SPACING.sm,
-    marginTop: SPACING.sm,
+    gap: 8,
+    marginTop: 8,
+    shadowColor: COLORS.accent,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 24,
+    elevation: 8,
   },
-  newAnalysisText: {
-    fontSize: FONT_SIZE.lg,
-    fontWeight: '800',
+  newAnalysisPlus: {
+    fontSize: 18,
+    fontFamily: FONTS.bodySemiBold,
     color: COLORS.black,
   },
+  newAnalysisText: {
+    fontSize: 15,
+    fontFamily: FONTS.bodySemiBold,
+    color: COLORS.black,
+    letterSpacing: 0.3,
+  },
   bottomPadding: {
-    height: SPACING.xxl,
+    height: 48,
   },
 });

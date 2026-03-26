@@ -3,7 +3,7 @@ import {
   View,
   Text,
   TextInput,
-  TouchableOpacity,
+  Pressable,
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
@@ -11,12 +11,13 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
-import { COLORS, SPACING, FONT_SIZE } from '../config/constants';
+import { COLORS, FONTS } from '../config/constants';
 import { useAuth } from '../contexts/AuthContext';
 
 export default function AuthScreen() {
   const { signUp, signIn } = useAuth();
   const [mode, setMode] = useState<'signin' | 'signup'>('signin');
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -26,7 +27,6 @@ export default function AuthScreen() {
       Alert.alert('Missing fields', 'Please enter both email and password.');
       return;
     }
-
     setLoading(true);
     const action = mode === 'signup' ? signUp : signIn;
     const { error } = await action(email.trim(), password);
@@ -36,6 +36,8 @@ export default function AuthScreen() {
       Alert.alert('Error', error.message);
     }
   };
+
+  const isSignUp = mode === 'signup';
 
   return (
     <KeyboardAvoidingView
@@ -47,37 +49,37 @@ export default function AuthScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.header}>
-          <Text style={styles.logo}>SwingSense</Text>
-          <Text style={styles.tagline}>AI-Powered Baseball Coaching</Text>
+          <Text style={styles.headline}>
+            {isSignUp ? 'Create' : 'Welcome'}{'\n'}
+            <Text style={styles.headlineAccent}>{isSignUp ? 'Account' : 'Back'}</Text>
+          </Text>
+          <Text style={styles.subtext}>
+            {isSignUp
+              ? 'Sign up to start analyzing your swings'
+              : 'Sign in to continue'}
+          </Text>
         </View>
 
         <View style={styles.form}>
-          <View style={styles.tabs}>
-            <TouchableOpacity
-              style={[styles.tab, mode === 'signin' && styles.tabActive]}
-              onPress={() => setMode('signin')}
-            >
-              <Text style={[styles.tabText, mode === 'signin' && styles.tabTextActive]}>
-                Sign In
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.tab, mode === 'signup' && styles.tabActive]}
-              onPress={() => setMode('signup')}
-            >
-              <Text style={[styles.tabText, mode === 'signup' && styles.tabTextActive]}>
-                Sign Up
-              </Text>
-            </TouchableOpacity>
-          </View>
+          {isSignUp && (
+            <View style={styles.inputCard}>
+              <TextInput
+                style={styles.input}
+                value={name}
+                onChangeText={setName}
+                placeholder="Name"
+                placeholderTextColor={COLORS.textMuted}
+                autoCapitalize="words"
+              />
+            </View>
+          )}
 
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Email</Text>
+          <View style={styles.inputCard}>
             <TextInput
               style={styles.input}
               value={email}
               onChangeText={setEmail}
-              placeholder="player@example.com"
+              placeholder="Email"
               placeholderTextColor={COLORS.textMuted}
               keyboardType="email-address"
               autoCapitalize="none"
@@ -85,31 +87,45 @@ export default function AuthScreen() {
             />
           </View>
 
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Password</Text>
+          <View style={styles.inputCard}>
             <TextInput
               style={styles.input}
               value={password}
               onChangeText={setPassword}
-              placeholder="Enter password"
+              placeholder="Password"
               placeholderTextColor={COLORS.textMuted}
               secureTextEntry
             />
           </View>
 
-          <TouchableOpacity
-            style={[styles.button, loading && styles.buttonDisabled]}
+          <Pressable
+            style={({ pressed }) => [
+              styles.button,
+              loading && styles.buttonDisabled,
+              pressed && !loading && styles.buttonPressed,
+            ]}
             onPress={handleSubmit}
             disabled={loading}
           >
             {loading ? (
-              <ActivityIndicator color={COLORS.white} />
+              <ActivityIndicator color={COLORS.black} />
             ) : (
               <Text style={styles.buttonText}>
-                {mode === 'signin' ? 'Sign In' : 'Sign Up'}
+                {isSignUp ? 'Create account' : 'Sign In'}
               </Text>
             )}
-          </TouchableOpacity>
+          </Pressable>
+
+          <Pressable
+            style={styles.switchLink}
+            onPress={() => setMode(isSignUp ? 'signin' : 'signup')}
+          >
+            <Text style={styles.switchLinkText}>
+              {isSignUp
+                ? 'Already have an account? Sign In'
+                : "Don't have an account? Sign Up"}
+            </Text>
+          </Pressable>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -124,85 +140,78 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     justifyContent: 'center',
-    padding: SPACING.lg,
+    paddingHorizontal: 28,
+    paddingVertical: 48,
   },
   header: {
-    alignItems: 'center',
-    marginBottom: SPACING.xxl,
+    marginBottom: 32,
   },
-  logo: {
-    fontSize: FONT_SIZE.hero,
-    fontWeight: '800',
-    color: COLORS.accent,
+  headline: {
+    fontFamily: FONTS.heading,
+    fontSize: 48,
+    color: COLORS.text,
     letterSpacing: 1,
+    lineHeight: 48,
+    marginBottom: 10,
   },
-  tagline: {
-    fontSize: FONT_SIZE.md,
-    color: COLORS.textSecondary,
-    marginTop: SPACING.xs,
+  headlineAccent: {
+    color: COLORS.accent,
+  },
+  subtext: {
+    fontSize: 13,
+    fontFamily: FONTS.body,
+    color: COLORS.textMuted,
+    lineHeight: 20,
   },
   form: {
+    gap: 12,
+  },
+  inputCard: {
     backgroundColor: COLORS.surface,
-    borderRadius: 16,
-    padding: SPACING.lg,
+    borderRadius: 20,
     borderWidth: 1,
-    borderColor: COLORS.surfaceBorder,
-  },
-  tabs: {
-    flexDirection: 'row',
-    marginBottom: SPACING.lg,
-    backgroundColor: COLORS.surfaceLight,
-    borderRadius: 10,
-    padding: 4,
-  },
-  tab: {
-    flex: 1,
-    paddingVertical: SPACING.sm,
-    alignItems: 'center',
-    borderRadius: 8,
-  },
-  tabActive: {
-    backgroundColor: COLORS.primary,
-  },
-  tabText: {
-    fontSize: FONT_SIZE.md,
-    fontWeight: '600',
-    color: COLORS.textSecondary,
-  },
-  tabTextActive: {
-    color: COLORS.white,
-  },
-  inputContainer: {
-    marginBottom: SPACING.md,
-  },
-  label: {
-    fontSize: FONT_SIZE.sm,
-    fontWeight: '600',
-    color: COLORS.textSecondary,
-    marginBottom: SPACING.xs,
+    borderColor: COLORS.border,
   },
   input: {
-    backgroundColor: COLORS.surfaceLight,
-    borderRadius: 10,
-    padding: SPACING.md,
-    fontSize: FONT_SIZE.md,
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    fontSize: 15,
+    fontFamily: FONTS.body,
     color: COLORS.text,
-    borderWidth: 1,
-    borderColor: COLORS.surfaceBorder,
   },
   button: {
-    backgroundColor: COLORS.primary,
-    borderRadius: 10,
-    padding: SPACING.md,
+    backgroundColor: COLORS.accent,
+    borderRadius: 16,
+    paddingVertical: 16,
+    paddingHorizontal: 28,
     alignItems: 'center',
-    marginTop: SPACING.md,
+    marginTop: 8,
+    shadowColor: COLORS.accent,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 24,
+    elevation: 8,
+  },
+  buttonPressed: {
+    opacity: 0.9,
   },
   buttonDisabled: {
     opacity: 0.6,
   },
   buttonText: {
-    fontSize: FONT_SIZE.lg,
-    fontWeight: '700',
-    color: COLORS.white,
+    fontSize: 15,
+    fontFamily: FONTS.bodySemiBold,
+    color: COLORS.black,
+    letterSpacing: 0.3,
+  },
+  switchLink: {
+    alignItems: 'center',
+    paddingVertical: 16,
+    marginTop: 4,
+  },
+  switchLinkText: {
+    fontSize: 14,
+    fontFamily: FONTS.body,
+    color: COLORS.textMuted,
   },
 });

@@ -4,15 +4,16 @@ import {
   Text,
   StyleSheet,
   FlatList,
-  TouchableOpacity,
+  Pressable,
   ActivityIndicator,
   RefreshControl,
   Alert,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, SPACING, FONT_SIZE } from '../config/constants';
+import { COLORS, FONTS } from '../config/constants';
 import { useAuth } from '../contexts/AuthContext';
 import { getUserAnalyses, deleteAnalysis } from '../services/analysis';
 import type { SwingAnalysis, CoachingOutput } from '../types';
@@ -27,14 +28,22 @@ function TrendIndicator({
 }) {
   if (!trend) return null;
   const config = {
-    better: { icon: 'trending-up' as const, label: 'Better', color: COLORS.success },
+    better: { icon: 'trending-up' as const, label: '↗ Better', color: COLORS.green },
     same: { icon: 'remove' as const, label: 'Same', color: COLORS.textMuted },
-    worse: { icon: 'trending-down' as const, label: 'Worse', color: COLORS.error },
+    worse: { icon: 'trending-down' as const, label: '↘ Worse', color: COLORS.red },
   };
-  const { icon, label, color } = config[trend];
+  const { label, color } = config[trend];
+  const isBetter = trend === 'better';
+  const isWorse = trend === 'worse';
   return (
-    <View style={[trendStyles.badge, { backgroundColor: color + '25' }]}>
-      <Ionicons name={icon} size={12} color={color} />
+    <View
+      style={[
+        trendStyles.badge,
+        isBetter && trendStyles.badgeBetter,
+        isWorse && trendStyles.badgeWorse,
+        trend === 'same' && trendStyles.badgeSame,
+      ]}
+    >
       <Text style={[trendStyles.label, { color }]}>{label}</Text>
     </View>
   );
@@ -42,16 +51,27 @@ function TrendIndicator({
 
 const trendStyles = StyleSheet.create({
   badge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
     paddingHorizontal: 8,
     paddingVertical: 2,
-    borderRadius: 10,
+    borderRadius: 6,
+  },
+  badgeBetter: {
+    backgroundColor: 'rgba(16,185,129,0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(16,185,129,0.2)',
+  },
+  badgeWorse: {
+    backgroundColor: 'rgba(239,68,68,0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(239,68,68,0.2)',
+  },
+  badgeSame: {
+    backgroundColor: COLORS.surface,
   },
   label: {
-    fontSize: FONT_SIZE.xs,
-    fontWeight: '600',
+    fontSize: 10,
+    fontFamily: FONTS.bodySemiBold,
+    letterSpacing: 0.3,
   },
 });
 
@@ -97,6 +117,7 @@ function formatHistoryDate(createdAt: string): string {
 }
 
 export default function HistoryScreen() {
+  const insets = useSafeAreaInsets();
   const navigation = useNavigation<Nav>();
   const { user } = useAuth();
   const [analyses, setAnalyses] = useState<SwingAnalysis[]>([]);
@@ -163,10 +184,9 @@ export default function HistoryScreen() {
 
     return (
       <View style={styles.cardWrapper}>
-        <TouchableOpacity
-          style={styles.card}
+        <Pressable
+          style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
           onPress={() => navigation.navigate('Results', { analysisId: item.id })}
-          activeOpacity={0.7}
         >
           <View style={styles.cardLeft}>
             {item.similarity_score != null ? (
@@ -199,16 +219,16 @@ export default function HistoryScreen() {
             </View>
           </View>
           <View style={styles.cardRight}>
-            <TouchableOpacity
+            <Pressable
               style={styles.deleteButton}
               onPress={() => handleDelete(item)}
               hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
             >
               <Ionicons name="trash-outline" size={20} color={COLORS.textMuted} />
-            </TouchableOpacity>
+            </Pressable>
             <Ionicons name="chevron-forward" size={20} color={COLORS.textMuted} />
           </View>
-        </TouchableOpacity>
+        </Pressable>
       </View>
     );
   };
@@ -223,7 +243,7 @@ export default function HistoryScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
         <Text style={styles.headerTitle}>Swing History</Text>
         <Text style={styles.headerSub}>{analyses.length} analyses</Text>
       </View>
@@ -235,14 +255,13 @@ export default function HistoryScreen() {
           <Text style={styles.emptyText}>
             Tap Analyze to record your first one
           </Text>
-          <TouchableOpacity
-            style={styles.emptyCtaButton}
+          <Pressable
+            style={({ pressed }) => [styles.emptyCtaButton, pressed && styles.ctaPressed]}
             onPress={goToAnalyze}
-            activeOpacity={0.8}
           >
             <Ionicons name="add-circle" size={22} color={COLORS.black} />
             <Text style={styles.emptyCtaText}>Analyze Swing</Text>
-          </TouchableOpacity>
+          </Pressable>
         </View>
       ) : (
         <FlatList
@@ -250,14 +269,13 @@ export default function HistoryScreen() {
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
           ListHeaderComponent={
-            <TouchableOpacity
-              style={styles.recordButton}
+            <Pressable
+              style={({ pressed }) => [styles.recordButton, pressed && styles.ctaPressed]}
               onPress={goToAnalyze}
-              activeOpacity={0.8}
             >
-              <Ionicons name="add-circle" size={22} color={COLORS.black} />
-              <Text style={styles.recordButtonText}>Record Swing</Text>
-            </TouchableOpacity>
+              <Text style={styles.recordButtonPlus}>+</Text>
+              <Text style={styles.recordButtonText}>Record New Swing</Text>
+            </Pressable>
           }
           contentContainerStyle={styles.list}
           refreshControl={
@@ -279,92 +297,113 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
   },
   header: {
-    padding: SPACING.lg,
-    paddingTop: SPACING.xl + SPACING.md,
+    paddingHorizontal: 28,
+    paddingBottom: 20,
   },
   headerTitle: {
-    fontSize: FONT_SIZE.xxl,
-    fontWeight: '800',
+    fontFamily: FONTS.heading,
+    fontSize: 48,
     color: COLORS.text,
+    letterSpacing: 1,
+    lineHeight: 48,
+    marginBottom: 4,
   },
   headerSub: {
-    fontSize: FONT_SIZE.sm,
+    fontSize: 13,
+    fontFamily: FONTS.body,
     color: COLORS.textMuted,
-    marginTop: SPACING.xs,
   },
   list: {
-    padding: SPACING.lg,
+    paddingHorizontal: 28,
     paddingTop: 0,
-    gap: SPACING.sm,
+    paddingBottom: 24,
+    gap: 10,
   },
   recordButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: SPACING.sm,
+    gap: 8,
     backgroundColor: COLORS.accent,
-    paddingVertical: SPACING.md,
-    paddingHorizontal: SPACING.lg,
-    borderRadius: 14,
-    marginBottom: SPACING.md,
+    paddingVertical: 16,
+    paddingHorizontal: 28,
+    borderRadius: 16,
+    marginBottom: 20,
+    shadowColor: COLORS.accent,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 24,
+    elevation: 8,
+  },
+  ctaPressed: {
+    opacity: 0.9,
+  },
+  recordButtonPlus: {
+    fontSize: 18,
+    color: COLORS.black,
+    fontFamily: FONTS.bodySemiBold,
   },
   recordButtonText: {
-    fontSize: FONT_SIZE.md,
-    fontWeight: '700',
+    fontSize: 15,
+    fontFamily: FONTS.bodySemiBold,
     color: COLORS.black,
+    letterSpacing: 0.3,
   },
   cardWrapper: {
-    marginBottom: SPACING.sm,
+    marginBottom: 10,
   },
   card: {
     backgroundColor: COLORS.surface,
-    borderRadius: 14,
-    padding: SPACING.md,
+    borderRadius: 18,
+    padding: 16,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: SPACING.md,
+    gap: 14,
     borderWidth: 1,
-    borderColor: COLORS.surfaceBorder,
+    borderColor: COLORS.border,
+  },
+  cardPressed: {
+    backgroundColor: COLORS.surfaceHover,
+    borderColor: 'rgba(245,158,11,0.3)',
   },
   cardRight: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: SPACING.xs,
+    gap: 4,
   },
   deleteButton: {
-    padding: SPACING.xs,
+    padding: 4,
   },
   cardTopRight: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: SPACING.sm,
+    gap: 8,
   },
   cardPreview: {
-    fontSize: FONT_SIZE.xs,
+    fontSize: 12,
+    fontFamily: FONTS.body,
     color: COLORS.textMuted,
-    marginTop: SPACING.sm,
+    marginTop: 6,
     minHeight: 16,
   },
   cardLeft: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    backgroundColor: COLORS.surfaceLight,
+    width: 52,
     alignItems: 'center',
     justifyContent: 'center',
   },
   scoreCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
     borderWidth: 2,
     borderColor: COLORS.accent,
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: COLORS.accentGlow,
   },
   scoreCircleText: {
-    fontSize: FONT_SIZE.sm,
-    fontWeight: '800',
+    fontSize: 15,
+    fontFamily: FONTS.bodySemiBold,
     color: COLORS.accent,
   },
   cardContent: {
@@ -376,14 +415,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   cardDate: {
-    fontSize: FONT_SIZE.sm,
-    fontWeight: '600',
+    fontSize: 13,
+    fontFamily: FONTS.bodySemiBold,
     color: COLORS.text,
   },
   cardStats: {
     flexDirection: 'row',
-    gap: SPACING.lg,
-    marginTop: SPACING.sm,
+    gap: 16,
+    marginTop: 8,
     minHeight: 22,
   },
   stat: {
@@ -392,28 +431,30 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   statValue: {
-    fontSize: FONT_SIZE.lg,
-    fontWeight: '800',
+    fontSize: 18,
+    fontFamily: FONTS.bodySemiBold,
     color: COLORS.accent,
   },
   statLabel: {
-    fontSize: FONT_SIZE.xs,
+    fontSize: 12,
+    fontFamily: FONTS.body,
     color: COLORS.textMuted,
   },
   emptyContainer: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: SPACING.md,
-    padding: SPACING.lg,
+    gap: 16,
+    padding: 24,
   },
   emptyTitle: {
-    fontSize: FONT_SIZE.xl,
-    fontWeight: '700',
+    fontSize: 22,
+    fontFamily: FONTS.bodySemiBold,
     color: COLORS.text,
   },
   emptyText: {
-    fontSize: FONT_SIZE.md,
+    fontSize: 15,
+    fontFamily: FONTS.body,
     color: COLORS.textMuted,
     textAlign: 'center',
   },
@@ -421,16 +462,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: SPACING.sm,
+    gap: 8,
     backgroundColor: COLORS.accent,
-    paddingVertical: SPACING.md,
-    paddingHorizontal: SPACING.xl,
-    borderRadius: 14,
-    marginTop: SPACING.lg,
+    paddingVertical: 16,
+    paddingHorizontal: 28,
+    borderRadius: 16,
+    marginTop: 24,
+    shadowColor: COLORS.accent,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 24,
+    elevation: 8,
   },
   emptyCtaText: {
-    fontSize: FONT_SIZE.md,
-    fontWeight: '700',
+    fontSize: 15,
+    fontFamily: FONTS.bodySemiBold,
     color: COLORS.black,
   },
 });

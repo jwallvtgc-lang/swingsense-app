@@ -261,9 +261,17 @@ Your job is to analyze THIS specific swing data and provide actionable coaching 
 Each analysis request is for a different video; base your scores and feedback solely on \
 the keypoint data provided, not on assumptions or prior analyses.
 
-TARGET AUDIENCE: Players aged 10–19. Use plain language — short words, short sentences. \
-No jargon. Say "hips lead, then shoulders" not "hip-shoulder separation." Say "using your legs \
-and core" not "kinetic chain." Write like a coach talking at practice.
+AGE-BASED LANGUAGE (REQUIRED):
+- Use plain language for teen players (ages 10–19). Avoid jargon. Keep feedback accessible.
+- Short words, short sentences. Say "hips lead, then shoulders" not "hip-shoulder separation."
+- Say "using your legs and core" not "kinetic chain." Write like a coach talking at practice.
+- A 13-year-old gets different framing than a 20-year-old college player. Adjust tone and complexity by age.
+
+COACHING TONE (REQUIRED — NOT CLINICAL):
+- Sound like a real dugout coach after practice: warm, direct, human. NOT a lab report or sports science paper.
+- Lead with something genuine and positive when the keypoints support it (athletic setup, effort, one mechanic that looks solid). Then name the one thing to work on. Never open with only criticism.
+- Avoid cold phrases like "analysis indicates," "the data suggests," "suboptimal," "deficiency." Use "here's what I'd tweak," "next step," "you're close — focus on."
+- overall_summary MUST feel encouraging and actionable: at least one warm or affirming line before or alongside the fix, unless the swing has severe mechanical issues across the board.
 
 IMPORTANT: You MUST respond with valid JSON only. No markdown, no extra text.
 
@@ -271,7 +279,7 @@ Respond with this exact JSON structure:
 {
   "primary_mechanical_issue": {
     "title": "string (short, e.g. 'Hips not leading')",
-    "description": "string (1–2 sentences, what's wrong and why it matters)"
+    "description": "string — ONE sentence only: why this matters for the drill. Do NOT repeat or paraphrase overall_summary; add only the mechanical \"why\" if not already clear from the summary."
   },
   "drill": "string (2–4 concrete steps for how to do the drill, each step on its own line. Example: 'Step 1 – Tuck a small towel under your lead arm.\\nStep 2 – Take 5–10 swings keeping the towel pinned.\\nStep 3 – Focus on keeping your elbow close to your body.')",
   "bat_speed_estimate": {
@@ -286,20 +294,27 @@ Respond with this exact JSON structure:
     "contact_point": number (0-100),
     "overall": number (0-100)
   },
-  "overall_summary": "string (2-3 sentences, encouraging, actionable)"
+  "overall_summary": "string (2-3 sentences, encouraging, actionable)",
+  "vs_last_swing": "string or null — ONE sentence only, max ~25 words, plain language: what changed vs their last swing (or null if no previous swing context was provided)"
 }
 
 Guidelines:
 - Pick the ONE most important thing to fix based on the keypoint data. Do not list multiple issues.
+- primary_mechanical_issue is supporting context for the drill — keep description to ONE short sentence. The Coach's Summary already covers encouragement and big picture; avoid duplicating that here.
 - The drill must include 2–4 concrete steps. Format as "Step 1 – [action]. Step 2 – [action]. Step 3 – [action]." (or use \\n between steps). Each step must be specific and actionable. Example for "towel under the arm": Step 1 – Tuck a small towel under your lead arm. Step 2 – Take 5–10 swings keeping the towel pinned. Step 3 – Focus on keeping your elbow close to your body. Never generic advice like "practice more" or "work on your mechanics."
 - Bat speed estimate from wrist keypoint velocity.
 
 SCORING — CALIBRATE BY AGE:
-- Use the player's age from the profile to calibrate scores. Compare to age-appropriate benchmarks, not pro mechanics.
-- Ages 13–15 (youth/JV): 55–65 = solid for age, 65–75 = strong, 75+ = exceptional. A 15-year-old with good mechanics for his age should score 55–70, not 50.
-- Ages 16–18 (varsity): 60–70 = solid, 70–80 = strong, 80+ = exceptional.
-- Ages 19+ (college/adult): Compare to advanced mechanics. 65–75 = solid, 75–85 = strong, 85+ = exceptional.
-- Be encouraging: a good swing for their age should not score in the 40s. Be honest but age-appropriate.
+- Use the player's age from the profile. Compare to age-appropriate benchmarks, NOT MLB/pro ideal as the default for teens.
+- Expectations differ by age: a 15-year-old JV player with fundamentally sound mechanics should land in the solid/strong band for their age — not the 40s unless there are clear, major flaws in the keypoint data.
+- Ages 10–12 (youth): 52–62 = solid for age, 62–72 = strong, 72+ = exceptional.
+- Ages 13–15 (youth / JV / freshman): 56–68 = solid for age, 68–78 = strong, 78+ = exceptional. A capable high school player here should usually score solid-to-strong, not mid-40s to low-50s, unless keypoints show serious issues.
+- Ages 16–18 (varsity): 58–70 = solid, 70–80 = strong, 80+ = exceptional.
+- Ages 19+ (college/adult): 62–75 = solid, 75–85 = strong, 85+ = exceptional.
+- Category scores (hip_rotation, weight_transfer, bat_path, contact_point) must be internally consistent with each other and with overall: do not assign a very low sub-score (e.g. bat_path in the low 40s) unless the keypoint trajectory clearly supports that; if one category is a clear outlier vs the others, briefly reflect that tension in overall_summary (e.g. "bat path is the main area to clean up") rather than implying the whole swing is weak.
+
+SCORE INTERPRETATION — FRAME BY AGE:
+- Same number means different things at different ages. A 60 overall for a 15-year-old should read as "on track for your age — here's the next tweak," not "below average." Mirror that framing in overall_summary and primary_mechanical_issue.description.
 
 NO FRAME NUMBERS — ENFORCED IN ALL SECTIONS:
 - Do NOT include any frame numbers or frame ranges (e.g. F100, F128-F183, Frames 10-25) anywhere in \
@@ -314,7 +329,11 @@ only (e.g. "Based on your swing through the zone"). Do NOT include: methodology,
 coordinate math, barrel travel, projection explanations, calibration reasoning, or any technical detail.
 
 KEEP IT ACTIONABLE:
-- Be encouraging but honest. One fix, one drill — keep it simple so they can actually do it."""
+- Be encouraging but honest. One fix, one drill — keep it simple so they can actually do it.
+
+VS_LAST_SWING:
+- If the request includes previous swing data, set vs_last_swing to ONE short sentence comparing THIS swing to last time (progress, regression, or what shifted). Plain language, no jargon.
+- If no previous swing was provided, set vs_last_swing to null. Do not invent a comparison."""
 
 
 def summarize_keypoints_for_prompt(data: dict, analysis_id: str | None = None) -> str:
@@ -351,15 +370,24 @@ def summarize_keypoints_for_prompt(data: dict, analysis_id: str | None = None) -
     return "\n".join(lines)
 
 
-def analyze_with_claude(keypoint_data: dict, player_profile: dict, analysis_id: str | None = None) -> dict:
+def analyze_with_claude(
+    keypoint_data: dict,
+    player_profile: dict,
+    analysis_id: str | None = None,
+    previous_swing: dict | None = None,
+) -> dict:
     """Send keypoints to Claude and get structured coaching output."""
     api_key = os.environ.get("ANTHROPIC_API_KEY")
     if not api_key:
         raise HTTPException(status_code=500, detail="ANTHROPIC_API_KEY not configured")
 
+    # Always pass profile fields; default to youth player when profile missing/incomplete
+    profile_age = player_profile.get('age')
+    if profile_age is None:
+        profile_age = 15  # Assume youth when no profile
     profile_lines = [
         f"Player: {player_profile.get('first_name', 'Player')}",
-        f"Age: {player_profile.get('age', 15)}",
+        f"Age: {profile_age}",
         f"Position: {player_profile.get('primary_position', 'Unknown')}",
         f"Batting side: {player_profile.get('batting_side', 'Right')}",
     ]
@@ -369,11 +397,25 @@ def analyze_with_claude(keypoint_data: dict, player_profile: dict, analysis_id: 
 
     keypoint_summary = summarize_keypoints_for_prompt(keypoint_data, analysis_id)
 
+    prev_block = ""
+    if previous_swing:
+        scores = previous_swing.get("similarity_scores") or {}
+        summ = (previous_swing.get("overall_summary") or "")[:800]
+        prev_block = (
+            f"\n\nPrevious swing (for comparison only — same player, earlier video):\n"
+            f"- Recorded at: {previous_swing.get('created_at', '')}\n"
+            f"- Previous similarity scores: {json.dumps(scores)}\n"
+            f"- Previous coach summary (excerpt): {summ}\n"
+            f"Score THIS swing from the keypoint data only. Use the previous context only for "
+            f"vs_last_swing (one sentence on what changed vs last time)."
+        )
+
     user_message = (
         f"Here is the player profile:\n\n"
         f"{chr(10).join(profile_lines)}\n\n"
         f"And here is the keypoint data extracted from their swing video:\n\n"
         f"{keypoint_summary}\n\n"
+        f"{prev_block}"
         f"Please analyze this swing and respond with the JSON structure specified."
     )
 
@@ -400,11 +442,18 @@ def analyze_with_claude(keypoint_data: dict, player_profile: dict, analysis_id: 
 
 # ── API Endpoints ────────────────────────────────────────────────
 
+class PreviousSwingPayload(BaseModel):
+    created_at: str
+    similarity_scores: dict | None = None
+    overall_summary: str = ""
+
+
 class AnalyzeRequest(BaseModel):
     analysis_id: str
     video_url: str
     user_id: str
     player_profile: dict | None = None
+    previous_swing: PreviousSwingPayload | None = None
 
 
 class HealthResponse(BaseModel):
@@ -455,8 +504,21 @@ async def analyze(request: AnalyzeRequest):
         validate_swing_video(keypoint_data)
 
         profile = request.player_profile or {}
+        prev_sw = None
+        if request.previous_swing is not None:
+            ps = request.previous_swing
+            prev_sw = (
+                ps.model_dump(exclude_none=True)
+                if hasattr(ps, "model_dump")
+                else ps.dict(exclude_none=True)
+            )
         _log("[Analyze] Calling Claude with fresh keypoint data...")
-        coaching_output = analyze_with_claude(keypoint_data, profile, analysis_id=request.analysis_id)
+        coaching_output = analyze_with_claude(
+            keypoint_data,
+            profile,
+            analysis_id=request.analysis_id,
+            previous_swing=prev_sw,
+        )
 
         elapsed = time.time() - start_time
         _log(f"[Analyze] Done in {elapsed:.1f}s")

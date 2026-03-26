@@ -11,7 +11,7 @@ interface AnalysisPipelineResult {
 export async function createAnalysisRecord(
   userId: string,
   videoUrl: string
-): Promise<{ id: string; error: Error | null }> {
+): Promise<{ id: string; created_at: string; error: Error | null }> {
   const { data, error } = await supabase
     .from('swing_analyses')
     .insert({
@@ -19,11 +19,61 @@ export async function createAnalysisRecord(
       video_url: videoUrl,
       status: 'uploading',
     })
-    .select('id')
+    .select('id, created_at')
     .single();
 
-  if (error) return { id: '', error: new Error(`DB insert failed: ${error.message}`) };
-  return { id: data.id, error: null };
+  if (error) return { id: '', created_at: '', error: new Error(`DB insert failed: ${error.message}`) };
+  return { id: data.id, created_at: data.created_at as string, error: null };
+}
+
+/** Most recent completed analysis before the current row (by created_at). */
+export async function getPreviousCompletedAnalysis(
+  userId: string,
+  currentCreatedAt: string
+): Promise<SwingAnalysis | null> {
+  const { data, error } = await supabase
+    .from('swing_analyses')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('status', 'completed')
+    .lt('created_at', currentCreatedAt)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    console.warn('[analysis] getPreviousCompletedAnalysis:', error.message);
+    return null;
+  }
+  return (data as SwingAnalysis) ?? null;
+}
+
+export const SCORE_DELTA_THRESHOLD = 2;
+
+export type ScoreDeltaDirection = 'up' | 'same' | 'down';
+
+export function scoreDeltaDirection(
+  current: number | null | undefined,
+  previous: number | null | undefined
+): ScoreDeltaDirection | null {
+  if (current == null || previous == null) return null;
+  const d = current - previous;
+  if (d > SCORE_DELTA_THRESHOLD) return 'up';
+  if (d < -SCORE_DELTA_THRESHOLD) return 'down';
+  return 'same';
+}
+
+function parseCoachingOutput(raw: unknown): CoachingOutput | null {
+  if (!raw) return null;
+  if (typeof raw === 'object') return raw as CoachingOutput;
+  if (typeof raw === 'string') {
+    try {
+      return JSON.parse(raw) as CoachingOutput;
+    } catch {
+      return null;
+    }
+  }
+  return null;
 }
 
 export async function startAnalysisPipeline(
@@ -35,13 +85,30 @@ export async function startAnalysisPipeline(
   try {
     onStatusChange?.('uploading', 'Creating analysis record...');
 
-    const { id: analysisId, error: createError } = await createAnalysisRecord(
-      userId,
-      'pending'
-    );
+    const { id: analysisId, created_at: analysisCreatedAt, error: createError } =
+      await createAnalysisRecord(userId, 'pending');
 
     if (createError) {
       return { analysis: null, error: createError };
+    }
+
+    const previousAnalysis = await getPreviousCompletedAnalysis(userId, analysisCreatedAt);
+    let previous_swing: {
+      created_at: string;
+      similarity_scores: SimilarityBreakdown | null;
+      overall_summary: string;
+    } | undefined;
+    if (previousAnalysis) {
+      const prevCoaching = parseCoachingOutput(previousAnalysis.coaching_output);
+      const prevBreakdown =
+        previousAnalysis.similarity_breakdown ??
+        prevCoaching?.similarity_scores ??
+        null;
+      previous_swing = {
+        created_at: previousAnalysis.created_at,
+        similarity_scores: prevBreakdown,
+        overall_summary: (prevCoaching?.overall_summary ?? '').slice(0, 800),
+      };
     }
 
     onStatusChange?.('uploading', 'Uploading video...');
@@ -87,7 +154,8 @@ export async function startAnalysisPipeline(
             batting_side: profile.batting_side,
             height_feet: profile.height_feet,
             height_inches: profile.height_inches,
-          } : undefined,
+          } : { age: 15 }, // Default to youth for age calibration when no profile
+          ...(previous_swing ? { previous_swing } : {}),
         }),
         signal: controller.signal,
       });
@@ -203,19 +271,6 @@ async function updateAnalysisStatus(
     .from('swing_analyses')
     .update({ status })
     .eq('id', analysisId);
-}
-
-function parseCoachingOutput(raw: unknown): CoachingOutput | null {
-  if (!raw) return null;
-  if (typeof raw === 'object') return raw as CoachingOutput;
-  if (typeof raw === 'string') {
-    try {
-      return JSON.parse(raw) as CoachingOutput;
-    } catch {
-      return null;
-    }
-  }
-  return null;
 }
 
 async function logAnalysisCompleted(

@@ -14,7 +14,7 @@
       "backgroundColor": "#000000"
     },
     "ios": {
-      "buildNumber": "7",
+      "buildNumber": "10",
       "supportsTablet": true,
       "backgroundColor": "#000000",
       "bundleIdentifier": "com.jwallvtgc.swingsense",

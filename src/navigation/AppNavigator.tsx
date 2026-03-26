@@ -31,17 +31,18 @@ function MainTabs() {
         headerShown: false,
         tabBarStyle: {
           backgroundColor: COLORS.surface,
-          borderTopColor: COLORS.surfaceBorder,
+          borderTopColor: COLORS.border,
           borderTopWidth: 1,
-          height: 85,
-          paddingBottom: 20,
-          paddingTop: 8,
+          height: 72,
+          paddingHorizontal: 28,
         },
         tabBarActiveTintColor: COLORS.accent,
         tabBarInactiveTintColor: COLORS.textMuted,
         tabBarLabelStyle: {
-          fontSize: 12,
+          fontSize: 10,
           fontWeight: '600',
+          letterSpacing: 0.5,
+          textTransform: 'uppercase',
         },
       }}
     >

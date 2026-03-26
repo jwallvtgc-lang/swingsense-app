@@ -5,13 +5,13 @@ import {
   StyleSheet,
   ActivityIndicator,
   Animated,
-  TouchableOpacity,
+  Pressable,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, SPACING, FONT_SIZE } from '../config/constants';
+import { COLORS, SPACING, FONT_SIZE, FONTS } from '../config/constants';
 import { useAuth } from '../contexts/AuthContext';
 import { startAnalysisPipeline } from '../services/analysis';
 import { incrementAnalysisCount } from '../services/subscription';
@@ -125,24 +125,20 @@ export default function ProcessingScreen() {
     return (
       <View style={styles.container}>
         <View style={styles.errorContainer}>
-          <Ionicons name="alert-circle" size={64} color={COLORS.error} />
+          <Ionicons name="alert-circle" size={64} color={COLORS.red} />
           <Text style={styles.errorTitle}>
             {isNoSwing ? 'No Swing Detected' : 'Analysis Failed'}
           </Text>
           <Text style={styles.errorMessage}>{error}</Text>
           <View style={styles.errorActions}>
-            <TouchableOpacity
-              style={styles.tryAgainButton}
+            <Pressable
+              style={({ pressed }) => [styles.ctaButton, pressed && styles.ctaButtonPressed]}
               onPress={() => setRetryKey((k) => k + 1)}
-              activeOpacity={0.8}
             >
               <Ionicons name="refresh" size={20} color={COLORS.black} />
-              <Text style={styles.tryAgainText}>Try Again</Text>
-            </TouchableOpacity>
-            <Text
-              style={styles.retryLink}
-              onPress={() => navigation.goBack()}
-            >
+              <Text style={styles.ctaButtonText}>Try Again</Text>
+            </Pressable>
+            <Text style={styles.retryLink} onPress={() => navigation.goBack()}>
               Choose a different video
             </Text>
           </View>
@@ -153,21 +149,23 @@ export default function ProcessingScreen() {
 
   return (
     <View style={styles.container}>
-      <Animated.View
-        style={[
-          styles.iconCircle,
-          { transform: [{ scale: pulseAnim }] },
-        ]}
-      >
-        <Ionicons
-          name={PIPELINE_STEPS[currentStep].icon}
-          size={48}
-          color={COLORS.accent}
-        />
-      </Animated.View>
+      <View style={styles.glow} />
+      <View style={styles.pulseWrapper}>
+        <View style={styles.pulseRingOuter} />
+        <View style={styles.pulseRingMid} />
+        <Animated.View
+          style={[styles.pulseRing, { transform: [{ scale: pulseAnim }] }]}
+        >
+          <Ionicons
+            name={PIPELINE_STEPS[currentStep].icon}
+            size={42}
+            color={COLORS.accent}
+          />
+        </Animated.View>
+      </View>
 
       <Text style={styles.title}>Analyzing Your Swing</Text>
-      <Text style={styles.status}>{statusMessage}</Text>
+      <Text style={styles.subtitle}>{statusMessage}</Text>
 
       <View style={styles.progressBar}>
         <Animated.View
@@ -183,35 +181,42 @@ export default function ProcessingScreen() {
         />
       </View>
 
-      <View style={styles.stepsContainer}>
-        {PIPELINE_STEPS.map((step, index) => (
-          <View key={step.key} style={styles.stepRow}>
-            <View
-              style={[
-                styles.stepDot,
-                index < currentStep && styles.stepDotCompleted,
-                index === currentStep && styles.stepDotActive,
-              ]}
-            >
-              {index < currentStep ? (
-                <Ionicons name="checkmark" size={14} color={COLORS.white} />
-              ) : index === currentStep ? (
-                <ActivityIndicator size="small" color={COLORS.white} />
-              ) : null}
+      <View style={styles.stepList}>
+        {PIPELINE_STEPS.map((step, index) => {
+          const isDone = index < currentStep;
+          const isActive = index === currentStep;
+          return (
+            <View key={step.key} style={styles.stepItem}>
+              <View
+                style={[
+                  styles.stepIndicator,
+                  isDone && styles.stepIndicator_done,
+                  isActive && styles.stepIndicator_active,
+                  !isDone && !isActive && styles.stepIndicator_pending,
+                ]}
+              >
+                {isDone ? (
+                  <Text style={styles.stepCheck}>✓</Text>
+                ) : isActive ? (
+                  <ActivityIndicator size="small" color={COLORS.accent} />
+                ) : null}
+              </View>
+              <Text
+                style={[
+                  styles.stepLabel,
+                  isDone && styles.stepLabel_done,
+                  isActive && styles.stepLabel_active,
+                  !isDone && !isActive && styles.stepLabel_pending,
+                ]}
+              >
+                {step.label}
+              </Text>
             </View>
-            <Text
-              style={[
-                styles.stepLabel,
-                index <= currentStep && styles.stepLabelActive,
-              ]}
-            >
-              {step.label}
-            </Text>
-          </View>
-        ))}
+          );
+        })}
       </View>
 
-      <Text style={styles.waitMessage}>
+      <Text style={styles.note}>
         This typically takes 30–90 seconds. Hang tight!
       </Text>
     </View>
@@ -224,82 +229,129 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: SPACING.lg,
+    padding: 28,
+    position: 'relative',
   },
-  iconCircle: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: COLORS.surface,
+  glow: {
+    position: 'absolute',
+    top: '50%',
+    left: '50%',
+    marginLeft: -150,
+    marginTop: -180,
+    width: 300,
+    height: 300,
+    borderRadius: 150,
+    backgroundColor: COLORS.accentGlow,
+  },
+  pulseWrapper: {
+    marginBottom: 32,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: SPACING.lg,
+  },
+  pulseRing: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
     borderWidth: 2,
     borderColor: COLORS.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pulseRingMid: {
+    position: 'absolute',
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    borderWidth: 1,
+    borderColor: 'rgba(245,158,11,0.2)',
+  },
+  pulseRingOuter: {
+    position: 'absolute',
+    width: 160,
+    height: 160,
+    borderRadius: 80,
+    borderWidth: 1,
+    borderColor: 'rgba(245,158,11,0.1)',
   },
   title: {
-    fontSize: FONT_SIZE.xl,
-    fontWeight: '800',
+    fontFamily: FONTS.heading,
+    fontSize: 36,
     color: COLORS.text,
-    marginBottom: SPACING.sm,
+    letterSpacing: 1,
+    marginBottom: 6,
+    textAlign: 'center',
   },
-  status: {
-    fontSize: FONT_SIZE.md,
+  subtitle: {
+    fontSize: 13,
+    fontFamily: FONTS.body,
     color: COLORS.accent,
-    marginBottom: SPACING.lg,
+    marginBottom: 28,
     textAlign: 'center',
   },
   progressBar: {
     width: '100%',
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: COLORS.surfaceLight,
-    marginBottom: SPACING.xl,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: COLORS.border,
+    marginBottom: 32,
     overflow: 'hidden',
   },
   progressFill: {
     height: '100%',
-    borderRadius: 3,
+    borderRadius: 2,
     backgroundColor: COLORS.accent,
   },
-  stepsContainer: {
+  stepList: {
     width: '100%',
-    gap: SPACING.md,
-    marginBottom: SPACING.xl,
+    gap: 16,
   },
-  stepRow: {
+  stepItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: SPACING.md,
+    gap: 14,
   },
-  stepDot: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: COLORS.surfaceLight,
+  stepIndicator: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  stepIndicator_done: {
+    backgroundColor: COLORS.green,
+  },
+  stepIndicator_active: {
+    backgroundColor: COLORS.accentGlow,
     borderWidth: 2,
-    borderColor: COLORS.surfaceBorder,
+    borderColor: COLORS.accent,
   },
-  stepDotCompleted: {
-    backgroundColor: COLORS.success,
-    borderColor: COLORS.success,
+  stepIndicator_pending: {
+    backgroundColor: COLORS.surface,
+    borderWidth: 2,
+    borderColor: COLORS.border,
   },
-  stepDotActive: {
-    backgroundColor: COLORS.primary,
-    borderColor: COLORS.primaryLight,
+  stepCheck: {
+    color: COLORS.white,
+    fontSize: 14,
+    fontWeight: '700',
   },
   stepLabel: {
-    fontSize: FONT_SIZE.md,
+    fontSize: 14,
+    fontFamily: FONTS.bodyMedium,
+  },
+  stepLabel_done: {
+    color: COLORS.text,
+  },
+  stepLabel_active: {
+    color: COLORS.accent,
+  },
+  stepLabel_pending: {
     color: COLORS.textMuted,
   },
-  stepLabelActive: {
-    color: COLORS.text,
-    fontWeight: '600',
-  },
-  waitMessage: {
-    fontSize: FONT_SIZE.sm,
+  note: {
+    marginTop: 28,
+    fontSize: 12,
+    fontFamily: FONTS.body,
     color: COLORS.textMuted,
     textAlign: 'center',
   },
@@ -309,13 +361,14 @@ const styles = StyleSheet.create({
     padding: SPACING.lg,
   },
   errorTitle: {
-    fontSize: FONT_SIZE.xl,
-    fontWeight: '800',
-    color: COLORS.error,
+    fontFamily: FONTS.heading,
+    fontSize: 32,
+    color: COLORS.red,
   },
   errorMessage: {
     fontSize: FONT_SIZE.md,
-    color: COLORS.textSecondary,
+    fontFamily: FONTS.body,
+    color: COLORS.textDim,
     textAlign: 'center',
     lineHeight: 22,
   },
@@ -324,24 +377,33 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: SPACING.md,
   },
-  tryAgainButton: {
+  ctaButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: SPACING.sm,
+    gap: 8,
     backgroundColor: COLORS.accent,
-    paddingVertical: SPACING.md,
+    paddingVertical: 16,
     paddingHorizontal: SPACING.xl,
-    borderRadius: 14,
+    borderRadius: 16,
+    shadowColor: COLORS.accent,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 24,
+    elevation: 8,
   },
-  tryAgainText: {
-    fontSize: FONT_SIZE.md,
-    fontWeight: '700',
+  ctaButtonPressed: {
+    opacity: 0.9,
+  },
+  ctaButtonText: {
+    fontSize: 15,
+    fontFamily: FONTS.bodySemiBold,
     color: COLORS.black,
+    letterSpacing: 0.3,
   },
   retryLink: {
-    fontSize: FONT_SIZE.sm,
+    fontSize: 14,
+    fontFamily: FONTS.bodySemiBold,
     color: COLORS.accent,
-    fontWeight: '600',
   },
 });

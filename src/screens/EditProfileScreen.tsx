@@ -11,6 +11,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, SPACING, FONT_SIZE } from '../config/constants';
@@ -25,6 +26,7 @@ const POSITIONS: Position[] = [
 const BATTING_SIDES: BattingSide[] = ['left', 'right', 'switch'];
 
 export default function EditProfileScreen() {
+  const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const { profile, updateProfile } = useAuth();
   const [firstName, setFirstName] = useState('');
@@ -89,7 +91,7 @@ export default function EditProfileScreen() {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
           <Ionicons name="chevron-back" size={24} color={COLORS.accent} />
           <Text style={styles.backLabel}>Back</Text>
@@ -225,7 +227,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: SPACING.lg,
-    paddingTop: SPACING.xl + SPACING.md,
     paddingBottom: SPACING.md,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.surfaceBorder,
