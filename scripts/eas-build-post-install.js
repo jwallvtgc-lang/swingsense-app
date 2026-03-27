@@ -3,7 +3,14 @@
 const fs = require('fs');
 const { execSync } = require('child_process');
 
-// Fix splash checkerboard: flatten splash-icon.png onto solid background (all platforms)
+// Full-bleed native splash (app.json → splash-full.png)
+try {
+  execSync('node scripts/generate-splash-full.js', { stdio: 'inherit' });
+} catch (e) {
+  console.warn('generate-splash-full.js failed:', e.message);
+}
+
+// Legacy small splash-icon (optional; some workflows still reference it)
 try {
   execSync('node scripts/fix-splash-background.js', { stdio: 'inherit' });
 } catch (e) {

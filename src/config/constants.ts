@@ -14,8 +14,11 @@ export function logConfig() {
   console.log('[Config] BACKEND_URL:', isLocalhost ? `${backend} (set EXPO_PUBLIC_BACKEND_URL for prod)` : backend);
 }
 
-/** Splash screen background – black */
-export const SPLASH_BACKGROUND = '#000000';
+/** Native splash / launch edge color — must match app.json splash.backgroundColor */
+export const SPLASH_BACKGROUND = '#050508';
+
+/** Subtle top tint for auth / continuity with splash (sports-tech green) */
+export const SPLASH_TINT_TOP = 'rgba(16, 185, 129, 0.07)';
 
 /** Theme from swing-analyzer design spec */
 export const COLORS = {

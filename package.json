@@ -10,7 +10,8 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "optimize-icons": "node scripts/optimize-icon.js",
-    "fix-splash": "node scripts/fix-splash-background.js"
+    "fix-splash": "node scripts/fix-splash-background.js",
+    "splash:generate": "node scripts/generate-splash-full.js"
   },
   "dependencies": {
     "@expo-google-fonts/bebas-neue": "^0.4.1",

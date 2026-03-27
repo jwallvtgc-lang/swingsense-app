@@ -14,12 +14,13 @@ import {
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider } from './src/contexts/AuthContext';
 import AppNavigator from './src/navigation/AppNavigator';
-import { logConfig, COLORS } from './src/config/constants';
+import { logConfig, COLORS, SPLASH_BACKGROUND } from './src/config/constants';
 
 SplashScreen.preventAutoHideAsync();
 logConfig();
 
-const SPLASH_MAX_MS = 3000;
+/** Safety: hide native splash if fonts never resolve (avoid stuck splash) */
+const SPLASH_FALLBACK_MS = 8000;
 
 export default function App() {
   const [fontsLoaded] = useFonts({
@@ -30,20 +31,28 @@ export default function App() {
   });
 
   useEffect(() => {
-    const t = setTimeout(async () => {
-      try {
-        await SplashScreen.hideAsync();
-        console.log('[App] Forced splash hide after 3s timeout');
-      } catch (e) {
-        console.warn('[App] Splash hide failed:', e);
-      }
-    }, SPLASH_MAX_MS);
+    if (fontsLoaded) {
+      SplashScreen.hideAsync().catch(() => {});
+    }
+  }, [fontsLoaded]);
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      SplashScreen.hideAsync().catch(() => {});
+    }, SPLASH_FALLBACK_MS);
     return () => clearTimeout(t);
   }, []);
 
   if (!fontsLoaded) {
     return (
-      <View style={{ flex: 1, backgroundColor: COLORS.background, justifyContent: 'center', alignItems: 'center' }}>
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: SPLASH_BACKGROUND,
+          justifyContent: 'center',
+          alignItems: 'center',
+        }}
+      >
         <ActivityIndicator size="large" color={COLORS.accent} />
       </View>
     );

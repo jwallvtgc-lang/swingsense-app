@@ -10,11 +10,14 @@ import {
   ScrollView,
   ActivityIndicator,
   Alert,
+  Image,
 } from 'react-native';
-import { COLORS, FONTS } from '../config/constants';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { COLORS, FONTS, SPLASH_BACKGROUND, SPLASH_TINT_TOP } from '../config/constants';
 import { useAuth } from '../contexts/AuthContext';
 
 export default function AuthScreen() {
+  const insets = useSafeAreaInsets();
   const { signUp, signIn } = useAuth();
   const [mode, setMode] = useState<'signin' | 'signup'>('signin');
   const [name, setName] = useState('');
@@ -41,23 +44,63 @@ export default function AuthScreen() {
 
   return (
     <KeyboardAvoidingView
-      style={styles.container}
+      style={styles.root}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
+      <View style={[styles.container, { paddingTop: insets.top + 8 }]}>
+        <View style={styles.tintTop} pointerEvents="none" />
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
       >
-        <View style={styles.header}>
-          <Text style={styles.headline}>
-            {isSignUp ? 'Create' : 'Welcome'}{'\n'}
-            <Text style={styles.headlineAccent}>{isSignUp ? 'Account' : 'Back'}</Text>
+        <View style={styles.brandBlock}>
+          <Image
+            source={require('../../assets/icon.png')}
+            style={styles.brandMark}
+            resizeMode="contain"
+          />
+          <Text style={styles.wordmark} accessibilityRole="header">
+            <Text style={styles.wordmarkSwing}>Swing</Text>
+            <Text style={styles.wordmarkSense}>Sense</Text>
           </Text>
-          <Text style={styles.subtext}>
-            {isSignUp
-              ? 'Sign up to start analyzing your swings'
-              : 'Sign in to continue'}
-          </Text>
+          <Text style={styles.valueProp}>AI feedback for your swing</Text>
+        </View>
+
+        <View style={styles.segment}>
+          <Pressable
+            style={({ pressed }) => [
+              styles.segmentHalf,
+              mode === 'signin' && styles.segmentHalfActive,
+              pressed && styles.segmentPressed,
+            ]}
+            onPress={() => setMode('signin')}
+          >
+            <Text
+              style={[
+                styles.segmentLabel,
+                mode === 'signin' && styles.segmentLabelActive,
+              ]}
+            >
+              Sign In
+            </Text>
+          </Pressable>
+          <Pressable
+            style={({ pressed }) => [
+              styles.segmentHalf,
+              mode === 'signup' && styles.segmentHalfActive,
+              pressed && styles.segmentPressed,
+            ]}
+            onPress={() => setMode('signup')}
+          >
+            <Text
+              style={[
+                styles.segmentLabel,
+                mode === 'signup' && styles.segmentLabelActive,
+              ]}
+            >
+              Sign Up
+            </Text>
+          </Pressable>
         </View>
 
         <View style={styles.form}>
@@ -115,53 +158,103 @@ export default function AuthScreen() {
               </Text>
             )}
           </Pressable>
-
-          <Pressable
-            style={styles.switchLink}
-            onPress={() => setMode(isSignUp ? 'signin' : 'signup')}
-          >
-            <Text style={styles.switchLinkText}>
-              {isSignUp
-                ? 'Already have an account? Sign In'
-                : "Don't have an account? Sign Up"}
-            </Text>
-          </Pressable>
         </View>
       </ScrollView>
+      </View>
     </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+    backgroundColor: SPLASH_BACKGROUND,
+  },
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: SPLASH_BACKGROUND,
+  },
+  tintTop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 220,
+    backgroundColor: SPLASH_TINT_TOP,
   },
   scrollContent: {
     flexGrow: 1,
     justifyContent: 'center',
     paddingHorizontal: 28,
-    paddingVertical: 48,
+    paddingBottom: 40,
   },
-  header: {
-    marginBottom: 32,
+  brandBlock: {
+    alignItems: 'center',
+    marginBottom: 28,
   },
-  headline: {
+  brandMark: {
+    width: 72,
+    height: 72,
+    marginBottom: 16,
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.35,
+    shadowRadius: 16,
+    elevation: 10,
+  },
+  wordmark: {
     fontFamily: FONTS.heading,
-    fontSize: 48,
-    color: COLORS.text,
+    fontSize: 44,
     letterSpacing: 1,
     lineHeight: 48,
     marginBottom: 10,
   },
-  headlineAccent: {
+  wordmarkSwing: {
+    color: COLORS.text,
+  },
+  wordmarkSense: {
     color: COLORS.accent,
   },
-  subtext: {
-    fontSize: 13,
-    fontFamily: FONTS.body,
+  valueProp: {
+    fontSize: 12,
+    fontFamily: FONTS.bodySemiBold,
     color: COLORS.textMuted,
-    lineHeight: 20,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+    textAlign: 'center',
+  },
+  segment: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 20,
+    padding: 4,
+    borderRadius: 14,
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  segmentHalf: {
+    flex: 1,
+    paddingVertical: 12,
+    alignItems: 'center',
+    borderRadius: 11,
+  },
+  segmentHalfActive: {
+    backgroundColor: COLORS.surfaceHover,
+    borderWidth: 1,
+    borderColor: 'rgba(245,158,11,0.35)',
+  },
+  segmentPressed: {
+    opacity: 0.9,
+  },
+  segmentLabel: {
+    fontSize: 15,
+    fontFamily: FONTS.bodySemiBold,
+    color: COLORS.textMuted,
+  },
+  segmentLabelActive: {
+    color: COLORS.text,
   },
   form: {
     gap: 12,
@@ -203,15 +296,5 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.bodySemiBold,
     color: COLORS.black,
     letterSpacing: 0.3,
-  },
-  switchLink: {
-    alignItems: 'center',
-    paddingVertical: 16,
-    marginTop: 4,
-  },
-  switchLinkText: {
-    fontSize: 14,
-    fontFamily: FONTS.body,
-    color: COLORS.textMuted,
   },
 });

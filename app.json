@@ -7,16 +7,16 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
     "newArchEnabled": false,
-    "backgroundColor": "#000000",
+    "backgroundColor": "#050508",
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/splash-full.png",
       "resizeMode": "contain",
-      "backgroundColor": "#000000"
+      "backgroundColor": "#050508"
     },
     "ios": {
-      "buildNumber": "10",
+      "buildNumber": "11",
       "supportsTablet": true,
-      "backgroundColor": "#000000",
+      "backgroundColor": "#050508",
       "bundleIdentifier": "com.jwallvtgc.swingsense",
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "SwingSense needs access to your photo library to select swing videos.",
@@ -32,7 +32,7 @@
         "foregroundImage": "./assets/icon.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "backgroundColor": "#000000",
+      "backgroundColor": "#050508",
       "predictiveBackGestureEnabled": false,
       "permissions": [
         "android.permission.RECORD_AUDIO"
@@ -51,9 +51,9 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/splash-icon.png",
-          "imageWidth": 512,
-          "backgroundColor": "#000000"
+          "image": "./assets/splash-full.png",
+          "resizeMode": "contain",
+          "backgroundColor": "#050508"
         }
       ],
       [
