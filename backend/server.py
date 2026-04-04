@@ -699,8 +699,22 @@ async def analyze(request: AnalyzeRequest):
         _log(f"[Analyze] Downloaded {len(resp.content)} bytes")
 
         _log(f"[Analyze] Extracting keypoints from downloaded file (MoveNet per-request)...")
-        keypoint_data = extract_keypoints(tmp_path, sample_rate=2)
+        cap_check = cv2.VideoCapture(tmp_path)
+        total_frames_check = int(cap_check.get(cv2.CAP_PROP_FRAME_COUNT))
+        cap_check.release()
+        if total_frames_check < 60:
+            sample_rate = 1  # capture every frame for short videos
+        elif total_frames_check < 150:
+            sample_rate = 2  # default
+        else:
+            sample_rate = max(2, total_frames_check // 150)  # cap at ~150 frames
+        _log(f"[Analyze] total_frames={total_frames_check} using sample_rate={sample_rate}")
+        keypoint_data = extract_keypoints(tmp_path, sample_rate=sample_rate)
         _log(f"[Analyze] Extracted {len(keypoint_data['frames'])} frames")
+        if len(keypoint_data["frames"]) < 30:
+            _log(
+                "[Analyze] WARNING: Low frame count — metrics will be unreliable. Video may be too short or wrong format."
+            )
 
         validate_swing_video(keypoint_data)
 
