@@ -462,6 +462,90 @@ def summarize_keypoints_for_prompt(data: dict, analysis_id: str | None = None) -
     return "\n".join(lines)
 
 
+def compute_swing_metrics(frames: list) -> str:
+    if not frames or len(frames) < 5:
+        return "Insufficient frames for metric computation."
+    lines = ["--- Computed swing metrics (use these to inform your scoring and coaching) ---"]
+
+    def kp(frame, name):
+        return frame["keypoints"].get(name, {})
+
+    def conf(frame, name):
+        return kp(frame, name).get("confidence", 0)
+
+    hip_frames = [f for f in frames if conf(f, "left_hip") > 0.5 and conf(f, "right_hip") > 0.5]
+    wrist_frames = [f for f in frames if conf(f, "left_wrist") > 0.4 and conf(f, "right_wrist") > 0.4]
+    shoulder_frames = [f for f in frames if conf(f, "left_shoulder") > 0.5 and conf(f, "right_shoulder") > 0.5]
+    nose_frames = [f for f in frames if conf(f, "nose") > 0.4]
+    ankle_frames = [f for f in frames if conf(f, "left_ankle") > 0.4]
+    if len(hip_frames) >= 5:
+        first_third = hip_frames[: max(1, len(hip_frames) // 3)]
+        last_third = hip_frames[2 * len(hip_frames) // 3 :]
+        early_hip_x = sum(
+            kp(f, "left_hip").get("x", 0.5) + kp(f, "right_hip").get("x", 0.5) for f in first_third
+        ) / (2 * len(first_third))
+        late_hip_x = sum(
+            kp(f, "left_hip").get("x", 0.5) + kp(f, "right_hip").get("x", 0.5) for f in last_third
+        ) / (2 * len(last_third))
+        hip_shift = abs(late_hip_x - early_hip_x)
+        lines.append(
+            f"Hip lateral shift: {hip_shift:.3f} units (under 0.05 = minimal weight transfer, "
+            f"0.05-0.12 = good transfer, over 0.12 = possible lunge)"
+        )
+    if len(nose_frames) >= 5:
+        nose_y = [kp(f, "nose").get("y", 0) for f in nose_frames]
+        baseline = sum(nose_y[: max(1, len(nose_y) // 5)]) / max(1, len(nose_y) // 5)
+        max_drop = max(nose_y) - baseline
+        nose_range = max(nose_y) - min(nose_y)
+        lines.append(
+            f"Head vertical range: {nose_range:.3f} units (under 0.03 = stable, "
+            f"0.03-0.06 = moderate movement, over 0.06 = significant drop)"
+        )
+        lines.append(
+            f"Head drop from setup baseline: {max_drop:.3f} units (positive = head dropping during swing)"
+        )
+    if len(hip_frames) >= 8 and len(shoulder_frames) >= 8:
+        hip_x = [kp(f, "left_hip").get("x", 0) for f in hip_frames]
+        sho_x = [kp(f, "left_shoulder").get("x", 0) for f in shoulder_frames]
+        hip_start_idx = next((i for i in range(1, len(hip_x)) if abs(hip_x[i] - hip_x[0]) > 0.01), None)
+        sho_start_idx = next((i for i in range(1, len(sho_x)) if abs(sho_x[i] - sho_x[0]) > 0.01), None)
+        if hip_start_idx is not None and sho_start_idx is not None:
+            hip_fn = hip_frames[hip_start_idx]["frame_number"]
+            sho_fn = shoulder_frames[sho_start_idx]["frame_number"]
+            lag = sho_fn - hip_fn
+            if lag > 0:
+                desc = "hips leading shoulders — correct sequence"
+            elif lag == 0:
+                desc = "hips and shoulders moving together — loss of separation"
+            else:
+                desc = "shoulders moving before hips — power leak, common cause of early rotation"
+            lines.append(f"Hip-to-shoulder sequence: {lag:+d} frames ({desc})")
+    if len(wrist_frames) >= 5:
+        rw_x = [kp(f, "right_wrist").get("x", 0) for f in wrist_frames]
+        rw_y = [kp(f, "right_wrist").get("y", 0) for f in wrist_frames]
+        x_travel = max(rw_x) - min(rw_x)
+        y_travel = max(rw_y) - min(rw_y)
+        lines.append(
+            f"Right wrist travel: horizontal {x_travel:.3f}, vertical {y_travel:.3f} "
+            f"(large vertical = steep/choppy path, balanced = flatter path through zone)"
+        )
+    if len(ankle_frames) >= 5:
+        ax = [kp(f, "left_ankle").get("x", 0) for f in ankle_frames]
+        stride = max(ax) - min(ax)
+        lines.append(
+            f"Front ankle stride distance: {stride:.3f} units (under 0.04 = short/no stride, "
+            f"0.04-0.10 = normal, over 0.10 = long stride)"
+        )
+    total = len(frames)
+    high_conf_hip = len(hip_frames)
+    coverage = round(high_conf_hip / total * 100) if total > 0 else 0
+    lines.append(
+        f"Data quality: {high_conf_hip}/{total} frames with reliable hip keypoints ({coverage}% coverage)"
+    )
+    lines.append("--- End computed metrics ---")
+    return "\n".join(lines)
+
+
 def analyze_with_claude(
     keypoint_data: dict,
     player_profile: dict,
@@ -492,6 +576,7 @@ def analyze_with_claude(
         profile_lines.append(f"Height: {h}")
 
     keypoint_summary = summarize_keypoints_for_prompt(keypoint_data, analysis_id)
+    swing_metrics = compute_swing_metrics(keypoint_data.get("frames", []))
 
     head_stability_block = ""
     if head_stability_score is not None:
@@ -522,7 +607,8 @@ def analyze_with_claude(
         f"Here is the player profile:\n\n"
         f"{chr(10).join(profile_lines)}\n\n"
         f"{head_stability_block}"
-        f"And here is the keypoint data extracted from their swing video:\n\n"
+        f"{swing_metrics}\n\n"
+        f"And here is the raw keypoint data for additional reference:\n\n"
         f"{keypoint_summary}\n\n"
         f"{prev_block}"
         f"Please analyze this swing and respond with the JSON structure specified."
