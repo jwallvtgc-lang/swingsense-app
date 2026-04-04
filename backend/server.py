@@ -403,7 +403,13 @@ SCORING — CALIBRATE BY AGE:
 - Ages 19+ (college/adult): 62–75 = solid, 75–85 = strong, 85+ = exceptional.
 - Head stability is age-calibrated the same way as other scores — a 14-year-old who keeps their head reasonably still during load and contact should score 65–75, not 40s.
 - HEAD STABILITY: A pre-computed head stability score is provided in the user message based on nose keypoint vertical movement analysis. Use this value directly as head_stability — do not compute your own. If no computed score is provided, estimate from the keypoint data with 100 = perfectly still, 0 = significant drop or movement during swing.
-- Category scores (hip_rotation, weight_transfer, bat_path, contact_point, head_stability) must be internally consistent with each other and with overall: do not assign a very low sub-score (e.g. bat_path in the low 40s) unless the keypoint trajectory clearly supports that; if one category is a clear outlier vs the others, briefly reflect that tension in overall_summary (e.g. "bat path is the main area to clean up") rather than implying the whole swing is weak.
+- Category scores (hip_rotation, weight_transfer, bat_path, contact_point, head_stability) must each reflect the actual keypoint data for that specific mechanic — not anchored to each other or to overall: do not assign a very low sub-score (e.g. bat_path in the low 40s) unless the keypoint trajectory clearly supports that; if one category is a clear outlier vs the others, briefly reflect that tension in overall_summary (e.g. "bat path is the main area to clean up") rather than implying the whole swing is weak.
+
+SCORE INDEPENDENCE — REQUIRED:
+Each sub-score must be computed independently from the keypoint data for that specific mechanic. Do not anchor on the overall score and distribute sub-scores around it. A player can have excellent head stability (85) and poor bat path (52) at the same time — that variance is correct and expected. Clustered scores where all sub-scores fall within 5 points of each other are almost always wrong and indicate you are not scoring each mechanic independently from the data.
+
+EXPERIENCE LEVEL CALIBRATION:
+Former College or Pro and Coach experience levels should score in the 72-88 range for solid mechanics. A former D1 player or coach with fundamentally sound mechanics should never score in the low 60s unless keypoints show clear specific mechanical breakdowns. Apply the elite scoring band to these experience levels the same way you apply youth bands to younger players.
 
 SCORE INTERPRETATION — FRAME BY AGE:
 - Same number means different things at different ages. A 60 overall for a 15-year-old should read as "on track for your age — here's the next tweak," not "below average." Mirror that framing in overall_summary and primary_mechanical_issue.description.
