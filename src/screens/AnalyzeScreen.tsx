@@ -26,10 +26,10 @@ type AnalyzeNav = CompositeNavigationProp<
 const FONT_INSTRUCTION = 'Inter_400Regular';
 
 const TIP_LINES = [
-  'Film from the side (3rd base or 1st base line)',
-  'Full body visible from feet to bat',
-  'Good lighting, minimal background movement',
-  '5–30 seconds, one swing per clip',
+  'Film from the side, 10-15 feet away — player should fill most of the frame height',
+  'Record in regular video mode — not slow motion or cinematic mode',
+  'Hold the camera still and keep the full body visible throughout',
+  '5-30 seconds, one swing per clip, good natural lighting',
 ] as const;
 
 export default function AnalyzeScreen() {
