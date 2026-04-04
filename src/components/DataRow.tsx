@@ -1,0 +1,118 @@
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+
+import { colors, fontSizes, spacing } from '../../design-system/tokens';
+
+const FONT_INTER = 'Inter_400Regular';
+const FONT_INTER_MEDIUM = 'Inter_500Medium';
+
+export type DataRowProps = {
+  label: string;
+  /** Omit or leave empty when using `showChevron` or label-only rows (e.g. Sign out). */
+  value?: string;
+  valueWeight?: 'normal' | 'bold';
+  last?: boolean;
+  onPress?: () => void;
+  /** Gold chevron on the right instead of a text value. */
+  showChevron?: boolean;
+  /** Red label (e.g. destructive actions). */
+  labelTone?: 'default' | 'danger';
+};
+
+export default function DataRow({
+  label,
+  value = '',
+  valueWeight = 'normal',
+  last = false,
+  onPress,
+  showChevron = false,
+  labelTone = 'default',
+}: DataRowProps) {
+  const hasValue = value.length > 0;
+  const showValue = hasValue && !showChevron;
+
+  const inner = (
+    <View style={styles.row}>
+      <Text
+        style={[
+          styles.label,
+          labelTone === 'danger' ? styles.labelDanger : styles.labelDefault,
+        ]}
+      >
+        {label}
+      </Text>
+      {showChevron ? (
+        <Ionicons name="chevron-forward" size={22} color={colors.text.gold} />
+      ) : showValue ? (
+        <Text
+          style={[
+            styles.value,
+            valueWeight === 'bold' ? styles.valueBold : styles.valueNormal,
+          ]}
+        >
+          {value}
+        </Text>
+      ) : null}
+    </View>
+  );
+
+  return (
+    <View style={[styles.wrap, !last && styles.withSeparator]}>
+      {onPress != null ? (
+        <Pressable
+          onPress={onPress}
+          style={({ pressed }) => [pressed && styles.pressed]}
+          accessibilityRole="button"
+        >
+          {inner}
+        </Pressable>
+      ) : (
+        inner
+      )}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  wrap: {
+    alignSelf: 'stretch',
+    paddingVertical: spacing.cardSm,
+  },
+  withSeparator: {
+    borderBottomWidth: 0.5,
+    borderBottomColor: colors.border.subtle,
+  },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.iconGap,
+  },
+  label: {
+    flex: 1,
+    fontFamily: FONT_INTER,
+    fontSize: fontSizes.body,
+  },
+  labelDefault: {
+    color: colors.text.muted,
+  },
+  labelDanger: {
+    color: colors.text.red,
+  },
+  pressed: {
+    opacity: 0.85,
+  },
+  value: {
+    flex: 1,
+    minWidth: 0,
+    fontSize: fontSizes.body,
+    color: colors.text.primary,
+    textAlign: 'right',
+  },
+  valueNormal: {
+    fontFamily: FONT_INTER,
+  },
+  valueBold: {
+    fontFamily: FONT_INTER_MEDIUM,
+  },
+});

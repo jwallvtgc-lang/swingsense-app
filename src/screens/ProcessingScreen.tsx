@@ -89,7 +89,7 @@ export default function ProcessingScreen() {
       if (analysis) {
         await incrementAnalysisCount(user.id);
         setTimeout(() => {
-          navigation.replace('Results', { analysisId: analysis.id });
+          navigation.replace('Analysis', { analysisId: analysis.id });
         }, 1200);
       }
     } catch (err) {

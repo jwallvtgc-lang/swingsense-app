@@ -1,0 +1,126 @@
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+
+import { colors, fontSizes, radius, spacing } from '../../design-system/tokens';
+import DeleteButton from './DeleteButton';
+import ScoreRing from './ScoreRing';
+import TrendBadge from './TrendBadge';
+
+const FONT_DISPLAY = 'BebasNeue_400Regular';
+const FONT_BODY = 'Inter_400Regular';
+
+export type SwingListItemProps = {
+  score: number;
+  date: string;
+  trend: 'better' | 'same' | 'worse';
+  insight: string;
+  batSpeed: number;
+  onPress: () => void;
+  onDelete: () => void;
+};
+
+export default function SwingListItem({
+  score,
+  date,
+  trend,
+  insight,
+  batSpeed,
+  onPress,
+  onDelete,
+}: SwingListItemProps) {
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
+    >
+      <ScoreRing score={score} size="sm" opacity={0.7} showLabel={false} />
+      <View style={styles.middle}>
+        <View style={styles.topRow}>
+          <Text style={styles.date} numberOfLines={1} maxFontSizeMultiplier={1.35}>
+            {date}
+          </Text>
+          <TrendBadge trend={trend} />
+        </View>
+        <Text
+          style={styles.insight}
+          numberOfLines={1}
+          ellipsizeMode="tail"
+          maxFontSizeMultiplier={1.35}
+        >
+          {insight}
+        </Text>
+        <View style={styles.batRow}>
+          <Text style={styles.batValue} maxFontSizeMultiplier={1.35}>
+            {Math.round(batSpeed)}
+          </Text>
+          <Text style={styles.batUnit} maxFontSizeMultiplier={1.35}>
+            {' '}
+            MPH
+          </Text>
+        </View>
+      </View>
+      <View style={styles.actions}>
+        <DeleteButton onConfirm={onDelete} />
+        <Ionicons name="chevron-forward" size={22} color={colors.text.muted} />
+      </View>
+    </Pressable>
+  );
+}
+
+const styles = StyleSheet.create({
+  card: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.iconGap,
+    alignSelf: 'stretch',
+    backgroundColor: colors.bg.surface,
+    borderRadius: radius.card,
+    padding: spacing.card,
+    minWidth: 0,
+  },
+  cardPressed: {
+    opacity: 0.92,
+  },
+  middle: {
+    flex: 1,
+    minWidth: 0,
+    gap: spacing.pillGap,
+  },
+  topRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: spacing.pillGap,
+  },
+  date: {
+    fontFamily: FONT_BODY,
+    fontSize: fontSizes.caption,
+    color: colors.text.muted,
+    flexShrink: 1,
+  },
+  insight: {
+    fontFamily: FONT_BODY,
+    fontSize: fontSizes.body,
+    color: colors.text.secondary,
+  },
+  batRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    flexWrap: 'wrap',
+  },
+  batValue: {
+    fontFamily: FONT_DISPLAY,
+    fontSize: fontSizes.listScore,
+    color: colors.text.gold,
+  },
+  batUnit: {
+    fontFamily: FONT_BODY,
+    fontSize: fontSizes.caption,
+    color: colors.text.muted,
+  },
+  actions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.pillGap,
+  },
+});

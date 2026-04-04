@@ -14,10 +14,10 @@
       "backgroundColor": "#050508"
     },
     "ios": {
-      "buildNumber": "11",
+      "buildNumber": "13",
       "supportsTablet": true,
       "backgroundColor": "#050508",
-      "bundleIdentifier": "com.jwallvtgc.swingsense",
+      "bundleIdentifier": "com.swingsense.app",
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "SwingSense needs access to your photo library to select swing videos.",
         "NSCameraUsageDescription": "SwingSense needs camera access to record your swing.",

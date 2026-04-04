@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -17,6 +17,9 @@ import { COLORS, SPACING, FONT_SIZE, FONTS } from '../config/constants';
 import { useAuth } from '../contexts/AuthContext';
 import { canUserAnalyze } from '../services/subscription';
 import type { MainStackParamList } from '../navigation/types';
+import BottomTabBar from '../components/BottomTabBar';
+import { useMainTabBarNav } from '../navigation/useMainTabBarNav';
+import { bottomTab } from '../../design-system/tokens';
 
 type Nav = NativeStackNavigationProp<MainStackParamList, 'Upload'>;
 
@@ -30,8 +33,14 @@ const TIPS = [
 export default function UploadScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<Nav>();
+  const navigateMainTab = useMainTabBarNav();
   const { user, profile } = useAuth();
   const [selectedVideo, setSelectedVideo] = useState<string | null>(null);
+
+  const scrollBottomPad = useMemo(
+    () => bottomTab.height + insets.bottom + SPACING.xl,
+    [insets.bottom]
+  );
 
   const checkQuota = async (): Promise<boolean> => {
     if (!user) {
@@ -156,7 +165,7 @@ export default function UploadScreen() {
     <View style={styles.container}>
       <ScrollView
         style={styles.scrollContent}
-        contentContainerStyle={styles.scrollInner}
+        contentContainerStyle={[styles.scrollInner, { paddingBottom: scrollBottomPad }]}
         showsVerticalScrollIndicator={false}
       >
         <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
@@ -257,6 +266,7 @@ export default function UploadScreen() {
           ))}
         </View>
       </ScrollView>
+      <BottomTabBar activeTab="analyze" onTabPress={navigateMainTab} />
     </View>
   );
 }
@@ -270,7 +280,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollInner: {
-    paddingBottom: SPACING.xl,
+    flexGrow: 1,
   },
   header: {
     paddingHorizontal: 28,

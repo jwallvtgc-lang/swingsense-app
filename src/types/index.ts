@@ -6,6 +6,7 @@ export interface Profile {
   height_feet: number | null;
   height_inches: number | null;
   batting_side: BattingSide;
+  experience_level?: string | null;
   role: 'player' | 'coach' | 'team_admin';
   leaderboard_opt_in: boolean;
   created_at: string;
@@ -108,6 +109,7 @@ export interface SimilarityBreakdown {
   bat_path: number;
   contact_point: number;
   overall: number;
+  head_stability?: number;
 }
 
 export interface KeyFrame {

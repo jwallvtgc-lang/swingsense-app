@@ -246,6 +246,37 @@ def validate_swing_video(keypoint_data: dict) -> None:
         )
 
 
+def calculate_head_stability(frames: list) -> int | None:
+    """
+    Head stability 0–100 from nose vertical movement across frames.
+    Returns None if there is not enough high-confidence nose data.
+    """
+    valid = [
+        f
+        for f in frames
+        if f.get("keypoints", {}).get("nose", {}).get("confidence", 0) > 0.4
+    ]
+    if len(valid) < 10:
+        return None
+
+    nose_y = [f["keypoints"]["nose"]["y"] for f in valid]
+
+    baseline_count = max(1, len(nose_y) // 5)
+    baseline_y = sum(nose_y[:baseline_count]) / baseline_count
+
+    max_drop = max(y - baseline_y for y in nose_y)
+
+    mean_y = sum(nose_y) / len(nose_y)
+    variance = (sum((y - mean_y) ** 2 for y in nose_y) / len(nose_y)) ** 0.5
+
+    drop_score = max(0, 1 - (max_drop / 0.08)) * 100
+    variance_score = max(0, 1 - (variance / 0.04)) * 100
+
+    final_score = (drop_score * 0.7) + (variance_score * 0.3)
+
+    return round(min(100, max(0, final_score)))
+
+
 # ── Claude Analysis ──────────────────────────────────────────────
 
 SYSTEM_PROMPT = """\
@@ -269,9 +300,67 @@ AGE-BASED LANGUAGE (REQUIRED):
 
 COACHING TONE (REQUIRED — NOT CLINICAL):
 - Sound like a real dugout coach after practice: warm, direct, human. NOT a lab report or sports science paper.
-- Lead with something genuine and positive when the keypoints support it (athletic setup, effort, one mechanic that looks solid). Then name the one thing to work on. Never open with only criticism.
+- ALWAYS lead with something genuine and positive — find one thing that is working in every swing, even if the mechanics are rough. Youth players need to feel capable before they can absorb a correction. Never open with the problem even if the swing has multiple issues.
 - Avoid cold phrases like "analysis indicates," "the data suggests," "suboptimal," "deficiency." Use "here's what I'd tweak," "next step," "you're close — focus on."
 - overall_summary MUST feel encouraging and actionable: at least one warm or affirming line before or alongside the fix, unless the swing has severe mechanical issues across the board.
+- SPECIFICITY REQUIREMENT — ENFORCED: Your coaching output must reference at least 2 specific observations from THIS swing's keypoint data. Generic advice that could apply to any player is not acceptable. Before finalizing your response, check: does the overall_summary reference something specific I saw in these keypoints? Does the drill address the specific timing or movement pattern in this data? If you could copy-paste this response onto a different player's analysis without changing a word, rewrite it.
+
+SPECIFICITY REQUIREMENT — MANDATORY:
+Before finalizing your response check these three things:
+1. Does overall_summary reference at least one specific observation from the computed swing metrics provided? (e.g. hip shift value, head drop, shoulder-hip lag)
+2. Does the drill address the specific timing or movement pattern visible in this data — not just the issue category generally?
+3. Could you copy-paste this response onto a different player's analysis without changing a word? If yes — rewrite it.
+
+Generic advice that ignores the computed metrics is not acceptable. A player who uploads two different swings must receive meaningfully different feedback if their computed metrics are different.
+
+PREFERRED COACHING LANGUAGE — use these phrases naturally when the situation applies. Do not force them, but when the mechanic fits, use the coach's actual words:
+
+For weight staying back:
+- 'Stay behind your hip' (not 'maintain posterior weight shift')
+- 'Keep your chest back' (not 'resist forward trunk tilt')
+- 'Your weight needs to stay back' (not 'maintain rear-weighted stance')
+- 'Go torso, land, back leg — in that order'
+
+For stride timing:
+- 'Let it travel' (not 'delay swing initiation')
+- 'Slow load, not back' — aggressive stride but torso stays behind
+- 'Spend more time in the gathering' (not 'extend load phase')
+- 'Land as the ball gets to the front of the plate, not before'
+- 'You need to improve your internal clock'
+- 'Feel yourself freefall for a millisecond, then finish with the stride'
+
+For head stillness:
+- 'Keep your head still like a hat sitting on top'
+- 'Chin over your front shoulder — as you swing, your back shoulder replaces it'
+- 'Your eyes are moving with the ball — keep them still'
+- 'Head dropping creates a balance issue and you can't see the ball as well'
+
+For connection and hands:
+- 'Stay connected' / 'feel connected' (not 'maintain proximal-to-distal sequencing')
+- 'Get your hands inside' (not 'maintain an inside path')
+- 'Turn the knob back' / 'face the knob toward the back wall'
+- 'Keep the diamond shape with your hands'
+- 'Your bottom hand can only go as far as your stride goes'
+
+For hip load and rotation:
+- 'Load the stride and the upper body will stay out of timing'
+- 'Feel your hips reaching, feel your knees driving'
+- 'Back foot pushes first, stride foot picks it up'
+- 'Get more out of the hip load'
+
+For bat path and slot:
+- 'Get on plane' / 'get in the slot' (not 'optimize attack angle')
+- 'Palm up, palm down through contact' (not 'forearm pronation/supination')
+- 'Find the barrel' (not 'optimize barrel path efficiency')
+- 'Stay inside the ball' (not 'avoid casting the barrel')
+
+For encouragement and framing:
+- 'You're close — here's the next tweak'
+- 'That's a good cut right there'
+- 'Those two things together will give you the quickest improvement'
+- 'It all came together on that one' — use when a previous issue appears corrected
+- 'That probably feels like less effort with more power' — use when mechanics improve
+- Never say: 'analysis indicates', 'the data suggests', 'suboptimal', 'deficiency', 'kinetic chain', 'hip-shoulder separation', 'attack angle', 'proximal-to-distal'
 
 IMPORTANT: You MUST respond with valid JSON only. No markdown, no extra text.
 
@@ -292,7 +381,8 @@ Respond with this exact JSON structure:
     "weight_transfer": number (0-100),
     "bat_path": number (0-100),
     "contact_point": number (0-100),
-    "overall": number (0-100)
+    "overall": number (0-100),
+    "head_stability": number (0-100)
   },
   "overall_summary": "string (2-3 sentences, encouraging, actionable)",
   "vs_last_swing": "string or null — ONE sentence only, max ~25 words, plain language: what changed vs their last swing (or null if no previous swing context was provided)"
@@ -311,7 +401,9 @@ SCORING — CALIBRATE BY AGE:
 - Ages 13–15 (youth / JV / freshman): 56–68 = solid for age, 68–78 = strong, 78+ = exceptional. A capable high school player here should usually score solid-to-strong, not mid-40s to low-50s, unless keypoints show serious issues.
 - Ages 16–18 (varsity): 58–70 = solid, 70–80 = strong, 80+ = exceptional.
 - Ages 19+ (college/adult): 62–75 = solid, 75–85 = strong, 85+ = exceptional.
-- Category scores (hip_rotation, weight_transfer, bat_path, contact_point) must be internally consistent with each other and with overall: do not assign a very low sub-score (e.g. bat_path in the low 40s) unless the keypoint trajectory clearly supports that; if one category is a clear outlier vs the others, briefly reflect that tension in overall_summary (e.g. "bat path is the main area to clean up") rather than implying the whole swing is weak.
+- Head stability is age-calibrated the same way as other scores — a 14-year-old who keeps their head reasonably still during load and contact should score 65–75, not 40s.
+- HEAD STABILITY: A pre-computed head stability score is provided in the user message based on nose keypoint vertical movement analysis. Use this value directly as head_stability — do not compute your own. If no computed score is provided, estimate from the keypoint data with 100 = perfectly still, 0 = significant drop or movement during swing.
+- Category scores (hip_rotation, weight_transfer, bat_path, contact_point, head_stability) must be internally consistent with each other and with overall: do not assign a very low sub-score (e.g. bat_path in the low 40s) unless the keypoint trajectory clearly supports that; if one category is a clear outlier vs the others, briefly reflect that tension in overall_summary (e.g. "bat path is the main area to clean up") rather than implying the whole swing is weak.
 
 SCORE INTERPRETATION — FRAME BY AGE:
 - Same number means different things at different ages. A 60 overall for a 15-year-old should read as "on track for your age — here's the next tweak," not "below average." Mirror that framing in overall_summary and primary_mechanical_issue.description.
@@ -375,6 +467,7 @@ def analyze_with_claude(
     player_profile: dict,
     analysis_id: str | None = None,
     previous_swing: dict | None = None,
+    head_stability_score: int | None = None,
 ) -> dict:
     """Send keypoints to Claude and get structured coaching output."""
     api_key = os.environ.get("ANTHROPIC_API_KEY")
@@ -391,11 +484,26 @@ def analyze_with_claude(
         f"Position: {player_profile.get('primary_position', 'Unknown')}",
         f"Batting side: {player_profile.get('batting_side', 'Right')}",
     ]
+    experience = player_profile.get("experience_level")
+    if experience:
+        profile_lines.append(f'Experience level: {experience}')
     if player_profile.get("height_feet"):
         h = f"{player_profile['height_feet']}'{player_profile.get('height_inches', 0)}\""
         profile_lines.append(f"Height: {h}")
 
     keypoint_summary = summarize_keypoints_for_prompt(keypoint_data, analysis_id)
+
+    head_stability_block = ""
+    if head_stability_score is not None:
+        head_stability_block = (
+            f"\nComputed head stability score: {head_stability_score}/100 "
+            f"(based on nose keypoint vertical movement — use this as your head_stability score value)\n"
+        )
+    else:
+        head_stability_block = (
+            "\nHead stability could not be computed (insufficient nose keypoint confidence); "
+            "still estimate head_stability in similarity_scores from keypoint data if possible.\n"
+        )
 
     prev_block = ""
     if previous_swing:
@@ -413,6 +521,7 @@ def analyze_with_claude(
     user_message = (
         f"Here is the player profile:\n\n"
         f"{chr(10).join(profile_lines)}\n\n"
+        f"{head_stability_block}"
         f"And here is the keypoint data extracted from their swing video:\n\n"
         f"{keypoint_summary}\n\n"
         f"{prev_block}"
@@ -503,6 +612,9 @@ async def analyze(request: AnalyzeRequest):
 
         validate_swing_video(keypoint_data)
 
+        head_stability = calculate_head_stability(keypoint_data["frames"])
+        _log(f"[Analyze] head_stability_score={head_stability}")
+
         profile = request.player_profile or {}
         prev_sw = None
         if request.previous_swing is not None:
@@ -518,6 +630,7 @@ async def analyze(request: AnalyzeRequest):
             profile,
             analysis_id=request.analysis_id,
             previous_swing=prev_sw,
+            head_stability_score=head_stability,
         )
 
         elapsed = time.time() - start_time

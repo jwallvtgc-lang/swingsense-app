@@ -11,6 +11,11 @@ import {
   DMSans_500Medium,
   DMSans_600SemiBold,
 } from '@expo-google-fonts/dm-sans';
+import {
+  Inter_400Regular,
+  Inter_500Medium,
+  Inter_600SemiBold,
+} from '@expo-google-fonts/inter';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider } from './src/contexts/AuthContext';
 import AppNavigator from './src/navigation/AppNavigator';
@@ -28,13 +33,13 @@ export default function App() {
     DMSans_400Regular,
     DMSans_500Medium,
     DMSans_600SemiBold,
+    Inter_400Regular,
+    Inter_500Medium,
+    Inter_600SemiBold,
   });
 
-  useEffect(() => {
-    if (fontsLoaded) {
-      SplashScreen.hideAsync().catch(() => {});
-    }
-  }, [fontsLoaded]);
+  // Do NOT hide native splash here when fonts load — that dismisses it in ~100–300ms and
+  // defeats AppNavigator’s minimum display time. Hide only from AppNavigator after auth is ready.
 
   useEffect(() => {
     const t = setTimeout(() => {

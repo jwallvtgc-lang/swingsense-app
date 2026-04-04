@@ -1,300 +1,202 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
-  View,
-  Text,
-  TextInput,
-  Pressable,
-  StyleSheet,
+  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  ActivityIndicator,
-  Alert,
-  Image,
+  StyleSheet,
+  View,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { COLORS, FONTS, SPLASH_BACKGROUND, SPLASH_TINT_TOP } from '../config/constants';
+
+import LogoTile from '../components/LogoTile';
+import PrimaryButton from '../components/PrimaryButton';
+import TabSwitcher from '../components/TabSwitcher';
+import TextInput from '../components/TextInput';
+import Wordmark from '../components/Wordmark';
 import { useAuth } from '../contexts/AuthContext';
+import { colors, spacing } from '../../design-system/tokens';
+
+const TAB_SIGN_IN = 'Sign In';
+const TAB_SIGN_UP = 'Sign Up';
+
+function alertAuthError(error: Error, isSignIn: boolean) {
+  const msg = error.message ?? '';
+  const invalidCreds =
+    /invalid login credentials/i.test(msg) ||
+    /invalid email or password/i.test(msg);
+
+  if (isSignIn && invalidCreds) {
+    Alert.alert(
+      'Sign in failed',
+      'That email and password did not work.\n\n' +
+        '• Check the password and Caps Lock.\n' +
+        '• If you just signed up, open the confirmation email and verify your address first—Supabase blocks sign-in until then.\n' +
+        '• If you do not have an account yet, use Sign Up.'
+    );
+    return;
+  }
+
+  Alert.alert('Error', msg);
+}
 
 export default function AuthScreen() {
   const insets = useSafeAreaInsets();
   const { signUp, signIn } = useAuth();
-  const [mode, setMode] = useState<'signin' | 'signup'>('signin');
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [activeTab, setActiveTab] = useState(TAB_SIGN_IN);
+  const [emailValue, setEmailValue] = useState('');
+  const [passwordValue, setPasswordValue] = useState('');
   const [loading, setLoading] = useState(false);
 
+  const isSignIn = activeTab === TAB_SIGN_IN;
+
   const handleSubmit = async () => {
-    if (!email.trim() || !password.trim()) {
+    if (!emailValue.trim() || !passwordValue.trim()) {
       Alert.alert('Missing fields', 'Please enter both email and password.');
       return;
     }
     setLoading(true);
-    const action = mode === 'signup' ? signUp : signIn;
-    const { error } = await action(email.trim(), password);
-    setLoading(false);
+    try {
+      const action = isSignIn ? signIn : signUp;
+      const emailTrimmed = emailValue.trim();
+      if (isSignIn) {
+        console.log(
+          `email: ${emailTrimmed}, password length: ${passwordValue.length}`
+        );
+      }
+      const { error, session: newSession } = await action(
+        emailTrimmed,
+        passwordValue
+      );
 
-    if (error) {
-      Alert.alert('Error', error.message);
+      if (error) {
+        alertAuthError(error, isSignIn);
+        return;
+      }
+
+      if (newSession) {
+        // Session is applied in AuthContext via onAuthStateChange; RootBranchStack remounts
+        // (key from session/hasProfile) → MainStack (tabs) or OnboardStack as appropriate.
+        return;
+      }
+
+      if (!isSignIn) {
+        Alert.alert(
+          'Check your email',
+          'We sent a confirmation link. Verify your email, then sign in.'
+        );
+      } else {
+        Alert.alert(
+          'Could not sign in',
+          'No session was returned. Confirm your email in Supabase if required, or try again.'
+        );
+      }
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      console.warn('[AuthScreen] handleSubmit error:', e);
+      Alert.alert('Something went wrong', msg);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const isSignUp = mode === 'signup';
-
   return (
     <KeyboardAvoidingView
-      style={styles.root}
+      style={styles.flex}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <View style={[styles.container, { paddingTop: insets.top + 8 }]}>
-        <View style={styles.tintTop} pointerEvents="none" />
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          keyboardShouldPersistTaps="handled"
+      <LinearGradient
+        colors={[
+          colors.bg.authGradientTop,
+          colors.bg.authGradientBottom,
+          colors.bg.authGradientBottom,
+        ]}
+        locations={[0, 0.4, 1]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0, y: 1 }}
+        style={styles.flex}
       >
-        <View style={styles.brandBlock}>
-          <Image
-            source={require('../../assets/icon.png')}
-            style={styles.brandMark}
-            resizeMode="contain"
-          />
-          <Text style={styles.wordmark} accessibilityRole="header">
-            <Text style={styles.wordmarkSwing}>Swing</Text>
-            <Text style={styles.wordmarkSense}>Sense</Text>
-          </Text>
-          <Text style={styles.valueProp}>AI feedback for your swing</Text>
-        </View>
-
-        <View style={styles.segment}>
-          <Pressable
-            style={({ pressed }) => [
-              styles.segmentHalf,
-              mode === 'signin' && styles.segmentHalfActive,
-              pressed && styles.segmentPressed,
-            ]}
-            onPress={() => setMode('signin')}
-          >
-            <Text
-              style={[
-                styles.segmentLabel,
-                mode === 'signin' && styles.segmentLabelActive,
-              ]}
-            >
-              Sign In
-            </Text>
-          </Pressable>
-          <Pressable
-            style={({ pressed }) => [
-              styles.segmentHalf,
-              mode === 'signup' && styles.segmentHalfActive,
-              pressed && styles.segmentPressed,
-            ]}
-            onPress={() => setMode('signup')}
-          >
-            <Text
-              style={[
-                styles.segmentLabel,
-                mode === 'signup' && styles.segmentLabelActive,
-              ]}
-            >
-              Sign Up
-            </Text>
-          </Pressable>
-        </View>
-
-        <View style={styles.form}>
-          {isSignUp && (
-            <View style={styles.inputCard}>
-              <TextInput
-                style={styles.input}
-                value={name}
-                onChangeText={setName}
-                placeholder="Name"
-                placeholderTextColor={COLORS.textMuted}
-                autoCapitalize="words"
+        <ScrollView
+          contentContainerStyle={[
+            styles.scrollContent,
+            {
+              paddingTop: insets.top + spacing.sectionGap,
+              paddingBottom: insets.bottom + spacing.sectionGap,
+              paddingHorizontal: spacing.screen,
+            },
+          ]}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.column}>
+            <LogoTile size="md" />
+            <View style={styles.afterLogo}>
+              <Wordmark size="md" tagline="AI Feedback for your swing" />
+            </View>
+            <View style={styles.afterWordmark}>
+              <TabSwitcher
+                tabs={[TAB_SIGN_IN, TAB_SIGN_UP]}
+                activeTab={activeTab}
+                onChange={setActiveTab}
               />
             </View>
-          )}
-
-          <View style={styles.inputCard}>
-            <TextInput
-              style={styles.input}
-              value={email}
-              onChangeText={setEmail}
-              placeholder="Email"
-              placeholderTextColor={COLORS.textMuted}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoCorrect={false}
-            />
+            <View style={styles.form}>
+              <TextInput
+                type="email"
+                placeholder="Email"
+                value={emailValue}
+                onChangeText={(text) => setEmailValue(text)}
+              />
+              <TextInput
+                type="password"
+                placeholder="Password"
+                value={passwordValue}
+                onChangeText={(text) => setPasswordValue(text)}
+              />
+              <View style={styles.afterInputs}>
+                <PrimaryButton
+                  label={isSignIn ? TAB_SIGN_IN : TAB_SIGN_UP}
+                  onPress={handleSubmit}
+                  loading={loading}
+                />
+              </View>
+            </View>
           </View>
-
-          <View style={styles.inputCard}>
-            <TextInput
-              style={styles.input}
-              value={password}
-              onChangeText={setPassword}
-              placeholder="Password"
-              placeholderTextColor={COLORS.textMuted}
-              secureTextEntry
-            />
-          </View>
-
-          <Pressable
-            style={({ pressed }) => [
-              styles.button,
-              loading && styles.buttonDisabled,
-              pressed && !loading && styles.buttonPressed,
-            ]}
-            onPress={handleSubmit}
-            disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator color={COLORS.black} />
-            ) : (
-              <Text style={styles.buttonText}>
-                {isSignUp ? 'Create account' : 'Sign In'}
-              </Text>
-            )}
-          </Pressable>
-        </View>
-      </ScrollView>
-      </View>
+        </ScrollView>
+      </LinearGradient>
     </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  root: {
+  flex: {
     flex: 1,
-    backgroundColor: SPLASH_BACKGROUND,
-  },
-  container: {
-    flex: 1,
-    backgroundColor: SPLASH_BACKGROUND,
-  },
-  tintTop: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 220,
-    backgroundColor: SPLASH_TINT_TOP,
   },
   scrollContent: {
     flexGrow: 1,
     justifyContent: 'center',
-    paddingHorizontal: 28,
-    paddingBottom: 40,
   },
-  brandBlock: {
+  column: {
+    alignSelf: 'stretch',
     alignItems: 'center',
-    marginBottom: 28,
+    width: '100%',
   },
-  brandMark: {
-    width: 72,
-    height: 72,
-    marginBottom: 16,
-    borderRadius: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.35,
-    shadowRadius: 16,
-    elevation: 10,
-  },
-  wordmark: {
-    fontFamily: FONTS.heading,
-    fontSize: 44,
-    letterSpacing: 1,
-    lineHeight: 48,
-    marginBottom: 10,
-  },
-  wordmarkSwing: {
-    color: COLORS.text,
-  },
-  wordmarkSense: {
-    color: COLORS.accent,
-  },
-  valueProp: {
-    fontSize: 12,
-    fontFamily: FONTS.bodySemiBold,
-    color: COLORS.textMuted,
-    letterSpacing: 2,
-    textTransform: 'uppercase',
-    textAlign: 'center',
-  },
-  segment: {
-    flexDirection: 'row',
-    gap: 10,
-    marginBottom: 20,
-    padding: 4,
-    borderRadius: 14,
-    backgroundColor: COLORS.surface,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  segmentHalf: {
-    flex: 1,
-    paddingVertical: 12,
+  afterLogo: {
+    marginTop: spacing.sectionGap,
     alignItems: 'center',
-    borderRadius: 11,
   },
-  segmentHalfActive: {
-    backgroundColor: COLORS.surfaceHover,
-    borderWidth: 1,
-    borderColor: 'rgba(245,158,11,0.35)',
-  },
-  segmentPressed: {
-    opacity: 0.9,
-  },
-  segmentLabel: {
-    fontSize: 15,
-    fontFamily: FONTS.bodySemiBold,
-    color: COLORS.textMuted,
-  },
-  segmentLabelActive: {
-    color: COLORS.text,
+  afterWordmark: {
+    marginTop: spacing.sectionGap,
+    alignSelf: 'stretch',
   },
   form: {
-    gap: 12,
+    marginTop: spacing.sectionGap,
+    alignSelf: 'stretch',
+    gap: spacing.inputGap,
   },
-  inputCard: {
-    backgroundColor: COLORS.surface,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  input: {
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-    fontSize: 15,
-    fontFamily: FONTS.body,
-    color: COLORS.text,
-  },
-  button: {
-    backgroundColor: COLORS.accent,
-    borderRadius: 16,
-    paddingVertical: 16,
-    paddingHorizontal: 28,
-    alignItems: 'center',
-    marginTop: 8,
-    shadowColor: COLORS.accent,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 24,
-    elevation: 8,
-  },
-  buttonPressed: {
-    opacity: 0.9,
-  },
-  buttonDisabled: {
-    opacity: 0.6,
-  },
-  buttonText: {
-    fontSize: 15,
-    fontFamily: FONTS.bodySemiBold,
-    color: COLORS.black,
-    letterSpacing: 0.3,
+  afterInputs: {
+    marginTop: spacing.cardGap,
+    alignSelf: 'stretch',
   },
 });

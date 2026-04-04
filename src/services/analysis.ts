@@ -147,14 +147,17 @@ export async function startAnalysisPipeline(
           analysis_id: analysisId,
           video_url: videoUrl,
           user_id: userId,
-          player_profile: profile ? {
-            first_name: profile.first_name,
-            age: profile.age,
-            primary_position: profile.primary_position,
-            batting_side: profile.batting_side,
-            height_feet: profile.height_feet,
-            height_inches: profile.height_inches,
-          } : { age: 15 }, // Default to youth for age calibration when no profile
+          player_profile: profile
+            ? {
+                first_name: profile.first_name,
+                age: profile.age,
+                primary_position: profile.primary_position,
+                batting_side: profile.batting_side,
+                height_feet: profile.height_feet,
+                height_inches: profile.height_inches,
+                experience_level: profile.experience_level ?? null,
+              }
+            : { age: 15 },
           ...(previous_swing ? { previous_swing } : {}),
         }),
         signal: controller.signal,
@@ -247,7 +250,42 @@ export async function getUserAnalyses(
     .order('created_at', { ascending: false })
     .limit(limit);
 
-  return (data as SwingAnalysis[]) ?? [];
+  const rows = (data as SwingAnalysis[]) ?? [];
+  if (__DEV__ && rows.length > 0) {
+    console.log('[getUserAnalyses] first row (raw JSON):', JSON.stringify(rows[0], null, 2));
+  }
+  return rows;
+}
+
+/** Completed analyses for `userId` with `created_at` in the current local calendar month. */
+export async function getCompletedAnalysesCountThisMonth(userId: string): Promise<number> {
+  const now = new Date();
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+  const endOfMonth = new Date(
+    now.getFullYear(),
+    now.getMonth() + 1,
+    0,
+    23,
+    59,
+    59,
+    999
+  );
+  const startIso = startOfMonth.toISOString();
+  const endIso = endOfMonth.toISOString();
+
+  const { count, error } = await supabase
+    .from('swing_analyses')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', userId)
+    .eq('status', 'completed')
+    .gte('created_at', startIso)
+    .lte('created_at', endIso);
+
+  if (error) {
+    console.warn('[analysis] getCompletedAnalysesCountThisMonth:', error.message);
+    return 0;
+  }
+  return count ?? 0;
 }
 
 export async function deleteAnalysis(

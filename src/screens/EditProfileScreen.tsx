@@ -2,28 +2,47 @@ import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
-  TextInput,
-  TouchableOpacity,
+  Pressable,
   StyleSheet,
   ScrollView,
-  ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
-import { Ionicons } from '@expo/vector-icons';
-import { COLORS, SPACING, FONT_SIZE } from '../config/constants';
+
+import BackNav from '../components/BackNav';
+import PrimaryButton from '../components/PrimaryButton';
+import TextInput from '../components/TextInput';
 import { useAuth } from '../contexts/AuthContext';
 import { Position, BattingSide, POSITION_LABELS, BATTING_SIDE_LABELS } from '../types';
+import { colors, fontSizes, radius, spacing } from '../../design-system/tokens';
+
+const FONT_INTER = 'Inter_400Regular';
 
 const POSITIONS: Position[] = [
-  'catcher', 'first_base', 'second_base', 'shortstop',
-  'third_base', 'outfield', 'pitcher', 'dh_utility',
+  'catcher',
+  'first_base',
+  'second_base',
+  'shortstop',
+  'third_base',
+  'outfield',
+  'pitcher',
+  'dh_utility',
 ];
 
 const BATTING_SIDES: BattingSide[] = ['left', 'right', 'switch'];
+
+const EXPERIENCE_LEVELS = [
+  'Youth',
+  'Recreational',
+  'Travel Ball',
+  'High School',
+  'College',
+  'Former College or Pro',
+  'Coach',
+] as const;
 
 export default function EditProfileScreen() {
   const insets = useSafeAreaInsets();
@@ -35,6 +54,7 @@ export default function EditProfileScreen() {
   const [battingSide, setBattingSide] = useState<BattingSide | null>(null);
   const [heightFeet, setHeightFeet] = useState('');
   const [heightInches, setHeightInches] = useState('');
+  const [experienceLevel, setExperienceLevel] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -45,6 +65,7 @@ export default function EditProfileScreen() {
       setBattingSide(profile.batting_side ?? null);
       setHeightFeet(profile.height_feet ? String(profile.height_feet) : '');
       setHeightInches(profile.height_inches ? String(profile.height_inches) : '');
+      setExperienceLevel(profile.experience_level ?? null);
     }
   }, [profile]);
 
@@ -74,6 +95,7 @@ export default function EditProfileScreen() {
       batting_side: battingSide,
       height_feet: heightFeet ? Number(heightFeet) : null,
       height_inches: heightInches ? Number(heightInches) : null,
+      experience_level: experienceLevel,
     });
     setLoading(false);
 
@@ -91,26 +113,21 @@ export default function EditProfileScreen() {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="chevron-back" size={24} color={COLORS.accent} />
-          <Text style={styles.backLabel}>Back</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Edit Profile</Text>
+      <View style={[styles.top, { paddingTop: insets.top + spacing.pillGap }]}>
+        <BackNav label="Back" onPress={() => navigation.goBack()} />
       </View>
 
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
       >
         <View style={styles.field}>
           <Text style={styles.label}>First Name *</Text>
           <TextInput
-            style={styles.input}
+            placeholder="Your first name"
             value={firstName}
             onChangeText={setFirstName}
-            placeholder="Your first name"
-            placeholderTextColor={COLORS.textMuted}
             autoCapitalize="words"
           />
         </View>
@@ -118,61 +135,94 @@ export default function EditProfileScreen() {
         <View style={styles.field}>
           <Text style={styles.label}>Age *</Text>
           <TextInput
-            style={[styles.input, styles.shortInput]}
+            placeholder="15"
             value={age}
             onChangeText={setAge}
-            placeholder="15"
-            placeholderTextColor={COLORS.textMuted}
             keyboardType="number-pad"
             maxLength={2}
+            style={styles.inputShort}
           />
         </View>
 
         <View style={styles.field}>
           <Text style={styles.label}>Primary Position *</Text>
           <View style={styles.chipGrid}>
-            {POSITIONS.map((pos) => (
-              <TouchableOpacity
-                key={pos}
-                style={[styles.chip, position === pos && styles.chipSelected]}
-                onPress={() => setPosition(pos)}
-              >
-                <Text
-                  style={[
-                    styles.chipText,
-                    position === pos && styles.chipTextSelected,
+            {POSITIONS.map((pos) => {
+              const selected = position === pos;
+              return (
+                <Pressable
+                  key={pos}
+                  onPress={() => setPosition(pos)}
+                  style={({ pressed }) => [
+                    styles.chip,
+                    selected ? styles.chipActive : styles.chipInactive,
+                    pressed && styles.chipPressed,
                   ]}
                 >
-                  {POSITION_LABELS[pos]}
-                </Text>
-              </TouchableOpacity>
-            ))}
+                  <Text
+                    style={[styles.chipLabel, selected ? styles.chipLabelActive : styles.chipLabelInactive]}
+                  >
+                    {POSITION_LABELS[pos]}
+                  </Text>
+                </Pressable>
+              );
+            })}
           </View>
         </View>
 
         <View style={styles.field}>
           <Text style={styles.label}>Batting Side *</Text>
           <View style={styles.chipRow}>
-            {BATTING_SIDES.map((side) => (
-              <TouchableOpacity
-                key={side}
-                style={[
-                  styles.chip,
-                  styles.chipWide,
-                  battingSide === side && styles.chipSelected,
-                ]}
-                onPress={() => setBattingSide(side)}
-              >
-                <Text
-                  style={[
-                    styles.chipText,
-                    battingSide === side && styles.chipTextSelected,
+            {BATTING_SIDES.map((side) => {
+              const selected = battingSide === side;
+              return (
+                <Pressable
+                  key={side}
+                  onPress={() => setBattingSide(side)}
+                  style={({ pressed }) => [
+                    styles.chip,
+                    styles.chipWide,
+                    selected ? styles.chipActive : styles.chipInactive,
+                    pressed && styles.chipPressed,
                   ]}
                 >
-                  {BATTING_SIDE_LABELS[side]}
-                </Text>
-              </TouchableOpacity>
-            ))}
+                  <Text
+                    style={[styles.chipLabel, selected ? styles.chipLabelActive : styles.chipLabelInactive]}
+                  >
+                    {BATTING_SIDE_LABELS[side]}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
+
+        <View style={styles.field}>
+          <Text style={styles.label}>Experience Level</Text>
+          <View style={styles.chipGrid}>
+            {EXPERIENCE_LEVELS.map((level) => {
+              const selected = experienceLevel === level;
+              return (
+                <Pressable
+                  key={level}
+                  onPress={() => setExperienceLevel(level)}
+                  style={({ pressed }) => [
+                    styles.chip,
+                    selected ? styles.chipActive : styles.chipInactive,
+                    pressed && styles.chipPressed,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.chipLabel,
+                      selected ? styles.chipLabelActive : styles.chipLabelInactive,
+                    ]}
+                  >
+                    {level}
+                  </Text>
+                </Pressable>
+              );
+            })}
           </View>
         </View>
 
@@ -180,39 +230,29 @@ export default function EditProfileScreen() {
           <Text style={styles.label}>Height (optional)</Text>
           <View style={styles.heightRow}>
             <TextInput
-              style={[styles.input, styles.heightInput]}
+              placeholder="ft"
               value={heightFeet}
               onChangeText={setHeightFeet}
-              placeholder="ft"
-              placeholderTextColor={COLORS.textMuted}
               keyboardType="number-pad"
               maxLength={1}
+              style={styles.heightInput}
+              textAlign="center"
             />
-            <Text style={styles.heightSeparator}>ft</Text>
+            <Text style={styles.heightUnit}>ft</Text>
             <TextInput
-              style={[styles.input, styles.heightInput]}
+              placeholder="in"
               value={heightInches}
               onChangeText={setHeightInches}
-              placeholder="in"
-              placeholderTextColor={COLORS.textMuted}
               keyboardType="number-pad"
               maxLength={2}
+              style={styles.heightInput}
+              textAlign="center"
             />
-            <Text style={styles.heightSeparator}>in</Text>
+            <Text style={styles.heightUnit}>in</Text>
           </View>
         </View>
 
-        <TouchableOpacity
-          style={[styles.button, loading && styles.buttonDisabled]}
-          onPress={handleSave}
-          disabled={loading}
-        >
-          {loading ? (
-            <ActivityIndicator color={COLORS.black} />
-          ) : (
-            <Text style={styles.buttonText}>Save Changes</Text>
-          )}
-        </TouchableOpacity>
+        <PrimaryButton label="Save Changes" onPress={handleSave} loading={loading} />
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -221,118 +261,84 @@ export default function EditProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: colors.bg.base,
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: SPACING.lg,
-    paddingBottom: SPACING.md,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.surfaceBorder,
-  },
-  backButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  backLabel: {
-    fontSize: FONT_SIZE.md,
-    fontWeight: '600',
-    color: COLORS.accent,
-  },
-  headerTitle: {
-    fontSize: FONT_SIZE.lg,
-    fontWeight: '700',
-    color: COLORS.text,
-    marginLeft: SPACING.md,
+  top: {
+    paddingHorizontal: spacing.screen,
+    paddingBottom: spacing.cardGap,
   },
   scrollContent: {
     flexGrow: 1,
-    padding: SPACING.lg,
+    paddingHorizontal: spacing.screen,
+    paddingTop: spacing.cardGap,
+    paddingBottom: spacing.sectionGap + 32,
   },
   field: {
-    marginBottom: SPACING.lg,
+    marginBottom: 20,
   },
   label: {
-    fontSize: FONT_SIZE.sm,
-    fontWeight: '600',
-    color: COLORS.textSecondary,
-    marginBottom: SPACING.sm,
+    fontFamily: FONT_INTER,
+    fontSize: fontSizes.body,
+    fontWeight: '400',
+    color: colors.text.muted,
+    marginBottom: spacing.inputGap,
   },
-  input: {
-    backgroundColor: COLORS.surfaceLight,
-    borderRadius: 10,
-    padding: SPACING.md,
-    fontSize: FONT_SIZE.md,
-    color: COLORS.text,
-    borderWidth: 1,
-    borderColor: COLORS.surfaceBorder,
-  },
-  shortInput: {
-    width: 80,
+  inputShort: {
+    alignSelf: 'flex-start',
+    width: 88,
   },
   chipGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: SPACING.sm,
+    gap: spacing.pillGap,
   },
   chipRow: {
     flexDirection: 'row',
-    gap: SPACING.sm,
+    gap: spacing.pillGap,
   },
   chip: {
-    backgroundColor: COLORS.surfaceLight,
-    borderRadius: 20,
-    paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.sm + 2,
-    borderWidth: 1,
-    borderColor: COLORS.surfaceBorder,
+    borderRadius: radius.pill,
+    paddingHorizontal: spacing.card,
+    paddingVertical: spacing.tabInner,
   },
   chipWide: {
     flex: 1,
     alignItems: 'center',
   },
-  chipSelected: {
-    backgroundColor: COLORS.primary,
-    borderColor: COLORS.primaryLight,
+  chipInactive: {
+    backgroundColor: colors.bg.surface,
   },
-  chipText: {
-    fontSize: FONT_SIZE.sm,
-    color: COLORS.textSecondary,
+  chipActive: {
+    backgroundColor: colors.bg.gold,
+  },
+  chipPressed: {
+    opacity: 0.9,
+  },
+  chipLabel: {
+    fontFamily: FONT_INTER,
+    fontSize: fontSizes.body,
     fontWeight: '500',
+    textAlign: 'center',
   },
-  chipTextSelected: {
-    color: COLORS.white,
-    fontWeight: '700',
+  chipLabelInactive: {
+    color: colors.text.muted,
+  },
+  chipLabelActive: {
+    color: '#000000',
   },
   heightRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: SPACING.sm,
+    gap: spacing.pillGap,
   },
+  /** Width only; height matches shared TextInput via minHeight in TextInput.tsx */
   heightInput: {
-    width: 60,
-    textAlign: 'center',
+    width: 72,
+    alignSelf: 'center',
   },
-  heightSeparator: {
-    fontSize: FONT_SIZE.md,
-    color: COLORS.textSecondary,
-  },
-  button: {
-    backgroundColor: COLORS.accent,
-    borderRadius: 12,
-    padding: SPACING.md + 2,
-    alignItems: 'center',
-    marginTop: SPACING.lg,
-    marginBottom: SPACING.xxl,
-  },
-  buttonDisabled: {
-    opacity: 0.6,
-  },
-  buttonText: {
-    fontSize: FONT_SIZE.lg,
-    fontWeight: '800',
-    color: COLORS.black,
+  heightUnit: {
+    fontFamily: FONT_INTER,
+    fontSize: fontSizes.body,
+    color: colors.text.muted,
   },
 });
