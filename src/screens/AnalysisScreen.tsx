@@ -452,7 +452,7 @@ export default function AnalysisScreen() {
                       fontFamily: typography.body,
                       fontSize: fontSizes.caption,
                       color: colors.text.muted,
-                      letterSpacing: 2,
+                      letterSpacing: letterSpacing.cta,
                       textTransform: 'uppercase',
                       marginBottom: spacing.cardSm,
                     }}
@@ -462,20 +462,23 @@ export default function AnalysisScreen() {
                   <View style={{ flexDirection: 'row', gap: spacing.pillGap }}>
                     <Pressable
                       onPress={() => void handleDrillFeedback('helped')}
-                      style={{
-                        flex: 1,
-                        backgroundColor: colors.bg.greenDim,
-                        borderRadius: radius.pill,
-                        paddingVertical: spacing.tabInner,
-                        alignItems: 'center',
-                      }}
+                      style={({ pressed }) => [
+                        {
+                          flex: 1,
+                          backgroundColor: colors.bg.greenDim,
+                          borderRadius: radius.pill,
+                          paddingVertical: spacing.tabInner,
+                          alignItems: 'center',
+                        },
+                        pressed && { opacity: 0.9 },
+                      ]}
                     >
                       <Text
                         style={{
                           fontFamily: typography.body,
                           fontSize: fontSizes.body,
                           color: colors.text.green,
-                          fontWeight: '500',
+                          fontWeight: fontWeights.medium,
                         }}
                       >
                         It helped
@@ -483,20 +486,23 @@ export default function AnalysisScreen() {
                     </Pressable>
                     <Pressable
                       onPress={() => void handleDrillFeedback('still_struggling')}
-                      style={{
-                        flex: 1,
-                        backgroundColor: colors.bg.surface,
-                        borderRadius: radius.pill,
-                        paddingVertical: spacing.tabInner,
-                        alignItems: 'center',
-                      }}
+                      style={({ pressed }) => [
+                        {
+                          flex: 1,
+                          backgroundColor: colors.bg.surface,
+                          borderRadius: radius.pill,
+                          paddingVertical: spacing.tabInner,
+                          alignItems: 'center',
+                        },
+                        pressed && { opacity: 0.9 },
+                      ]}
                     >
                       <Text
                         style={{
                           fontFamily: typography.body,
                           fontSize: fontSizes.body,
                           color: colors.text.muted,
-                          fontWeight: '500',
+                          fontWeight: fontWeights.medium,
                         }}
                       >
                         Still struggling
@@ -504,20 +510,23 @@ export default function AnalysisScreen() {
                     </Pressable>
                     <Pressable
                       onPress={() => void handleDrillFeedback('confused')}
-                      style={{
-                        flex: 1,
-                        backgroundColor: colors.bg.surface,
-                        borderRadius: radius.pill,
-                        paddingVertical: spacing.tabInner,
-                        alignItems: 'center',
-                      }}
+                      style={({ pressed }) => [
+                        {
+                          flex: 1,
+                          backgroundColor: colors.bg.surface,
+                          borderRadius: radius.pill,
+                          paddingVertical: spacing.tabInner,
+                          alignItems: 'center',
+                        },
+                        pressed && { opacity: 0.9 },
+                      ]}
                     >
                       <Text
                         style={{
                           fontFamily: typography.body,
                           fontSize: fontSizes.body,
                           color: colors.text.muted,
-                          fontWeight: '500',
+                          fontWeight: fontWeights.medium,
                         }}
                       >
                         Confused
@@ -536,7 +545,7 @@ export default function AnalysisScreen() {
                       fontFamily: typography.body,
                       fontSize: fontSizes.body,
                       color: colors.text.secondary,
-                      lineHeight: fontSizes.body * 1.6,
+                      lineHeight: fontSizes.body * 1.6, // 1.6 line height — readability tuned for coach response text
                       marginBottom: spacing.cardSm,
                     }}
                   >
@@ -557,7 +566,7 @@ export default function AnalysisScreen() {
                           fontFamily: typography.body,
                           fontSize: fontSizes.caption,
                           color: colors.text.green,
-                          letterSpacing: 2,
+                          letterSpacing: letterSpacing.cta,
                           textTransform: 'uppercase',
                           marginBottom: spacing.iconGap,
                         }}
@@ -569,7 +578,7 @@ export default function AnalysisScreen() {
                           fontFamily: typography.body,
                           fontSize: fontSizes.body,
                           color: colors.text.secondary,
-                          lineHeight: fontSizes.body * 1.6,
+                          lineHeight: fontSizes.body * 1.6, // 1.6 line height — readability tuned for coach response text
                         }}
                       >
                         {drillResponse.adjusted_drill}
