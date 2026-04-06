@@ -25,8 +25,13 @@ import StatDisplay from '../components/StatDisplay';
 import SubScoreCard from '../components/SubScoreCard';
 import TabSwitcher from '../components/TabSwitcher';
 import { FEEDBACK_EMAIL } from '../config/constants';
+import { useAuth } from '../contexts/AuthContext';
 import type { MainStackParamList } from '../navigation/types';
-import { getPreviousCompletedAnalysis, pollAnalysisStatus } from '../services/analysis';
+import {
+  getPreviousCompletedAnalysis,
+  pollAnalysisStatus,
+  submitDrillFeedback,
+} from '../services/analysis';
 import type { CoachingOutput, SimilarityBreakdown, SwingAnalysis } from '../types';
 import {
   colors,
@@ -146,12 +151,22 @@ export default function AnalysisScreen() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
   const { analysisId } = route.params;
+  const { profile } = useAuth();
   const [activeTab, setActiveTab] = useState(TAB_RESULTS);
   const [analysis, setAnalysis] = useState<SwingAnalysis | null>(null);
   const [previousAnalysis, setPreviousAnalysis] = useState<SwingAnalysis | null>(null);
   const [loading, setLoading] = useState(true);
   const [feedback, setFeedback] = useState<'up' | 'down' | null>(null);
   const [feedbackNote, setFeedbackNote] = useState('');
+  const [drillFeedback, setDrillFeedback] = useState<
+    'helped' | 'still_struggling' | 'confused' | null
+  >(null);
+  const [drillResponse, setDrillResponse] = useState<{
+    response_text: string;
+    adjusted_drill: string | null;
+    encouragement: string;
+  } | null>(null);
+  const [drillLoading, setDrillLoading] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -176,6 +191,12 @@ export default function AnalysisScreen() {
     return () => {
       cancelled = true;
     };
+  }, [analysisId]);
+
+  useEffect(() => {
+    setDrillFeedback(null);
+    setDrillResponse(null);
+    setDrillLoading(false);
   }, [analysisId]);
 
   const goAnalyzeAnother = useCallback(() => {
@@ -238,6 +259,29 @@ export default function AnalysisScreen() {
       : analysis?.bat_speed_mph != null
         ? Math.round(analysis.bat_speed_mph)
         : null;
+
+  const handleDrillFeedback = async (
+    feedback: 'helped' | 'still_struggling' | 'confused'
+  ) => {
+    if (drillFeedback || !analysis || !co) return;
+    setDrillFeedback(feedback);
+    setDrillLoading(true);
+    const result = await submitDrillFeedback({
+      analysisId: analysis.id,
+      originalSummary: co.overall_summary ?? '',
+      originalDrill: co.drill ?? '',
+      primaryIssueTitle: co.primary_mechanical_issue?.title ?? '',
+      primaryIssueDescription: co.primary_mechanical_issue?.description ?? '',
+      feedback,
+      playerProfile: {
+        first_name: profile?.first_name,
+        age: profile?.age,
+        experience_level: profile?.experience_level ?? undefined,
+      },
+    });
+    setDrillLoading(false);
+    setDrillResponse(result);
+  };
 
   if (loading) {
     return (
@@ -396,6 +440,154 @@ export default function AnalysisScreen() {
                 <Text style={styles.bodyText} maxFontSizeMultiplier={1.35}>
                   No drill steps for this analysis.
                 </Text>
+              )}
+            </SectionCard>
+
+            {/* Drill Coach feedback */}
+            <SectionCard>
+              {!drillFeedback && (
+                <>
+                  <Text
+                    style={{
+                      fontFamily: typography.body,
+                      fontSize: fontSizes.caption,
+                      color: colors.text.muted,
+                      letterSpacing: 2,
+                      textTransform: 'uppercase',
+                      marginBottom: spacing.cardSm,
+                    }}
+                  >
+                    Did you try this drill?
+                  </Text>
+                  <View style={{ flexDirection: 'row', gap: spacing.pillGap }}>
+                    <Pressable
+                      onPress={() => void handleDrillFeedback('helped')}
+                      style={{
+                        flex: 1,
+                        backgroundColor: colors.bg.greenDim,
+                        borderRadius: radius.pill,
+                        paddingVertical: spacing.tabInner,
+                        alignItems: 'center',
+                      }}
+                    >
+                      <Text
+                        style={{
+                          fontFamily: typography.body,
+                          fontSize: fontSizes.body,
+                          color: colors.text.green,
+                          fontWeight: '500',
+                        }}
+                      >
+                        It helped
+                      </Text>
+                    </Pressable>
+                    <Pressable
+                      onPress={() => void handleDrillFeedback('still_struggling')}
+                      style={{
+                        flex: 1,
+                        backgroundColor: colors.bg.surface,
+                        borderRadius: radius.pill,
+                        paddingVertical: spacing.tabInner,
+                        alignItems: 'center',
+                      }}
+                    >
+                      <Text
+                        style={{
+                          fontFamily: typography.body,
+                          fontSize: fontSizes.body,
+                          color: colors.text.muted,
+                          fontWeight: '500',
+                        }}
+                      >
+                        Still struggling
+                      </Text>
+                    </Pressable>
+                    <Pressable
+                      onPress={() => void handleDrillFeedback('confused')}
+                      style={{
+                        flex: 1,
+                        backgroundColor: colors.bg.surface,
+                        borderRadius: radius.pill,
+                        paddingVertical: spacing.tabInner,
+                        alignItems: 'center',
+                      }}
+                    >
+                      <Text
+                        style={{
+                          fontFamily: typography.body,
+                          fontSize: fontSizes.body,
+                          color: colors.text.muted,
+                          fontWeight: '500',
+                        }}
+                      >
+                        Confused
+                      </Text>
+                    </Pressable>
+                  </View>
+                </>
+              )}
+
+              {drillLoading && <ActivityIndicator color={colors.text.gold} />}
+
+              {drillResponse && !drillLoading && (
+                <>
+                  <Text
+                    style={{
+                      fontFamily: typography.body,
+                      fontSize: fontSizes.body,
+                      color: colors.text.secondary,
+                      lineHeight: fontSizes.body * 1.6,
+                      marginBottom: spacing.cardSm,
+                    }}
+                  >
+                    {drillResponse.response_text}
+                  </Text>
+
+                  {drillResponse.adjusted_drill ? (
+                    <View
+                      style={{
+                        backgroundColor: colors.bg.base,
+                        borderRadius: radius.subCard,
+                        padding: spacing.cardSm,
+                        marginBottom: spacing.cardSm,
+                      }}
+                    >
+                      <Text
+                        style={{
+                          fontFamily: typography.body,
+                          fontSize: fontSizes.caption,
+                          color: colors.text.green,
+                          letterSpacing: 2,
+                          textTransform: 'uppercase',
+                          marginBottom: spacing.iconGap,
+                        }}
+                      >
+                        Try this instead
+                      </Text>
+                      <Text
+                        style={{
+                          fontFamily: typography.body,
+                          fontSize: fontSizes.body,
+                          color: colors.text.secondary,
+                          lineHeight: fontSizes.body * 1.6,
+                        }}
+                      >
+                        {drillResponse.adjusted_drill}
+                      </Text>
+                    </View>
+                  ) : null}
+
+                  <Text
+                    style={{
+                      fontFamily: typography.body,
+                      fontSize: fontSizes.caption,
+                      color: colors.text.muted,
+                      fontStyle: 'italic',
+                    }}
+                  >
+                    {drillResponse.encouragement}
+                  </Text>
+                </>
               )}
             </SectionCard>
           </View>

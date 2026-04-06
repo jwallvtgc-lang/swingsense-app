@@ -76,6 +76,49 @@ function parseCoachingOutput(raw: unknown): CoachingOutput | null {
   return null;
 }
 
+export async function submitDrillFeedback(params: {
+  analysisId: string;
+  originalSummary: string;
+  originalDrill: string;
+  primaryIssueTitle: string;
+  primaryIssueDescription: string;
+  feedback: 'helped' | 'still_struggling' | 'confused';
+  playerProfile: {
+    first_name?: string;
+    age?: number;
+    experience_level?: string;
+  };
+}): Promise<{
+  response_text: string;
+  adjusted_drill: string | null;
+  encouragement: string;
+} | null> {
+  try {
+    const backendUrl = await getBackendUrl();
+    const response = await fetch(`${backendUrl}/drill-followup`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        analysis_id: params.analysisId,
+        original_summary: params.originalSummary,
+        original_drill: params.originalDrill,
+        primary_issue_title: params.primaryIssueTitle,
+        primary_issue_description: params.primaryIssueDescription,
+        feedback: params.feedback,
+        player_profile: params.playerProfile,
+      }),
+    });
+    if (!response.ok) return null;
+    return (await response.json()) as {
+      response_text: string;
+      adjusted_drill: string | null;
+      encouragement: string;
+    };
+  } catch {
+    return null;
+  }
+}
+
 export async function startAnalysisPipeline(
   userId: string,
   videoUri: string,

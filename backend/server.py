@@ -712,6 +712,16 @@ class AnalyzeRequest(BaseModel):
     previous_swing: PreviousSwingPayload | None = None
 
 
+class DrillFollowupRequest(BaseModel):
+    analysis_id: str
+    original_summary: str
+    original_drill: str
+    primary_issue_title: str
+    primary_issue_description: str
+    feedback: str  # "helped" | "still_struggling" | "confused"
+    player_profile: dict
+
+
 class HealthResponse(BaseModel):
     status: str
     model_loaded: bool
@@ -815,6 +825,83 @@ async def analyze(request: AnalyzeRequest):
         raise HTTPException(status_code=500, detail=str(e))
     finally:
         Path(tmp_path).unlink(missing_ok=True)
+
+
+@app.post("/drill-followup")
+async def drill_followup(request: DrillFollowupRequest):
+    api_key = os.environ.get("ANTHROPIC_API_KEY")
+    if not api_key:
+        raise HTTPException(status_code=500, detail="ANTHROPIC_API_KEY not configured")
+
+    profile = request.player_profile
+    age = profile.get("age", 15)
+    name = profile.get("first_name", "Player")
+    experience = profile.get("experience_level", "")
+
+    if request.feedback == "helped":
+        tone_instruction = (
+            "The player tried the drill and it helped. Celebrate the win genuinely, tell them what "
+            "that feeling means for their swing, and give them one thing to watch for next time they upload."
+        )
+    elif request.feedback == "still_struggling":
+        tone_instruction = (
+            "The player tried the drill and is still struggling. Do NOT repeat the same drill. Give them "
+            "a completely different, simpler physical cue for the same mechanical issue. No equipment needed. "
+            "2-3 steps maximum. Start with something they can feel standing still before they even pick up a bat."
+        )
+    else:  # confused
+        tone_instruction = (
+            "The player is confused by the drill. Break it down into the single simplest physical action — "
+            "one thing they can feel right now. Explain it like they have never heard of this concept before."
+        )
+
+    system_prompt = f"""You are an elite baseball hitting coach coaching in the voice of Darian — warm, direct, specific, dugout coach energy.
+
+COACHING VOICE:
+- Sound like a real coach responding after practice, not a report
+- Use Darian's vocabulary: balance point, power position, rubber band, let it travel, hips first chest follows, feel connected, the break, freefall for a millisecond
+- Short sentences. Real words. Nothing a parent needs to Google.
+- Always validate the player's effort before giving new instruction
+- If giving a new drill: always end with one sentence starting with "When you get it right, you'll feel..."
+- Connect to game outcomes: "you'll start driving the ball harder", "more backspin on your line drives"
+
+BANNED WORDS: kinetic chain, hip-shoulder separation, attack angle, posterior weight shift, biomechanical, analysis indicates, suboptimal
+
+Respond in JSON only:
+{{
+  "response_text": "string — conversational response to their feedback, 2-4 sentences in Darian voice",
+  "adjusted_drill": "string or null — new simplified drill if still_struggling or confused, null if helped",
+  "encouragement": "string — one short closing line to send them back to practice"
+}}"""
+
+    user_message = f"""Player: {name}, Age: {age}, Experience: {experience}
+
+Original issue: {request.primary_issue_title} — {request.primary_issue_description}
+
+Original drill they attempted:
+{request.original_drill}
+
+Player feedback: {request.feedback}
+
+Instruction: {tone_instruction}"""
+
+    client = Anthropic(api_key=api_key)
+    response = client.messages.create(
+        model="claude-sonnet-4-20250514",
+        max_tokens=1000,
+        system=system_prompt,
+        messages=[{"role": "user", "content": user_message}],
+    )
+
+    result_text = response.content[0].text
+    try:
+        return json.loads(result_text)
+    except json.JSONDecodeError:
+        start = result_text.find("{")
+        end = result_text.rfind("}") + 1
+        if start >= 0 and end > start:
+            return json.loads(result_text[start:end])
+        raise HTTPException(status_code=500, detail="Failed to parse response")
 
 
 @app.on_event("startup")
