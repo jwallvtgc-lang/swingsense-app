@@ -8,6 +8,7 @@ import {
   fontSizes,
   fontWeights,
   letterSpacing,
+  spacing,
   typography,
 } from '../../design-system/tokens';
 
@@ -27,7 +28,10 @@ function TabIconAnalyze({ active }: TabIconProps) {
   return (
     <Image
       source={APP_ICON}
-      style={[styles.appTabIcon, { opacity: active ? 1 : 0.5 }]}
+      style={[
+        styles.appTabIcon,
+        { opacity: active ? 1 : 0.5 }, // pressed/inactive opacity — interaction feel, no token needed
+      ]}
       resizeMode="contain"
       accessibilityLabel="Analyze"
     />
@@ -113,7 +117,7 @@ export default function BottomTabBar({ activeTab, onTabPress }: BottomTabBarProp
 
 const styles = StyleSheet.create({
   outer: {
-    borderTopWidth: 0.5,
+    borderTopWidth: 0.5, // hairline border — standard 0.5px, no token needed
   },
   row: {
     flexDirection: 'row',
@@ -124,10 +128,10 @@ const styles = StyleSheet.create({
     height: '100%',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
+    gap: spacing.pillGap,
   },
   tabPressed: {
-    opacity: 0.85,
+    opacity: 0.85, // pressed/inactive opacity — interaction feel, no token needed
   },
   label: {
     fontFamily: typography.body,
@@ -137,7 +141,7 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   appTabIcon: {
-    width: 24,
-    height: 24,
+    width: bottomTab.iconSize,
+    height: bottomTab.iconSize,
   },
 });

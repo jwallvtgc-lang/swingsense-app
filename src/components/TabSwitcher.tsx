@@ -58,7 +58,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   tabPressed: {
-    opacity: 0.9,
+    opacity: 0.9, // 0.9 pressed opacity — standard interaction feel
   },
   label: {
     fontFamily: typography.body,

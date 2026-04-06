@@ -28,14 +28,17 @@ import { FEEDBACK_EMAIL } from '../config/constants';
 import type { MainStackParamList } from '../navigation/types';
 import { getPreviousCompletedAnalysis, pollAnalysisStatus } from '../services/analysis';
 import type { CoachingOutput, SimilarityBreakdown, SwingAnalysis } from '../types';
-import { colors, fontSizes, radius, spacing } from '../../design-system/tokens';
+import {
+  colors,
+  fontSizes,
+  fontWeights,
+  letterSpacing,
+  radius,
+  spacing,
+  typography,
+} from '../../design-system/tokens';
 
-const FONT_INTER = 'Inter_400Regular';
-const FONT_DISPLAY = 'BebasNeue_400Regular';
-const FONT_INTER_SEMI = 'Inter_600SemiBold';
-
-const ANALYSIS_KICKER_SIZE = 28;
-const ANALYSIS_KICKER_TRACKING = 3;
+const ANALYSIS_KICKER_SIZE = 28; // 28px analysis kicker — between display sizes, intentional
 
 const TAB_RESULTS = 'Results';
 const TAB_COACHING = 'Coaching';
@@ -334,7 +337,7 @@ export default function AnalysisScreen() {
                 icon={
                   <Ionicons
                     name="git-compare-outline"
-                    size={16}
+                    size={16} // 16/18px icon sizes — standard small icons
                     color={colors.text.gold}
                   />
                 }
@@ -437,7 +440,11 @@ export default function AnalysisScreen() {
                   );
                 }}
               >
-                <Ionicons name="mail-outline" size={18} color={colors.text.onGold} />
+                <Ionicons
+                  name="mail-outline"
+                  size={18} // 16/18px icon sizes — standard small icons
+                  color={colors.text.onGold}
+                />
                 <Text style={styles.sendFeedbackText} maxFontSizeMultiplier={1.35}>
                   Send feedback
                 </Text>
@@ -468,7 +475,7 @@ const styles = StyleSheet.create({
     gap: spacing.sectionGap,
   },
   missedTitle: {
-    fontFamily: FONT_INTER,
+    fontFamily: typography.body,
     fontSize: fontSizes.body,
     color: colors.text.secondary,
     textAlign: 'center',
@@ -484,15 +491,15 @@ const styles = StyleSheet.create({
     alignSelf: 'stretch',
   },
   kicker: {
-    fontFamily: FONT_DISPLAY,
+    fontFamily: typography.display,
     fontSize: ANALYSIS_KICKER_SIZE,
-    letterSpacing: ANALYSIS_KICKER_TRACKING,
+    letterSpacing: letterSpacing.label,
     color: colors.text.primary,
     textTransform: 'uppercase',
   },
   dateLine: {
     marginTop: spacing.pillGap,
-    fontFamily: FONT_INTER,
+    fontFamily: typography.body,
     fontSize: fontSizes.body,
     color: colors.text.muted,
   },
@@ -516,16 +523,16 @@ const styles = StyleSheet.create({
     alignSelf: 'stretch',
   },
   comparePrevDate: {
-    fontFamily: FONT_INTER,
+    fontFamily: typography.body,
     fontSize: fontSizes.caption,
     color: colors.text.muted,
     marginBottom: spacing.pillGap,
   },
   compareSentence: {
-    fontFamily: FONT_INTER,
+    fontFamily: typography.body,
     fontSize: fontSizes.body,
     color: colors.text.secondary,
-    lineHeight: Math.round(fontSizes.body * 1.45),
+    lineHeight: Math.round(fontSizes.body * 1.45), // 1.45/1.35 line height — readability tuned for this context
     marginBottom: spacing.cardGap,
   },
   compareDeltas: {
@@ -540,12 +547,13 @@ const styles = StyleSheet.create({
   },
   compareLabel: {
     flex: 1,
-    fontFamily: FONT_INTER,
+    fontFamily: typography.body,
     fontSize: fontSizes.body,
     color: colors.text.secondary,
   },
   compareDeltaText: {
-    fontFamily: FONT_INTER_SEMI,
+    fontFamily: typography.body,
+    fontWeight: fontWeights.bold,
     fontSize: fontSizes.body,
   },
   tabPanels: {
@@ -554,16 +562,16 @@ const styles = StyleSheet.create({
     gap: spacing.cardGap,
   },
   bodyText: {
-    fontFamily: FONT_INTER,
+    fontFamily: typography.body,
     fontSize: fontSizes.body,
     color: colors.text.secondary,
-    lineHeight: Math.round(fontSizes.body * 1.45),
+    lineHeight: Math.round(fontSizes.body * 1.45), // 1.45/1.35 line height — readability tuned for this context
   },
   contextIssueTitle: {
-    fontFamily: FONT_INTER,
+    fontFamily: typography.body,
     fontSize: fontSizes.actionCardTitle,
     color: colors.text.primary,
-    lineHeight: Math.round(fontSizes.actionCardTitle * 1.35),
+    lineHeight: Math.round(fontSizes.actionCardTitle * 1.35), // 1.45/1.35 line height — readability tuned for this context
   },
   contextIssueBody: {
     marginTop: spacing.pillGap,
@@ -578,7 +586,7 @@ const styles = StyleSheet.create({
     gap: spacing.cardGap,
   },
   feedbackThanks: {
-    fontFamily: FONT_INTER,
+    fontFamily: typography.body,
     fontSize: fontSizes.body,
     color: colors.text.secondary,
   },
@@ -588,14 +596,14 @@ const styles = StyleSheet.create({
   },
   feedbackInput: {
     alignSelf: 'stretch',
-    minHeight: 88,
+    minHeight: 88, // 88px feedback input min height — intentional UX decision
     paddingVertical: spacing.inputGap,
     paddingHorizontal: spacing.inputHorizontal,
     borderRadius: radius.subCard,
-    borderWidth: 1,
+    borderWidth: 1, // 1px border — intentional for feedback input
     borderColor: colors.border.dim,
     backgroundColor: colors.bg.input,
-    fontFamily: FONT_INTER,
+    fontFamily: typography.body,
     fontSize: fontSizes.body,
     color: colors.text.primary,
     textAlignVertical: 'top',
@@ -606,17 +614,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: spacing.iconGap,
     alignSelf: 'stretch',
-    paddingVertical: 14,
+    paddingVertical: spacing.inputVertical,
     paddingHorizontal: spacing.card,
     borderRadius: radius.card,
-    backgroundColor: colors.text.gold,
+    backgroundColor: colors.bg.gold,
   },
   sendFeedbackButtonPressed: {
-    opacity: 0.9,
+    opacity: 0.9, // pressed opacity — standard interaction feel
   },
   sendFeedbackText: {
-    fontFamily: FONT_INTER_SEMI,
-    fontSize: fontSizes.body,
+    fontFamily: typography.display,
+    fontSize: fontSizes.ctaLabel,
+    letterSpacing: letterSpacing.cta,
     color: colors.text.onGold,
   },
   cta: {

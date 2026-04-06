@@ -222,7 +222,7 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: 120,
+    minHeight: 120, // 120px loading min height — prevents layout jump while fetching
   },
   emptyWrap: {
     flex: 1,

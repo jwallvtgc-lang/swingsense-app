@@ -16,14 +16,19 @@ import TipsList from '../components/TipsList';
 import { useVideoPicker } from '../hooks/useVideoPicker';
 import type { MainStackParamList, TabParamList } from '../navigation/types';
 import { useMainTabBarNav } from '../navigation/useMainTabBarNav';
-import { actionCard, bottomTab, colors, fontSizes, spacing } from '../../design-system/tokens';
+import {
+  actionCard,
+  bottomTab,
+  colors,
+  fontSizes,
+  spacing,
+  typography,
+} from '../../design-system/tokens';
 
 type AnalyzeNav = CompositeNavigationProp<
   BottomTabNavigationProp<TabParamList, 'UploadTab'>,
   NativeStackNavigationProp<MainStackParamList>
 >;
-
-const FONT_INSTRUCTION = 'Inter_400Regular';
 
 const TIP_LINES = [
   'Film from the side, 10-15 feet away — player should fill most of the frame height',
@@ -140,10 +145,10 @@ const styles = StyleSheet.create({
   },
   instruction: {
     marginTop: spacing.cardGap,
-    fontFamily: FONT_INSTRUCTION,
+    fontFamily: typography.body,
     fontSize: fontSizes.body,
     color: colors.text.secondary,
-    lineHeight: Math.round(fontSizes.body * 1.4),
+    lineHeight: Math.round(fontSizes.body * 1.4), // 1.4 line height — readability tuned for instruction text
     alignSelf: 'stretch',
   },
   actionStack: {
