@@ -415,6 +415,58 @@ export default function AnalysisScreen() {
                 ) : null}
               </SectionCard>
             ) : null}
+
+            <View style={styles.afterTabContent}>
+              <FeedbackRow
+                selected={feedback}
+                onPositive={() => setFeedback('up')}
+                onNegative={() => setFeedback('down')}
+              />
+              {feedback === 'up' ? (
+                <Text style={styles.feedbackThanks} maxFontSizeMultiplier={1.35}>
+                  Thanks!
+                </Text>
+              ) : null}
+              {feedback === 'down' ? (
+                <View style={styles.feedbackNegative}>
+                  <TextInput
+                    style={styles.feedbackInput}
+                    value={feedbackNote}
+                    onChangeText={setFeedbackNote}
+                    placeholder="Tell us more (optional)"
+                    placeholderTextColor={colors.text.muted}
+                    multiline
+                    numberOfLines={3}
+                  />
+                  <Pressable
+                    style={({ pressed }) => [
+                      styles.sendFeedbackButton,
+                      pressed && styles.sendFeedbackButtonPressed,
+                    ]}
+                    onPress={() => {
+                      const subject = encodeURIComponent('SwingSense Beta Feedback');
+                      const body = encodeURIComponent(
+                        feedbackNote.trim()
+                          ? feedbackNote.trim()
+                          : "What worked? What didn't? (Even one word helps.)"
+                      );
+                      Linking.openURL(
+                        `mailto:${FEEDBACK_EMAIL}?subject=${subject}&body=${body}`
+                      );
+                    }}
+                  >
+                    <Ionicons
+                      name="mail-outline"
+                      size={18} // 16/18px icon sizes — standard small icons
+                      color={colors.text.onGold}
+                    />
+                    <Text style={styles.sendFeedbackText} maxFontSizeMultiplier={1.35}>
+                      Send feedback
+                    </Text>
+                  </Pressable>
+                </View>
+              ) : null}
+            </View>
           </View>
         ) : (
           <View style={styles.tabPanels}>
@@ -601,58 +653,6 @@ export default function AnalysisScreen() {
             </SectionCard>
           </View>
         )}
-
-        <View style={styles.afterTabContent}>
-          <FeedbackRow
-            selected={feedback}
-            onPositive={() => setFeedback('up')}
-            onNegative={() => setFeedback('down')}
-          />
-          {feedback === 'up' ? (
-            <Text style={styles.feedbackThanks} maxFontSizeMultiplier={1.35}>
-              Thanks!
-            </Text>
-          ) : null}
-          {feedback === 'down' ? (
-            <View style={styles.feedbackNegative}>
-              <TextInput
-                style={styles.feedbackInput}
-                value={feedbackNote}
-                onChangeText={setFeedbackNote}
-                placeholder="Tell us more (optional)"
-                placeholderTextColor={colors.text.muted}
-                multiline
-                numberOfLines={3}
-              />
-              <Pressable
-                style={({ pressed }) => [
-                  styles.sendFeedbackButton,
-                  pressed && styles.sendFeedbackButtonPressed,
-                ]}
-                onPress={() => {
-                  const subject = encodeURIComponent('SwingSense Beta Feedback');
-                  const body = encodeURIComponent(
-                    feedbackNote.trim()
-                      ? feedbackNote.trim()
-                      : "What worked? What didn't? (Even one word helps.)"
-                  );
-                  Linking.openURL(
-                    `mailto:${FEEDBACK_EMAIL}?subject=${subject}&body=${body}`
-                  );
-                }}
-              >
-                <Ionicons
-                  name="mail-outline"
-                  size={18} // 16/18px icon sizes — standard small icons
-                  color={colors.text.onGold}
-                />
-                <Text style={styles.sendFeedbackText} maxFontSizeMultiplier={1.35}>
-                  Send feedback
-                </Text>
-              </Pressable>
-            </View>
-          ) : null}
-        </View>
 
         <View style={styles.cta}>
           <PrimaryButton label="Analyze Another Swing" onPress={goAnalyzeAnother} />

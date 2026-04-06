@@ -99,7 +99,7 @@ export interface DrillRecommendation {
 
 export interface BatSpeedEstimate {
   mph: number;
-  confidence: 'low' | 'medium' | 'high';
+  confidence: 'low' | 'medium'; // high confidence removed — 2D video estimation cannot justify high confidence
   reasoning: string;
 }
 
