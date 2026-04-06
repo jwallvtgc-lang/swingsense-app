@@ -1,9 +1,8 @@
 import { Pressable, StyleSheet, Text } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 
-import { colors, fontSizes, spacing } from '../../design-system/tokens';
+import { colors, fontSizes, spacing, typography } from '../../design-system/tokens';
 
-const FONT_BODY = 'Inter_400Regular';
 const ICON = 14;
 
 function PencilIcon({ color }: { color: string }) {
@@ -53,7 +52,7 @@ const styles = StyleSheet.create({
     opacity: 0.85,
   },
   label: {
-    fontFamily: FONT_BODY,
+    fontFamily: typography.body,
     fontSize: fontSizes.body,
   },
 });

@@ -1,9 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Svg, { G, Path } from 'react-native-svg';
 
-import { colors, feedback, fontSizes, radius, spacing } from '../../design-system/tokens';
-
-const FONT_BODY = 'Inter_400Regular';
+import { colors, feedback, fontSizes, radius, spacing, typography } from '../../design-system/tokens';
 
 const ICON = 18;
 const VB = 24;
@@ -93,7 +91,7 @@ const styles = StyleSheet.create({
   },
   prompt: {
     flex: 1,
-    fontFamily: FONT_BODY,
+    fontFamily: typography.body,
     fontSize: fontSizes.drillInstruction,
     color: colors.text.muted,
   },

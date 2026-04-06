@@ -1,10 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native';
 
-import { colors, fontSizes, spacing } from '../../design-system/tokens';
+import { colors, fontSizes, spacing, typography } from '../../design-system/tokens';
 import AvatarCircle from './AvatarCircle';
-
-const FONT_DISPLAY = 'BebasNeue_400Regular';
-const FONT_BODY = 'Inter_400Regular';
 
 export type ProfileHeaderProps = {
   name: string;
@@ -33,13 +30,13 @@ const styles = StyleSheet.create({
     gap: spacing.iconGap,
   },
   name: {
-    fontFamily: FONT_DISPLAY,
+    fontFamily: typography.display,
     fontSize: fontSizes.screenTitle,
     color: colors.text.primary,
     textAlign: 'center',
   },
   email: {
-    fontFamily: FONT_BODY,
+    fontFamily: typography.body,
     fontSize: fontSizes.caption,
     color: colors.text.muted,
     textAlign: 'center',

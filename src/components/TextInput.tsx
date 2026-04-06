@@ -1,9 +1,7 @@
 import type { KeyboardTypeOptions, StyleProp, TextStyle } from 'react-native';
 import { StyleSheet, TextInput as RNTextInput } from 'react-native';
 
-import { colors, fontSizes, radius, spacing } from '../../design-system/tokens';
-
-const FONT_INTER = 'Inter_400Regular';
+import { colors, fontSizes, radius, spacing, typography } from '../../design-system/tokens';
 
 export type TextInputProps = {
   placeholder: string;
@@ -68,7 +66,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.subCard,
     paddingVertical: spacing.inputVertical,
     paddingHorizontal: spacing.inputHorizontal,
-    fontFamily: FONT_INTER,
+    fontFamily: typography.body,
     fontSize: fontSizes.body,
     color: colors.text.primary,
   },

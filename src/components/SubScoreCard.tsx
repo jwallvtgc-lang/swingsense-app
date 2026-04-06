@@ -1,11 +1,9 @@
 import { StyleSheet, Text, View } from 'react-native';
 
-import { colors, fontSizes, radius, spacing } from '../../design-system/tokens';
+import { colors, fontSizes, radius, spacing, typography } from '../../design-system/tokens';
 import ScoreRing from './ScoreRing';
 
-const FONT_BODY = 'Inter_400Regular';
-
-/** Display (Bebas Neue) score inside ring — see ScoreRing `FONT_DISPLAY`. */
+/** Display (Bebas Neue) score inside ring — see ScoreRing `typography.display`. */
 const SUB_SCORE_DISPLAY_PX = 26;
 
 export type SubScoreCardProps = {
@@ -50,7 +48,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   label: {
-    fontFamily: FONT_BODY,
+    fontFamily: typography.body,
     fontSize: fontSizes.caption,
     color: colors.text.muted,
   },

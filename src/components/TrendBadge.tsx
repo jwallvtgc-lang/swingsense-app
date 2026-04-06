@@ -1,9 +1,13 @@
 import { StyleSheet, Text, View } from 'react-native';
 
-import { colors, fontSizes, radius, spacing } from '../../design-system/tokens';
-
-/** Loaded in App.tsx — `typography.body` (Inter), semibold for badge */
-const FONT_INTER_SEMI = 'Inter_600SemiBold';
+import {
+  colors,
+  fontSizes,
+  fontWeights,
+  radius,
+  spacing,
+  typography,
+} from '../../design-system/tokens';
 
 export type Trend = 'better' | 'same' | 'worse';
 
@@ -49,7 +53,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.tabInner,
   },
   text: {
-    fontFamily: FONT_INTER_SEMI,
+    fontFamily: typography.body,
+    fontWeight: fontWeights.bold,
     fontSize: fontSizes.micro,
   },
 });

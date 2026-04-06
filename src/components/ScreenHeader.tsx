@@ -1,9 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
 
-import { colors, fontSizes, spacing } from '../../design-system/tokens';
-
-const FONT_DISPLAY = 'BebasNeue_400Regular';
-const FONT_BODY = 'Inter_400Regular';
+import { colors, fontSizes, spacing, typography } from '../../design-system/tokens';
 
 export type ScreenHeaderProps = {
   title: string;
@@ -27,12 +24,12 @@ const styles = StyleSheet.create({
     alignSelf: 'stretch',
   },
   title: {
-    fontFamily: FONT_DISPLAY,
+    fontFamily: typography.display,
     fontSize: fontSizes.screenTitle,
     color: colors.text.primary,
   },
   subtitle: {
-    fontFamily: FONT_BODY,
+    fontFamily: typography.body,
     fontSize: fontSizes.caption,
     color: colors.text.muted,
   },

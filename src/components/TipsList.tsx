@@ -1,9 +1,7 @@
 import type { ReactNode } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { colors, fontSizes, letterSpacing, spacing } from '../../design-system/tokens';
-
-const FONT_LABEL = 'Inter_500Medium';
+import { colors, fontSizes, fontWeights, letterSpacing, spacing, typography } from '../../design-system/tokens';
 
 export type TipsListProps = {
   label: string;
@@ -27,7 +25,8 @@ const styles = StyleSheet.create({
     gap: spacing.cardSm,
   },
   label: {
-    fontFamily: FONT_LABEL,
+    fontFamily: typography.body,
+    fontWeight: fontWeights.medium,
     fontSize: fontSizes.label,
     letterSpacing: letterSpacing.label,
     color: colors.text.muted,

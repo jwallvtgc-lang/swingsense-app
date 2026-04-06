@@ -5,11 +5,10 @@ import {
   colors,
   fontSizes,
   getScoreColor,
+  letterSpacing,
   scoreRing,
+  typography,
 } from '../../design-system/tokens';
-
-const FONT_DISPLAY = 'BebasNeue_400Regular';
-const FONT_MICRO = 'Inter_400Regular';
 
 export type ScoreRingProps = {
   score: number;
@@ -114,7 +113,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   scoreNum: {
-    fontFamily: FONT_DISPLAY,
+    fontFamily: typography.display,
+    letterSpacing: letterSpacing.tight,
     textAlign: 'center',
   },
   scoreNumLg: {
@@ -126,8 +126,8 @@ const styles = StyleSheet.create({
     lineHeight: Math.round(fontSizes.listScore * 1.05),
   },
   suffix: {
-    marginTop: 2,
-    fontFamily: FONT_MICRO,
+    marginTop: 2, // 2px intentional micro-gap — too small to warrant a spacing token
+    fontFamily: typography.body,
     fontSize: fontSizes.micro,
     color: colors.text.muted,
   },

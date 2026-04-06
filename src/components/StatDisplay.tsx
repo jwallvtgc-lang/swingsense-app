@@ -1,9 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
 
-import { colors, fontSizes, spacing } from '../../design-system/tokens';
-
-const FONT_DISPLAY = 'BebasNeue_400Regular';
-const FONT_BODY = 'Inter_400Regular';
+import { colors, fontSizes, spacing, typography } from '../../design-system/tokens';
 
 export type StatDisplayProps = {
   value: string;
@@ -54,24 +51,24 @@ const styles = StyleSheet.create({
     gap: spacing.pillGap,
   },
   value: {
-    fontFamily: FONT_DISPLAY,
+    fontFamily: typography.display,
     fontSize: fontSizes.batSpeed,
     color: colors.text.gold,
     lineHeight: Math.round(fontSizes.batSpeed * 1.05),
   },
   unit: {
-    fontFamily: FONT_BODY,
+    fontFamily: typography.body,
     fontSize: fontSizes.sectionTitle,
     color: colors.text.muted,
   },
   disclaimer: {
-    fontFamily: FONT_BODY,
+    fontFamily: typography.body,
     fontSize: fontSizes.caption,
     color: colors.text.hint,
     lineHeight: Math.round(fontSizes.caption * 1.35),
   },
   description: {
-    fontFamily: FONT_BODY,
+    fontFamily: typography.body,
     fontSize: fontSizes.body,
     color: colors.text.secondary,
     lineHeight: Math.round(fontSizes.body * 1.4),

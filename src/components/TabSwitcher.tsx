@@ -1,8 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { colors, fontSizes, radius, spacing } from '../../design-system/tokens';
-
-const FONT_INTER = 'Inter_500Medium';
+import { colors, fontSizes, fontWeights, radius, spacing, typography } from '../../design-system/tokens';
 
 export type TabSwitcherProps = {
   tabs: string[];
@@ -63,7 +61,8 @@ const styles = StyleSheet.create({
     opacity: 0.9,
   },
   label: {
-    fontFamily: FONT_INTER,
+    fontFamily: typography.body,
+    fontWeight: fontWeights.medium,
     fontSize: fontSizes.body,
   },
   labelActive: {

@@ -6,10 +6,11 @@ import {
   bottomTab,
   colors,
   fontSizes,
+  fontWeights,
   letterSpacing,
+  typography,
 } from '../../design-system/tokens';
 
-const FONT_TAB = 'Inter_600SemiBold';
 const VB = 24;
 const APP_ICON = require('../../assets/icon.png');
 
@@ -129,7 +130,8 @@ const styles = StyleSheet.create({
     opacity: 0.85,
   },
   label: {
-    fontFamily: FONT_TAB,
+    fontFamily: typography.body,
+    fontWeight: fontWeights.bold,
     fontSize: fontSizes.label,
     letterSpacing: letterSpacing.bottomTab,
     textTransform: 'uppercase',

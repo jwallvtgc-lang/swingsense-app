@@ -1,13 +1,17 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-import { colors, fontSizes, radius, spacing } from '../../design-system/tokens';
+import {
+  colors,
+  fontSizes,
+  letterSpacing,
+  radius,
+  spacing,
+  typography,
+} from '../../design-system/tokens';
 import DeleteButton from './DeleteButton';
 import ScoreRing from './ScoreRing';
 import TrendBadge from './TrendBadge';
-
-const FONT_DISPLAY = 'BebasNeue_400Regular';
-const FONT_BODY = 'Inter_400Regular';
 
 export type SwingListItemProps = {
   score: number;
@@ -61,7 +65,11 @@ export default function SwingListItem({
       </View>
       <View style={styles.actions}>
         <DeleteButton onConfirm={onDelete} />
-        <Ionicons name="chevron-forward" size={22} color={colors.text.muted} />
+        <Ionicons
+          name="chevron-forward"
+          size={22} // 22px chevron — standard icon size, no token needed
+          color={colors.text.muted}
+        />
       </View>
     </Pressable>
   );
@@ -79,7 +87,7 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
   cardPressed: {
-    opacity: 0.92,
+    opacity: 0.92, // 0.92 pressed opacity — standard interaction feel
   },
   middle: {
     flex: 1,
@@ -93,13 +101,13 @@ const styles = StyleSheet.create({
     gap: spacing.pillGap,
   },
   date: {
-    fontFamily: FONT_BODY,
+    fontFamily: typography.body,
     fontSize: fontSizes.caption,
     color: colors.text.muted,
     flexShrink: 1,
   },
   insight: {
-    fontFamily: FONT_BODY,
+    fontFamily: typography.body,
     fontSize: fontSizes.body,
     color: colors.text.secondary,
   },
@@ -109,12 +117,13 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
   },
   batValue: {
-    fontFamily: FONT_DISPLAY,
+    fontFamily: typography.display,
+    letterSpacing: letterSpacing.tight,
     fontSize: fontSizes.listScore,
     color: colors.text.gold,
   },
   batUnit: {
-    fontFamily: FONT_BODY,
+    fontFamily: typography.body,
     fontSize: fontSizes.caption,
     color: colors.text.muted,
   },

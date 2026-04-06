@@ -1,9 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
 
-import { colors, fontSizes, letterSpacing, spacing } from '../../design-system/tokens';
-
-const FONT_DISPLAY = 'BebasNeue_400Regular';
-const FONT_BODY = 'Inter_400Regular';
+import { colors, fontSizes, letterSpacing, spacing, typography } from '../../design-system/tokens';
 
 export type WordmarkProps = {
   size?: 'lg' | 'md';
@@ -34,13 +31,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   wordLg: {
-    fontFamily: FONT_DISPLAY,
+    fontFamily: typography.display,
     fontSize: fontSizes.displaySm,
     letterSpacing: letterSpacing.wordmarkSm,
     color: colors.text.primary,
   },
   wordMd: {
-    fontFamily: FONT_DISPLAY,
+    fontFamily: typography.display,
     fontSize: fontSizes.display,
     letterSpacing: letterSpacing.wordmark,
     color: colors.text.primary,
@@ -53,7 +50,7 @@ const styles = StyleSheet.create({
   },
   tagline: {
     marginTop: spacing.pillGap,
-    fontFamily: FONT_BODY,
+    fontFamily: typography.body,
     fontSize: fontSizes.micro,
     color: colors.text.muted,
     letterSpacing: letterSpacing.tagline,

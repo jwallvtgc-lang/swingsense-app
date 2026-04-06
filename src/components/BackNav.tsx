@@ -1,9 +1,7 @@
 import { Pressable, StyleSheet, Text } from 'react-native';
 import Svg, { Polyline } from 'react-native-svg';
 
-import { colors, fontSizes, spacing } from '../../design-system/tokens';
-
-const FONT_INTER = 'Inter_400Regular';
+import { colors, fontSizes, spacing, typography } from '../../design-system/tokens';
 
 const CHEVRON_SIZE = 22;
 
@@ -46,7 +44,7 @@ const styles = StyleSheet.create({
     opacity: 0.85,
   },
   label: {
-    fontFamily: FONT_INTER,
+    fontFamily: typography.body,
     fontSize: fontSizes.body,
     color: colors.text.gold,
   },

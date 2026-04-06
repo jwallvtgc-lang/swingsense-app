@@ -1,9 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
 
-import { colors, drillStep, fontSizes, spacing } from '../../design-system/tokens';
-
-const FONT_DISPLAY = 'BebasNeue_400Regular';
-const FONT_BODY = 'Inter_400Regular';
+import { colors, drillStep, fontSizes, spacing, typography } from '../../design-system/tokens';
 
 export type DrillStepProps = {
   step: number;
@@ -37,13 +34,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   stepNum: {
-    fontFamily: FONT_DISPLAY,
+    fontFamily: typography.display,
     fontSize: fontSizes.body,
     color: colors.text.green,
   },
   instruction: {
     flex: 1,
-    fontFamily: FONT_BODY,
+    fontFamily: typography.body,
     fontSize: fontSizes.drillInstruction,
     color: colors.text.secondary,
     lineHeight: Math.round(fontSizes.drillInstruction * 1.35),

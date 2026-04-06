@@ -1,8 +1,6 @@
 import { Image, StyleSheet, Text, View } from 'react-native';
 
-import { avatar, colors } from '../../design-system/tokens';
-
-const FONT_DISPLAY = 'BebasNeue_400Regular';
+import { avatar, colors, typography } from '../../design-system/tokens';
 
 export type AvatarCircleProps = {
   initials: string;
@@ -55,7 +53,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   initials: {
-    fontFamily: FONT_DISPLAY,
+    fontFamily: typography.display,
     color: colors.text.gold,
     textAlign: 'center',
   },

@@ -1,9 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
 
-import { colors, fontSizes, letterSpacing, spacing } from '../../design-system/tokens';
-
-const FONT_DISPLAY = 'BebasNeue_400Regular';
-const FONT_BODY = 'Inter_400Regular';
+import { colors, fontSizes, letterSpacing, spacing, typography } from '../../design-system/tokens';
 
 export type HeroHeaderProps = {
   greeting: string;
@@ -52,20 +49,20 @@ const styles = StyleSheet.create({
     gap: spacing.iconGap,
   },
   greeting: {
-    fontFamily: FONT_BODY,
+    fontFamily: typography.body,
     fontSize: fontSizes.label,
     color: colors.text.greeting,
     letterSpacing: letterSpacing.label,
     textTransform: 'uppercase',
   },
   headline: {
-    fontFamily: FONT_DISPLAY,
+    fontFamily: typography.display,
     fontSize: fontSizes.headline,
     lineHeight: fontSizes.headline,
     color: colors.text.primary,
   },
   headlineAccent: {
-    fontFamily: FONT_DISPLAY,
+    fontFamily: typography.display,
     fontSize: fontSizes.headline,
     lineHeight: fontSizes.headline,
     color: colors.text.gold,

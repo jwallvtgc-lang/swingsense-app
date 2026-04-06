@@ -1,9 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
 
-import { colors, fontSizes, radius, spacing } from '../../design-system/tokens';
-
-const FONT_LABEL = 'Inter_400Regular';
-const FONT_DELTA = 'Inter_600SemiBold';
+import { colors, fontSizes, fontWeights, radius, spacing, typography } from '../../design-system/tokens';
 
 export type DeltaPillProps = {
   label: string;
@@ -57,12 +54,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.deltaPillPadH,
   },
   label: {
-    fontFamily: FONT_LABEL,
+    fontFamily: typography.body,
     fontSize: fontSizes.label,
     color: colors.text.muted,
   },
   delta: {
-    fontFamily: FONT_DELTA,
+    fontFamily: typography.body,
+    fontWeight: fontWeights.bold,
     fontSize: fontSizes.caption,
     color: colors.text.green,
   },

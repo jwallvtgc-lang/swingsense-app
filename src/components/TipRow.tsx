@@ -1,9 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle, Polyline } from 'react-native-svg';
 
-import { colors, fontSizes, spacing, tipRow } from '../../design-system/tokens';
-
-const FONT_INTER = 'Inter_400Regular';
+import { colors, fontSizes, spacing, tipRow, typography } from '../../design-system/tokens';
 
 const SIZE = tipRow.bullet;
 const CX = SIZE / 2;
@@ -48,7 +46,7 @@ const styles = StyleSheet.create({
   },
   copy: {
     flex: 1,
-    fontFamily: FONT_INTER,
+    fontFamily: typography.body,
     fontSize: fontSizes.drillInstruction,
     color: colors.text.secondary,
     lineHeight: Math.round(fontSizes.drillInstruction * 1.35),

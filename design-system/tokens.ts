@@ -105,7 +105,7 @@ export const fontWeights = {
   regular: '400',
   medium: '500',
   bold: '600',
-}
+} as const
 
 export const letterSpacing = {
   wordmark: 6, // SWINGSENSE on Login

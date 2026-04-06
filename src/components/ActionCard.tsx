@@ -2,10 +2,15 @@ import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-import { actionCard, colors, fontSizes, radius, spacing } from '../../design-system/tokens';
-
-const FONT_TITLE = 'Inter_500Medium';
-const FONT_SUB = 'Inter_400Regular';
+import {
+  actionCard,
+  colors,
+  fontSizes,
+  fontWeights,
+  radius,
+  spacing,
+  typography,
+} from '../../design-system/tokens';
 
 export type ActionCardProps = {
   icon: ReactNode;
@@ -68,12 +73,13 @@ const styles = StyleSheet.create({
     gap: spacing.pillGap,
   },
   title: {
-    fontFamily: FONT_TITLE,
+    fontFamily: typography.body,
+    fontWeight: fontWeights.medium,
     fontSize: fontSizes.actionCardTitle,
     color: colors.text.primary,
   },
   subtitle: {
-    fontFamily: FONT_SUB,
+    fontFamily: typography.body,
     fontSize: fontSizes.drillInstruction,
     color: colors.text.secondary,
     lineHeight: Math.round(fontSizes.drillInstruction * 1.35),

@@ -1,11 +1,8 @@
 import { StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
 
-import { colors, fontSizes, spacing } from '../../design-system/tokens';
+import { colors, fontSizes, spacing, typography } from '../../design-system/tokens';
 import PrimaryButton from './PrimaryButton';
-
-const FONT_DISPLAY = 'BebasNeue_400Regular';
-const FONT_BODY = 'Inter_400Regular';
 
 const ICON = 60;
 const VB = 100;
@@ -68,13 +65,13 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sectionGap,
   },
   title: {
-    fontFamily: FONT_DISPLAY,
+    fontFamily: typography.display,
     fontSize: fontSizes.display,
     color: colors.text.primary,
     textAlign: 'center',
   },
   body: {
-    fontFamily: FONT_BODY,
+    fontFamily: typography.body,
     fontSize: fontSizes.body,
     color: colors.text.secondary,
     textAlign: 'center',

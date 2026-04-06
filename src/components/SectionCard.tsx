@@ -1,9 +1,15 @@
 import type { ReactNode } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { colors, fontSizes, radius, sectionCard, spacing } from '../../design-system/tokens';
-
-const FONT_INTER_MEDIUM = 'Inter_500Medium';
+import {
+  colors,
+  fontSizes,
+  fontWeights,
+  radius,
+  sectionCard,
+  spacing,
+  typography,
+} from '../../design-system/tokens';
 
 export type SectionCardProps = {
   title?: string;
@@ -56,7 +62,8 @@ const styles = StyleSheet.create({
   title: {
     flex: 1,
     minWidth: 0,
-    fontFamily: FONT_INTER_MEDIUM,
+    fontFamily: typography.body,
+    fontWeight: fontWeights.medium,
     fontSize: fontSizes.sectionTitle,
     color: colors.text.primary,
   },

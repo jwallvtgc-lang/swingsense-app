@@ -1,10 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-import { colors, fontSizes, spacing } from '../../design-system/tokens';
-
-const FONT_INTER = 'Inter_400Regular';
-const FONT_INTER_MEDIUM = 'Inter_500Medium';
+import { colors, fontSizes, fontWeights, spacing, typography } from '../../design-system/tokens';
 
 export type DataRowProps = {
   label: string;
@@ -90,7 +87,7 @@ const styles = StyleSheet.create({
   },
   label: {
     flex: 1,
-    fontFamily: FONT_INTER,
+    fontFamily: typography.body,
     fontSize: fontSizes.body,
   },
   labelDefault: {
@@ -110,9 +107,10 @@ const styles = StyleSheet.create({
     textAlign: 'right',
   },
   valueNormal: {
-    fontFamily: FONT_INTER,
+    fontFamily: typography.body,
   },
   valueBold: {
-    fontFamily: FONT_INTER_MEDIUM,
+    fontFamily: typography.body,
+    fontWeight: fontWeights.medium,
   },
 });
