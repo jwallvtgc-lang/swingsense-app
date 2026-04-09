@@ -1,4 +1,6 @@
 import { useMemo } from 'react';
+import { useAuth } from '../contexts/AuthContext';
+import { displayNameFromUser } from '../utils/displayName';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -41,7 +43,13 @@ export default function AnalyzeScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<AnalyzeNav>();
   const navigateMainTab = useMainTabBarNav();
+  const { user, profile } = useAuth();
   const { pickFromLibrary, recordVideo } = useVideoPicker();
+
+  const greeting = useMemo(() => {
+    const name = displayNameFromUser(profile?.first_name, user);
+    return `Hey, ${name}`;
+  }, [profile?.first_name, user]);
 
   const contentBottomPad = useMemo(
     () => spacing.sectionGap + bottomTab.height + insets.bottom,
@@ -63,7 +71,7 @@ export default function AnalyzeScreen() {
         showsVerticalScrollIndicator={false}
       >
         <HeroHeader
-          greeting="HEY, JARED WALL"
+          greeting={greeting}
           headline="ANALYZE YOUR SWING"
           accentWord="SWING"
         />

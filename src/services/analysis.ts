@@ -119,6 +119,48 @@ export async function submitDrillFeedback(params: {
   }
 }
 
+export async function fetchProgressCoach(params: {
+  userId: string;
+  swings: SwingAnalysis[];
+  playerProfile: {
+    first_name?: string;
+    age?: number;
+    experience_level?: string | null;
+  };
+}): Promise<{
+  summary: string;
+  most_improved: string | null;
+  focus_next: string;
+  swings_analyzed: number;
+  best_overall: number;
+} | null> {
+  try {
+    const backendUrl = await getBackendUrl();
+    const response = await fetch(`${backendUrl}/progress-coach`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        user_id: params.userId,
+        swings: params.swings.map((s) => ({
+          created_at: s.created_at,
+          similarity_breakdown: s.similarity_breakdown,
+        })),
+        player_profile: params.playerProfile,
+      }),
+    });
+    if (!response.ok) return null;
+    return (await response.json()) as {
+      summary: string;
+      most_improved: string | null;
+      focus_next: string;
+      swings_analyzed: number;
+      best_overall: number;
+    };
+  } catch {
+    return null;
+  }
+}
+
 export async function startAnalysisPipeline(
   userId: string,
   videoUri: string,

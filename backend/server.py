@@ -743,6 +743,12 @@ class DrillFollowupRequest(BaseModel):
     player_profile: dict
 
 
+class ProgressCoachRequest(BaseModel):
+    user_id: str
+    swings: list[dict]  # list of recent analyses with scores and dates
+    player_profile: dict
+
+
 class HealthResponse(BaseModel):
     status: str
     model_loaded: bool
@@ -922,6 +928,135 @@ Instruction: {tone_instruction}"""
         end = result_text.rfind("}") + 1
         if start >= 0 and end > start:
             return json.loads(result_text[start:end])
+        raise HTTPException(status_code=500, detail="Failed to parse response")
+
+
+@app.post("/progress-coach")
+async def progress_coach(request: ProgressCoachRequest):
+    api_key = os.environ.get("ANTHROPIC_API_KEY")
+    if not api_key:
+        raise HTTPException(status_code=500, detail="ANTHROPIC_API_KEY not configured")
+
+    _log(
+        f"[ProgressCoach] user_id={request.user_id} swings={len(request.swings)}"
+    )
+
+    profile = request.player_profile
+    name = profile.get("first_name", "Player")
+    age = profile.get("age", 15)
+    experience = profile.get("experience_level", "")
+
+    # Build swing trend summary for Claude
+    swing_summaries = []
+    for i, swing in enumerate(request.swings):
+        scores = swing.get("similarity_breakdown", {}) or {}
+        date = (swing.get("created_at", "") or "")[:10]
+        overall = scores.get("overall", 0)
+        swing_summaries.append(
+            f"Swing {i + 1} ({date}): overall={overall}, "
+            f"hip_rotation={scores.get('hip_rotation', 0)}, "
+            f"weight_transfer={scores.get('weight_transfer', 0)}, "
+            f"bat_path={scores.get('bat_path', 0)}, "
+            f"contact={scores.get('contact_point', 0)}, "
+            f"head_stability={scores.get('head_stability', 0)}"
+        )
+
+    # Compute trends
+    def trend(metric: str):
+        vals = [
+            (s.get("similarity_breakdown") or {}).get(metric, 0)
+            for s in request.swings
+            if s.get("similarity_breakdown")
+        ]
+        vals = [v for v in vals if v > 0]
+        if len(vals) < 2:
+            return None, None
+        change = vals[-1] - vals[0]
+        avg = sum(vals) / len(vals)
+        return round(change), round(avg)
+
+    metrics = [
+        "hip_rotation",
+        "weight_transfer",
+        "bat_path",
+        "contact_point",
+        "head_stability",
+    ]
+    trend_lines = []
+    most_improved = None
+    most_improved_change = 0
+    most_stuck = None
+    most_stuck_avg = 100
+
+    for m in metrics:
+        change, avg = trend(m)
+        if change is None:
+            continue
+        label = m.replace("_", " ")
+        if change >= 3:
+            trend_lines.append(f"{label}: improving (+{change} points)")
+            if change > most_improved_change:
+                most_improved = label
+                most_improved_change = change
+        elif change <= -3:
+            trend_lines.append(f"{label}: declining ({change} points)")
+        else:
+            trend_lines.append(f"{label}: holding steady ({change:+d} points)")
+        if avg is not None and avg < most_stuck_avg and avg > 0:
+            most_stuck = label
+            most_stuck_avg = avg
+
+    system_prompt = """You are an elite baseball hitting coach giving a player their weekly progress update. Use Darian's coaching voice — warm, direct, specific, dugout coach energy.
+
+RULES:
+- 2-3 sentences maximum — this is a card not an essay
+- Lead with something genuinely positive if the data supports it
+- Name the one metric that improved most specifically
+- Name the one thing to focus on next
+- End with one forward-looking sentence that connects to real hitting
+- Use Darian's vocabulary: balance point, stay connected, hips first, let it travel, power position
+- Never use: kinetic chain, biomechanical, posterior weight shift, analysis indicates
+- Sound like a coach texting after practice not writing a report
+
+Respond in JSON only:
+{
+  "summary": "string — 2-3 sentence progress summary in Darian voice",
+  "most_improved": "string or null — metric name in plain English",
+  "focus_next": "string — one thing to work on this week in plain English",
+  "swings_analyzed": number,
+  "best_overall": number
+}"""
+
+    user_message = f"""Player: {name}, Age: {age}, Experience: {experience}
+
+Swing history ({len(request.swings)} swings analyzed, oldest to newest):
+{chr(10).join(swing_summaries)}
+
+Computed trends:
+{chr(10).join(trend_lines) if trend_lines else "Not enough data for trends"}
+
+Most improved metric: {most_improved or "none yet"}
+Lowest average metric (needs most work): {most_stuck or "none yet"}
+
+Write a short encouraging progress update in Darian's voice."""
+
+    client = Anthropic(api_key=api_key)
+    response = client.messages.create(
+        model="claude-sonnet-4-20250514",
+        max_tokens=500,
+        system=system_prompt,
+        messages=[{"role": "user", "content": user_message}],
+    )
+
+    result_text = response.content[0].text
+    try:
+        return json.loads(result_text)
+    except json.JSONDecodeError:
+        start = result_text.find("{")
+        end = result_text.rfind("}") + 1
+        if start >= 0 and end > start:
+            return json.loads(result_text[start:end])
+        _log("[ProgressCoach] Failed to parse Claude response as JSON")
         raise HTTPException(status_code=500, detail="Failed to parse response")
 
 

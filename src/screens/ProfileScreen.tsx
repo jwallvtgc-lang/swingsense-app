@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react';
-import type { User } from '@supabase/supabase-js';
 import { Alert, Linking, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -15,6 +14,7 @@ import SectionCard from '../components/SectionCard';
 import SubscriptionCard from '../components/SubscriptionCard';
 import { FEEDBACK_EMAIL } from '../config/constants';
 import { useAuth } from '../contexts/AuthContext';
+import { displayNameFromUser } from '../utils/displayName';
 import { getCompletedAnalysesCountThisMonth } from '../services/analysis';
 import { useMainTabBarNav } from '../navigation/useMainTabBarNav';
 import type { MainStackParamList, TabParamList } from '../navigation/types';
@@ -31,26 +31,6 @@ function formatHeight(feet: number | null, inches: number | null): string {
   if (feet != null && inches != null) return `${feet}'${inches}"`;
   if (feet != null) return `${feet}'`;
   return `${inches ?? 0}"`;
-}
-
-function displayNameFromUser(
-  profileFirstName: string | undefined,
-  user: User | null
-): string {
-  const fromProfile = profileFirstName?.trim();
-  if (fromProfile) return fromProfile;
-  const meta = user?.user_metadata as Record<string, unknown> | undefined;
-  const full =
-    typeof meta?.full_name === 'string' ? meta.full_name.trim() : '';
-  if (full) return full;
-  const name = typeof meta?.name === 'string' ? meta.name.trim() : '';
-  if (name) return name;
-  const email = user?.email?.trim();
-  if (email) {
-    const local = email.split('@')[0];
-    if (local) return local;
-  }
-  return 'Player';
 }
 
 function initialsFromName(name: string): string {

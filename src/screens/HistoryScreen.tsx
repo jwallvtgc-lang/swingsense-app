@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -13,6 +13,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import BottomTabBar from '../components/BottomTabBar';
 import EmptyState from '../components/EmptyState';
 import PrimaryButton from '../components/PrimaryButton';
+import { ProgressCoachCard } from '../components/ProgressCoachCard';
 import ScreenHeader from '../components/ScreenHeader';
 import SwingListItem from '../components/SwingListItem';
 import { useAuth } from '../contexts/AuthContext';
@@ -20,7 +21,7 @@ import { useMainTabBarNav } from '../navigation/useMainTabBarNav';
 import type { MainStackParamList, TabParamList } from '../navigation/types';
 import type { CompositeNavigationProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { deleteAnalysis, getUserAnalyses } from '../services/analysis';
+import { deleteAnalysis, fetchProgressCoach, getUserAnalyses } from '../services/analysis';
 import type { SwingAnalysis } from '../types';
 import { bottomTab, colors, spacing } from '../../design-system/tokens';
 
@@ -79,9 +80,21 @@ export default function HistoryScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<HistoryNav>();
   const navigateMainTab = useMainTabBarNav();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [swings, setSwings] = useState<SwingAnalysis[]>([]);
   const [loading, setLoading] = useState(true);
+  const [progressData, setProgressData] = useState<{
+    summary: string;
+    most_improved: string | null;
+    focus_next: string;
+    swings_analyzed: number;
+    best_overall: number;
+  } | null>(null);
+  const [progressDismissed, setProgressDismissed] = useState(false);
+  const [progressLoading, setProgressLoading] = useState(false);
+  const progressDismissedRef = useRef(false);
+  progressDismissedRef.current = progressDismissed;
+  const progressUserIdRef = useRef<string | undefined>(undefined);
 
   useEffect(() => {
     let cancelled = false;
@@ -92,8 +105,16 @@ export default function HistoryScreen() {
         if (!cancelled) {
           setSwings([]);
           setLoading(false);
+          setProgressData(null);
+          setProgressLoading(false);
+          progressUserIdRef.current = undefined;
         }
         return;
+      }
+
+      if (progressUserIdRef.current !== userId) {
+        progressUserIdRef.current = userId;
+        if (!cancelled) setProgressDismissed(false);
       }
 
       if (!cancelled) setLoading(true);
@@ -101,6 +122,30 @@ export default function HistoryScreen() {
       if (!cancelled) {
         setSwings(list);
         setLoading(false);
+
+        if (list.length >= 3 && !progressDismissedRef.current) {
+          if (!cancelled) setProgressLoading(true);
+          const result = await fetchProgressCoach({
+            userId,
+            swings: list.slice(0, 5),
+            playerProfile: {
+              first_name: profile?.first_name,
+              age: profile?.age,
+              experience_level: profile?.experience_level,
+            },
+          });
+          if (!cancelled && !progressDismissedRef.current) {
+            setProgressData(result);
+            setProgressLoading(false);
+          } else if (!cancelled) {
+            setProgressLoading(false);
+          }
+        } else {
+          if (!cancelled) {
+            setProgressData(null);
+            setProgressLoading(false);
+          }
+        }
       }
     }
 
@@ -108,7 +153,7 @@ export default function HistoryScreen() {
     return () => {
       cancelled = true;
     };
-  }, [user?.id]);
+  }, [user?.id, profile?.first_name, profile?.age, profile?.experience_level]);
 
   const listBottomPad = useMemo(
     () => bottomTab.height + insets.bottom + spacing.screen,
@@ -187,13 +232,34 @@ export default function HistoryScreen() {
             />
           </View>
         ) : (
-          <FlatList
-            data={swings}
-            keyExtractor={keyExtractor}
-            renderItem={renderItem}
-            contentContainerStyle={[styles.listContent, { paddingBottom: listBottomPad }]}
-            showsVerticalScrollIndicator={false}
-          />
+          <View style={styles.listColumn}>
+            {progressLoading ? (
+              <ActivityIndicator
+                color={colors.text.gold}
+                style={styles.progressSpinner}
+              />
+            ) : null}
+            {progressData && !progressDismissed ? (
+              <View style={styles.progressCardWrap}>
+                <ProgressCoachCard
+                  summary={progressData.summary}
+                  mostImproved={progressData.most_improved}
+                  focusNext={progressData.focus_next}
+                  swingsAnalyzed={progressData.swings_analyzed}
+                  bestOverall={progressData.best_overall}
+                  onDismiss={() => setProgressDismissed(true)}
+                />
+              </View>
+            ) : null}
+            <FlatList
+              data={swings}
+              keyExtractor={keyExtractor}
+              renderItem={renderItem}
+              contentContainerStyle={[styles.listContent, { paddingBottom: listBottomPad }]}
+              showsVerticalScrollIndicator={false}
+              style={styles.flatList}
+            />
+          </View>
         )}
       </View>
       <BottomTabBar activeTab="history" onTabPress={navigateMainTab} />
@@ -227,5 +293,18 @@ const styles = StyleSheet.create({
   emptyWrap: {
     flex: 1,
     justifyContent: 'center',
+  },
+  listColumn: {
+    flex: 1,
+    alignSelf: 'stretch',
+  },
+  progressSpinner: {
+    marginVertical: spacing.cardGap,
+  },
+  progressCardWrap: {
+    marginBottom: spacing.cardGap,
+  },
+  flatList: {
+    flex: 1,
   },
 });
