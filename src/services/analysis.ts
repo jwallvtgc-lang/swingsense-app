@@ -148,7 +148,17 @@ export async function fetchProgressCoach(params: {
         player_profile: params.playerProfile,
       }),
     });
-    if (!response.ok) return null;
+    if (!response.ok) {
+      if (__DEV__) {
+        const errText = await response.text().catch(() => '');
+        console.warn(
+          '[fetchProgressCoach] failed:',
+          response.status,
+          errText.slice(0, 200)
+        );
+      }
+      return null;
+    }
     return (await response.json()) as {
       summary: string;
       most_improved: string | null;
@@ -156,7 +166,10 @@ export async function fetchProgressCoach(params: {
       swings_analyzed: number;
       best_overall: number;
     };
-  } catch {
+  } catch (e) {
+    if (__DEV__) {
+      console.warn('[fetchProgressCoach] error:', e instanceof Error ? e.message : e);
+    }
     return null;
   }
 }

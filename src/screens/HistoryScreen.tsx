@@ -95,6 +95,7 @@ export default function HistoryScreen() {
   const progressDismissedRef = useRef(false);
   progressDismissedRef.current = progressDismissed;
   const progressUserIdRef = useRef<string | undefined>(undefined);
+  const progressFetchedRef = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -108,6 +109,7 @@ export default function HistoryScreen() {
           setProgressData(null);
           setProgressLoading(false);
           progressUserIdRef.current = undefined;
+          progressFetchedRef.current = false;
         }
         return;
       }
@@ -115,6 +117,7 @@ export default function HistoryScreen() {
       if (progressUserIdRef.current !== userId) {
         progressUserIdRef.current = userId;
         if (!cancelled) setProgressDismissed(false);
+        progressFetchedRef.current = false;
       }
 
       if (!cancelled) setLoading(true);
@@ -123,7 +126,12 @@ export default function HistoryScreen() {
         setSwings(list);
         setLoading(false);
 
-        if (list.length >= 3 && !progressDismissedRef.current) {
+        if (
+          list.length >= 3 &&
+          !progressDismissedRef.current &&
+          !progressFetchedRef.current
+        ) {
+          progressFetchedRef.current = true;
           if (!cancelled) setProgressLoading(true);
           const result = await fetchProgressCoach({
             userId,
@@ -142,7 +150,9 @@ export default function HistoryScreen() {
           }
         } else {
           if (!cancelled) {
-            setProgressData(null);
+            if (list.length < 3) {
+              setProgressData(null);
+            }
             setProgressLoading(false);
           }
         }

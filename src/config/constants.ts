@@ -1,3 +1,5 @@
+import { Platform } from 'react-native';
+
 export const BACKEND_API_URL =
   process.env.EXPO_PUBLIC_BACKEND_URL ?? 'http://localhost:8000';
 
@@ -12,6 +14,11 @@ export function logConfig() {
   const backend = BACKEND_API_URL;
   const isLocalhost = backend.includes('localhost') || backend.includes('127.0.0.1');
   console.log('[Config] BACKEND_URL:', isLocalhost ? `${backend} (set EXPO_PUBLIC_BACKEND_URL for prod)` : backend);
+  if (__DEV__ && isLocalhost && Platform.OS !== 'web') {
+    console.warn(
+      '[Config] Backend URL is localhost — phones running Expo Go cannot reach your Mac. Add EXPO_PUBLIC_BACKEND_URL=https://your-api.onrender.com to .env and restart Metro (npx expo start --clear).'
+    );
+  }
 }
 
 /** Native splash / launch edge color — must match app.json splash.backgroundColor */
