@@ -15,6 +15,11 @@ export type MainStackParamList = {
   Upload: undefined;
   Processing: { videoUri: string };
   Results: { analysisId: string };
+  PersonalBest: {
+    analysisId: string;
+    newScore: number;
+    previousBest: number | null;
+  };
   Analysis: { analysisId: string };
   EditProfile: undefined;
 };

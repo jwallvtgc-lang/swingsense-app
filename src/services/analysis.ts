@@ -48,6 +48,29 @@ export async function getPreviousCompletedAnalysis(
   return (data as SwingAnalysis) ?? null;
 }
 
+/** Highest `similarity_score` among other completed analyses (excludes current row). */
+export async function getPreviousBestScore(
+  userId: string,
+  excludeAnalysisId: string
+): Promise<number | null> {
+  const { data, error } = await supabase
+    .from('swing_analyses')
+    .select('similarity_score')
+    .eq('user_id', userId)
+    .eq('status', 'completed')
+    .neq('id', excludeAnalysisId)
+    .order('similarity_score', { ascending: false, nullsFirst: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    console.warn('[analysis] getPreviousBestScore:', error.message);
+    return null;
+  }
+  if (!data) return null;
+  return data.similarity_score ?? null;
+}
+
 export const SCORE_DELTA_THRESHOLD = 2;
 
 export type ScoreDeltaDirection = 'up' | 'same' | 'down';

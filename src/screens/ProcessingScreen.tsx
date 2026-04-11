@@ -13,7 +13,7 @@ import type { RouteProp } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, SPACING, FONT_SIZE, FONTS } from '../config/constants';
 import { useAuth } from '../contexts/AuthContext';
-import { startAnalysisPipeline } from '../services/analysis';
+import { getPreviousBestScore, startAnalysisPipeline } from '../services/analysis';
 import { incrementAnalysisCount } from '../services/subscription';
 import type { MainStackParamList } from '../navigation/types';
 
@@ -88,9 +88,24 @@ export default function ProcessingScreen() {
 
       if (analysis) {
         await incrementAnalysisCount(user.id);
-        setTimeout(() => {
+        const newScore = analysis.similarity_score ?? 0;
+        const previousBest = await getPreviousBestScore(user.id, analysis.id);
+
+        const isFirstSwing = previousBest === null;
+        const isPersonalBest =
+          !isFirstSwing && newScore > 0 && newScore > previousBest;
+
+        await new Promise<void>((resolve) => setTimeout(resolve, 1200));
+
+        if (isFirstSwing || isPersonalBest) {
+          navigation.replace('PersonalBest', {
+            analysisId: analysis.id,
+            newScore,
+            previousBest,
+          });
+        } else {
           navigation.replace('Analysis', { analysisId: analysis.id });
-        }, 1200);
+        }
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');

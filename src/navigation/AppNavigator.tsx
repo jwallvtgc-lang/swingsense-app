@@ -16,6 +16,7 @@ import UploadScreen from '../screens/UploadScreen';
 import ProcessingScreen from '../screens/ProcessingScreen';
 import AnalysisScreen from '../screens/AnalysisScreen';
 import ResultsScreen from '../screens/ResultsScreen';
+import PersonalBestScreen from '../screens/PersonalBestScreen';
 import HistoryScreen from '../screens/HistoryScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import EditProfileScreen from '../screens/EditProfileScreen';
@@ -79,6 +80,7 @@ function MainNavigator() {
         options={{ gestureEnabled: false }}
       />
       <Stack.Screen name="Results" component={ResultsScreen} />
+      <Stack.Screen name="PersonalBest" component={PersonalBestScreen} />
       <Stack.Screen name="Analysis" component={AnalysisScreen} />
       <Stack.Screen name="EditProfile" component={EditProfileScreen} />
     </Stack.Navigator>
