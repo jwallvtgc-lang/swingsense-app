@@ -760,7 +760,10 @@ def analyze_with_claude(
         f"And here is the raw keypoint data for additional reference:\n\n"
         f"{keypoint_summary}\n\n"
         f"{prev_block}"
-        f"Please analyze this swing and respond with the JSON structure specified."
+        f"Before responding, verify: (1) overall_summary leads with a genuine positive observation from the data, "
+        f"(2) drill has all three parts — why + steps with rep count + feel cue, "
+        f"(3) no raw metric numbers appear in overall_summary or drill text. "
+        f"Then respond with the JSON structure specified."
     )
 
     client = Anthropic(api_key=api_key)
