@@ -93,7 +93,7 @@ export default function ProcessingScreen() {
 
         const isFirstSwing = previousBest === null;
         const isPersonalBest =
-          !isFirstSwing && newScore > 0 && newScore > previousBest;
+          !isFirstSwing && newScore > 0 && newScore >= previousBest;
 
         await new Promise<void>((resolve) => setTimeout(resolve, 1200));
 
