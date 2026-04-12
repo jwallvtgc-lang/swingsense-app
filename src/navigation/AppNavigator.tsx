@@ -96,14 +96,15 @@ const SPLASH_MIN_MS = 1800; // Show native splash at least 1.8s
  * Signed-in users without a profile still see onboarding before tabs.
  */
 function SessionBranchNavigator() {
-  const { session, hasProfile, profileResolved } = useAuth();
+  const { session, hasProfile, profile, profileResolved } = useAuth();
   if (!session) {
     return <AuthNavigator />;
   }
   if (!profileResolved) {
     return <View style={{ flex: 1, backgroundColor: SPLASH_BACKGROUND }} />;
   }
-  if (!hasProfile) {
+  const needsOnboarding = !hasProfile || profile?.onboarding_completed !== true;
+  if (needsOnboarding) {
     return <OnboardingNavigator />;
   }
   return <MainNavigator />;

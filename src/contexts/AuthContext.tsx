@@ -24,6 +24,7 @@ type ProfileUpdateData = Partial<
     | 'height_feet'
     | 'height_inches'
     | 'experience_level'
+    | 'onboarding_completed'
   >
 >;
 
@@ -258,6 +259,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       ...data,
       role: 'player',
       leaderboard_opt_in: false,
+      onboarding_completed: data.onboarding_completed ?? false,
     });
 
     if (!error) {

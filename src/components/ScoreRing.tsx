@@ -15,6 +15,8 @@ export type ScoreRingProps = {
   size?: 'lg' | 'sm';
   showLabel?: boolean;
   opacity?: number;
+  /** When set, ring stroke and score number use this color instead of `getScoreColor(score)`. */
+  accentColor?: string;
   /** Sm ring outer diameter; default `scoreRing.sizeSm` (e.g. SubScoreCard uses 44). */
   smDiameter?: number;
   /** Sm center score font size; default `fontSizes.listScore`. */
@@ -26,6 +28,7 @@ export default function ScoreRing({
   size = 'lg',
   showLabel = true,
   opacity = 1,
+  accentColor,
   smDiameter,
   smScoreFontSize,
 }: ScoreRingProps) {
@@ -44,7 +47,7 @@ export default function ScoreRing({
   const circumference = 2 * Math.PI * r;
   const filled = (clamped / 100) * circumference;
   const dashArray = `${filled} ${circumference}`;
-  const accent = getScoreColor(score);
+  const accent = accentColor ?? getScoreColor(score);
 
   return (
     <View style={[styles.wrap, { width: diameter, height: diameter }]}>

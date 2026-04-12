@@ -7,6 +7,7 @@ export interface Profile {
   height_inches: number | null;
   batting_side: BattingSide;
   experience_level?: string | null;
+  onboarding_completed?: boolean | null;
   role: 'player' | 'coach' | 'team_admin';
   leaderboard_opt_in: boolean;
   created_at: string;
