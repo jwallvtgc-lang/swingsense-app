@@ -1,6 +1,7 @@
 import { supabase } from '../config/supabase';
 import { getBackendUrl } from '../config/constants';
 import { SwingAnalysis, CoachingOutput, SimilarityBreakdown, Profile } from '../types';
+import { trackEvent } from './analytics';
 import { uploadSwingVideo } from './storage';
 
 interface AnalysisPipelineResult {
@@ -404,6 +405,12 @@ export async function startAnalysisPipeline(
     if (updateError) {
       return { analysis: null, error: updateError as Error };
     }
+
+    trackEvent('swing_analysis_completed', {
+      overall_score: similarityBreakdown?.overall ?? null,
+      experience_level: profile?.experience_level ?? null,
+      primary_issue: coachingOutput?.primary_mechanical_issue?.title ?? null,
+    });
 
     await logAnalysisCompleted(userId, analysisId, coachingOutput);
 

@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState, useCallback } fr
 import { Session, User } from '@supabase/supabase-js';
 // Same client as screens/services: `src/config/supabase.ts`
 import { supabase } from '../config/supabase';
+import { identifyUser, resetAnalytics, trackEvent } from '../services/analytics';
 import { Profile } from '../types';
 
 interface AuthState {
@@ -85,6 +86,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .select('*')
         .eq('id', userId)
         .single();
+
+      if (!error && data) {
+        identifyUser(userId, {
+          first_name: data.first_name ?? undefined,
+          experience_level: data.experience_level,
+          primary_position: data.primary_position,
+          batting_side: data.batting_side,
+          age: data.age,
+        });
+      }
 
       setState((s) => {
         if (s.user?.id !== userId) return s;
@@ -201,8 +212,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       );
       if (error) {
         console.log('[Auth] signUp Supabase error:', error.message, error);
-      } else if (data.session) {
-        applyAuthSession(data.session);
+      } else {
+        trackEvent('user_signed_up');
+        if (data.session) {
+          applyAuthSession(data.session);
+        }
       }
       return {
         error: error as Error | null,
@@ -241,6 +255,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = async () => {
     await supabase.auth.signOut();
+    resetAnalytics();
     setState((s) => ({
       ...s,
       profile: null,

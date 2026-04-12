@@ -14,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { COLORS, SPACING, FONT_SIZE, FONTS } from '../config/constants';
 import { useAuth } from '../contexts/AuthContext';
 import { getPreviousBestScore, startAnalysisPipeline } from '../services/analysis';
+import { trackEvent } from '../services/analytics';
 import { incrementAnalysisCount } from '../services/subscription';
 import type { MainStackParamList } from '../navigation/types';
 
@@ -98,6 +99,11 @@ export default function ProcessingScreen() {
         await new Promise<void>((resolve) => setTimeout(resolve, 1200));
 
         if (isFirstSwing || isPersonalBest) {
+          trackEvent('personal_best_achieved', {
+            new_score: newScore,
+            previous_best: previousBest,
+            is_first_swing: isFirstSwing,
+          });
           navigation.replace('PersonalBest', {
             analysisId: analysis.id,
             newScore,

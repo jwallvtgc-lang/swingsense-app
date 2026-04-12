@@ -18,6 +18,7 @@ import ScoreRing from '../components/ScoreRing';
 import ScreenHeader from '../components/ScreenHeader';
 import TextInput from '../components/TextInput';
 import { useAuth } from '../contexts/AuthContext';
+import { trackEvent } from '../services/analytics';
 import {
   BattingSide,
   Position,
@@ -180,8 +181,14 @@ export default function OnboardingScreen() {
     setSaving(false);
     if (error) {
       Alert.alert('Error', error.message);
+      return;
     }
-  }, [updateProfile]);
+    trackEvent('onboarding_completed', {
+      experience_level: experienceLevel,
+      primary_position: position,
+      batting_side: battingSide,
+    });
+  }, [updateProfile, experienceLevel, position, battingSide]);
 
   const footerPaddingBottom = insets.bottom + spacing.screen;
 

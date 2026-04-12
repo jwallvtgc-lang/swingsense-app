@@ -32,6 +32,7 @@ import {
   pollAnalysisStatus,
   submitDrillFeedback,
 } from '../services/analysis';
+import { trackEvent } from '../services/analytics';
 import type { CoachingOutput, SimilarityBreakdown, SwingAnalysis } from '../types';
 import {
   colors,
@@ -265,6 +266,10 @@ export default function AnalysisScreen() {
   ) => {
     if (drillFeedback || !analysis || !co) return;
     setDrillFeedback(feedback);
+    trackEvent('drill_coach_triggered', {
+      feedback,
+      primary_issue: co.primary_mechanical_issue?.title ?? null,
+    });
     setDrillLoading(true);
     const result = await submitDrillFeedback({
       analysisId: analysis.id,
