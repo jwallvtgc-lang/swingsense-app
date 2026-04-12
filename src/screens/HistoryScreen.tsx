@@ -21,7 +21,12 @@ import { useMainTabBarNav } from '../navigation/useMainTabBarNav';
 import type { MainStackParamList, TabParamList } from '../navigation/types';
 import type { CompositeNavigationProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { deleteAnalysis, fetchProgressCoach, getUserAnalyses } from '../services/analysis';
+import {
+  computeStreak,
+  deleteAnalysis,
+  fetchProgressCoach,
+  getUserAnalyses,
+} from '../services/analysis';
 import type { SwingAnalysis } from '../types';
 import { bottomTab, colors, spacing } from '../../design-system/tokens';
 
@@ -171,9 +176,16 @@ export default function HistoryScreen() {
   );
 
   const subtitle = useMemo(() => {
+    const { currentStreak } = computeStreak(
+      swings
+        .filter((s) => s.status === 'completed' && s.created_at)
+        .map((s) => s.created_at)
+    );
     const n = swings.length;
-    return `${n} ${n === 1 ? 'analysis' : 'analyses'}`;
-  }, [swings.length]);
+    return `${n} ${n === 1 ? 'analysis' : 'analyses'}${
+      currentStreak > 0 ? `  ·  🔥 ${currentStreak} day streak` : ''
+    }`;
+  }, [swings]);
 
   const handleDelete = useCallback(
     async (analysisId: string) => {

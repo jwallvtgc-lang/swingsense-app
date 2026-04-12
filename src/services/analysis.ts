@@ -86,6 +86,74 @@ export function scoreDeltaDirection(
   return 'same';
 }
 
+function utcCalendarDayKey(iso: string): string {
+  return new Date(iso).toISOString().slice(0, 10);
+}
+
+function utcCalendarDayKeyFromNow(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function addUtcDays(dayKey: string, deltaDays: number): string {
+  const d = new Date(`${dayKey}T12:00:00.000Z`);
+  d.setUTCDate(d.getUTCDate() + deltaDays);
+  return d.toISOString().slice(0, 10);
+}
+
+function utcDaysBetweenEarlierAndLater(earlierKey: string, laterKey: string): number {
+  const a = new Date(`${earlierKey}T12:00:00.000Z`).getTime();
+  const b = new Date(`${laterKey}T12:00:00.000Z`).getTime();
+  return Math.round((b - a) / 86_400_000);
+}
+
+/**
+ * Streak metrics from completed analysis `created_at` values (ISO strings).
+ * Uses UTC calendar days. "Current" streak is only non-zero if the latest swing day is
+ * today or yesterday vs UTC (gap ≤ 1 day); otherwise the streak is treated as broken.
+ */
+export function computeStreak(analysisIsoTimestamps: string[]): {
+  currentStreak: number;
+  longestStreak: number;
+} {
+  if (analysisIsoTimestamps.length === 0) {
+    return { currentStreak: 0, longestStreak: 0 };
+  }
+
+  const dayKeys = [
+    ...new Set(analysisIsoTimestamps.map(utcCalendarDayKey)),
+  ].sort();
+
+  let longestStreak = 0;
+  let run = 1;
+  for (let i = 1; i < dayKeys.length; i++) {
+    const prev = dayKeys[i - 1]!;
+    const cur = dayKeys[i]!;
+    if (utcDaysBetweenEarlierAndLater(prev, cur) === 1) {
+      run += 1;
+    } else {
+      longestStreak = Math.max(longestStreak, run);
+      run = 1;
+    }
+  }
+  longestStreak = Math.max(longestStreak, run);
+
+  const todayKey = utcCalendarDayKeyFromNow();
+  const lastKey = dayKeys[dayKeys.length - 1]!;
+  const gapLatestToToday = utcDaysBetweenEarlierAndLater(lastKey, todayKey);
+
+  let currentStreak = 0;
+  if (gapLatestToToday <= 1) {
+    const days = new Set(dayKeys);
+    let probe = lastKey;
+    while (days.has(probe)) {
+      currentStreak += 1;
+      probe = addUtcDays(probe, -1);
+    }
+  }
+
+  return { currentStreak, longestStreak };
+}
+
 function parseCoachingOutput(raw: unknown): CoachingOutput | null {
   if (!raw) return null;
   if (typeof raw === 'object') return raw as CoachingOutput;
