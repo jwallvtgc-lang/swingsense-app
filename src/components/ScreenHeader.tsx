@@ -24,7 +24,7 @@ const styles = StyleSheet.create({
     alignSelf: 'stretch',
   },
   title: {
-    fontFamily: typography.display,
+    fontFamily: typography.displayTitle,
     fontSize: fontSizes.screenTitle,
     color: colors.text.primary,
   },

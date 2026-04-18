@@ -11,10 +11,12 @@ import { Ionicons } from '@expo/vector-icons';
 import * as VideoThumbnails from 'expo-video-thumbnails';
 
 import ActionCard from '../components/ActionCard';
+import StreakPill from '../components/StreakPill';
 import BottomTabBar from '../components/BottomTabBar';
 import SectionCard from '../components/SectionCard';
 import TipRow from '../components/TipRow';
 import TipsList from '../components/TipsList';
+import { supabase } from '../config/supabase';
 import { useVideoPicker } from '../hooks/useVideoPicker';
 import type { MainStackParamList, TabParamList } from '../navigation/types';
 import { useMainTabBarNav } from '../navigation/useMainTabBarNav';
@@ -77,7 +79,20 @@ export default function AnalyzeScreen() {
         setStreak(currentStreak);
         if (analysis?.video_url) {
           try {
-            const { uri } = await VideoThumbnails.getThumbnailAsync(analysis.video_url, {
+            let videoUrl = analysis.video_url;
+            if (videoUrl.includes('supabase')) {
+              const path =
+                videoUrl.split('/object/public/')[1] ??
+                videoUrl.split('/object/sign/')[1]?.split('?')[0] ??
+                videoUrl.split('/storage/v1/object/')[1];
+              if (path) {
+                const { data } = await supabase.storage
+                  .from(path.split('/')[0]!)
+                  .createSignedUrl(path.split('/').slice(1).join('/'), 3600);
+                if (data?.signedUrl) videoUrl = data.signedUrl;
+              }
+            }
+            const { uri } = await VideoThumbnails.getThumbnailAsync(videoUrl, {
               time: 500,
             });
             setThumbUri(uri);
@@ -121,14 +136,21 @@ export default function AnalyzeScreen() {
         showsVerticalScrollIndicator={false}
       >
         <Text style={styles.greeting}>{greeting}</Text>
-        <Text style={styles.headline}>
-          ANALYZE YOUR{'\n'}
-          <Text style={styles.headlineAccent}>SWING</Text>
-        </Text>
+        {lastAnalysis ? (
+          <Text style={styles.wordmark}>
+            <Text style={styles.wordmarkSwing}>Swing</Text>
+            <Text style={styles.wordmarkSense}>Sense</Text>
+          </Text>
+        ) : (
+          <Text style={styles.headline}>
+            ANALYZE YOUR{'\n'}
+            <Text style={styles.headlineAccent}>SWING</Text>
+          </Text>
+        )}
 
         {streak > 0 ? (
-          <View style={styles.streakPill}>
-            <Text style={styles.streakText}>🔥 {streak} day streak</Text>
+          <View style={styles.streakPillWrap}>
+            <StreakPill streak={streak} />
           </View>
         ) : null}
 
@@ -256,7 +278,7 @@ const styles = StyleSheet.create({
     color: colors.text.muted,
     letterSpacing: letterSpacing.tight,
     textTransform: 'uppercase',
-    marginBottom: 2,
+    marginBottom: 0,
   },
   headline: {
     fontFamily: typography.display,
@@ -268,21 +290,23 @@ const styles = StyleSheet.create({
   headlineAccent: {
     color: colors.text.gold,
   },
-  streakPill: {
-    alignSelf: 'flex-start',
-    backgroundColor: colors.bg.goldDim,
-    borderRadius: radius.pill,
-    paddingHorizontal: spacing.card,
-    paddingVertical: spacing.iconGap,
+  wordmark: {
     marginBottom: spacing.cardGap,
-    borderWidth: 1,
-    borderColor: colors.border.gold,
   },
-  streakText: {
-    fontFamily: typography.body,
-    fontSize: fontSizes.caption,
+  wordmarkSwing: {
+    fontFamily: 'Righteous_400Regular',
+    fontSize: fontSizes.wordmark,
+    color: colors.text.primary,
+    letterSpacing: letterSpacing.wordmarkTight,
+  },
+  wordmarkSense: {
+    fontFamily: 'Righteous_400Regular',
+    fontSize: fontSizes.wordmark,
     color: colors.text.gold,
-    fontWeight: fontWeights.medium,
+    letterSpacing: letterSpacing.wordmarkTight,
+  },
+  streakPillWrap: {
+    marginBottom: spacing.sectionGap,
   },
   lastSwingCard: {
     flexDirection: 'row',

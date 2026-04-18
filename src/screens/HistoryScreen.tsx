@@ -15,6 +15,7 @@ import EmptyState from '../components/EmptyState';
 import PrimaryButton from '../components/PrimaryButton';
 import { ProgressCoachCard } from '../components/ProgressCoachCard';
 import ScreenHeader from '../components/ScreenHeader';
+import StreakPill from '../components/StreakPill';
 import SwingListItem from '../components/SwingListItem';
 import { useAuth } from '../contexts/AuthContext';
 import { useMainTabBarNav } from '../navigation/useMainTabBarNav';
@@ -27,7 +28,7 @@ import {
   fetchProgressCoach,
   getUserAnalyses,
 } from '../services/analysis';
-import type { SwingAnalysis } from '../types';
+import type { SimilarityBreakdown, SwingAnalysis } from '../types';
 import { bottomTab, colors, spacing } from '../../design-system/tokens';
 
 function listScore(analysis: SwingAnalysis): number {
@@ -46,20 +47,40 @@ function swingInsight(analysis: SwingAnalysis): string {
   );
 }
 
-function swingBatSpeedMph(analysis: SwingAnalysis): number {
-  return (
-    analysis.coaching_output?.bat_speed_estimate?.mph ??
-    analysis.bat_speed_mph ??
-    0
-  );
-}
-
 function trendFromVsLastSwing(vs: string | null | undefined): 'better' | 'same' | 'worse' {
   if (vs == null || typeof vs !== 'string') return 'same';
   const s = vs.toLowerCase();
   if (/\b(better|improved)\b/.test(s)) return 'better';
   if (/\b(worse|declined)\b/.test(s)) return 'worse';
   return 'same';
+}
+
+function topDeltaFromAnalysis(
+  item: SwingAnalysis,
+  previousItem: SwingAnalysis | null
+): { label: string; direction: 'up' | 'down' | 'flat' } | null {
+  if (!previousItem) return null;
+  const keys: Array<{ key: keyof SimilarityBreakdown; label: string }> = [
+    { key: 'hip_rotation', label: 'Hip rotation' },
+    { key: 'weight_transfer', label: 'Weight transfer' },
+    { key: 'bat_path', label: 'Bat path' },
+    { key: 'contact_point', label: 'Contact' },
+  ];
+  const currBreakdown = item.similarity_breakdown;
+  const prevBreakdown = previousItem.similarity_breakdown;
+  if (!currBreakdown || !prevBreakdown) return null;
+  let best: { label: string; direction: 'up' | 'down' | 'flat'; diff: number } | null = null;
+  for (const { key, label } of keys) {
+    const curr = currBreakdown[key];
+    const prev = prevBreakdown[key];
+    if (curr == null || prev == null) continue;
+    const diff = Math.round(curr - prev);
+    if (diff === 0) continue;
+    if (!best || Math.abs(diff) > Math.abs(best.diff)) {
+      best = { label, direction: diff > 0 ? 'up' : 'down', diff };
+    }
+  }
+  return best ? { label: best.label, direction: best.direction } : null;
 }
 
 function formatSwingDate(iso: string): string {
@@ -175,16 +196,17 @@ export default function HistoryScreen() {
     [insets.bottom]
   );
 
-  const subtitle = useMemo(() => {
+  const { headerSubtitle, headerStreak } = useMemo(() => {
     const { currentStreak } = computeStreak(
       swings
         .filter((s) => s.status === 'completed' && s.created_at)
         .map((s) => s.created_at)
     );
     const n = swings.length;
-    return `${n} ${n === 1 ? 'analysis' : 'analyses'}${
-      currentStreak > 0 ? `  ·  🔥 ${currentStreak} day streak` : ''
-    }`;
+    return {
+      headerSubtitle: `${n} ${n === 1 ? 'analysis' : 'analyses'}`,
+      headerStreak: currentStreak,
+    };
   }, [swings]);
 
   const handleDelete = useCallback(
@@ -202,20 +224,21 @@ export default function HistoryScreen() {
   );
 
   const renderItem: ListRenderItem<SwingAnalysis> = useCallback(
-    ({ item }) => {
+    ({ item, index }) => {
+      const previousItem = swings[index + 1] ?? null;
       return (
         <SwingListItem
           score={listScore(item)}
           date={formatSwingDate(item.created_at)}
           trend={trendFromVsLastSwing(item.coaching_output?.vs_last_swing)}
           insight={swingInsight(item)}
-          batSpeed={swingBatSpeedMph(item)}
+          topDelta={topDeltaFromAnalysis(item, previousItem)}
           onPress={() => navigation.navigate('Analysis', { analysisId: item.id })}
           onDelete={() => void handleDelete(item.id)}
         />
       );
     },
-    [navigation, handleDelete]
+    [navigation, handleDelete, swings]
   );
 
   const keyExtractor = useCallback((item: SwingAnalysis) => item.id, []);
@@ -233,7 +256,10 @@ export default function HistoryScreen() {
           },
         ]}
       >
-        <ScreenHeader title="SWING HISTORY" subtitle={subtitle} />
+        <View style={styles.headerSection}>
+          <ScreenHeader title="SWING HISTORY" subtitle={headerSubtitle} />
+          {headerStreak > 0 ? <StreakPill streak={headerStreak} /> : null}
+        </View>
         <View style={styles.afterHeader}>
           <PrimaryButton
             label="Record New Swing"
@@ -296,6 +322,10 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
+  },
+  headerSection: {
+    marginBottom: spacing.cardGap,
+    gap: spacing.iconGap,
   },
   afterHeader: {
     marginTop: spacing.cardGap,

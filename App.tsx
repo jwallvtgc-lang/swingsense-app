@@ -6,6 +6,7 @@ import {
   useFonts,
   BebasNeue_400Regular,
 } from '@expo-google-fonts/bebas-neue';
+import { Righteous_400Regular } from '@expo-google-fonts/righteous';
 import {
   DMSans_400Regular,
   DMSans_500Medium,
@@ -30,6 +31,7 @@ const SPLASH_FALLBACK_MS = 8000;
 export default function App() {
   const [fontsLoaded] = useFonts({
     BebasNeue_400Regular,
+    Righteous_400Regular,
     DMSans_400Regular,
     DMSans_500Medium,
     DMSans_600SemiBold,

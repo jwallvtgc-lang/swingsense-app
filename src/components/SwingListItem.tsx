@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import {
   colors,
   fontSizes,
-  letterSpacing,
+  fontWeights,
   radius,
   spacing,
   typography,
@@ -18,7 +18,7 @@ export type SwingListItemProps = {
   date: string;
   trend: 'better' | 'same' | 'worse';
   insight: string;
-  batSpeed: number;
+  topDelta?: { label: string; direction: 'up' | 'down' | 'flat' } | null;
   onPress: () => void;
   onDelete: () => void;
 };
@@ -28,7 +28,7 @@ export default function SwingListItem({
   date,
   trend,
   insight,
-  batSpeed,
+  topDelta,
   onPress,
   onDelete,
 }: SwingListItemProps) {
@@ -53,15 +53,22 @@ export default function SwingListItem({
         >
           {insight}
         </Text>
-        <View style={styles.batRow}>
-          <Text style={styles.batValue} maxFontSizeMultiplier={1.35}>
-            {Math.round(batSpeed)}
-          </Text>
-          <Text style={styles.batUnit} maxFontSizeMultiplier={1.35}>
-            {' '}
-            MPH
-          </Text>
-        </View>
+        {topDelta && topDelta.direction !== 'flat' ? (
+          <View style={styles.deltaRow}>
+            <Text
+              style={[
+                styles.deltaText,
+                {
+                  color:
+                    topDelta.direction === 'up' ? colors.text.green : colors.text.red,
+                },
+              ]}
+              maxFontSizeMultiplier={1.35}
+            >
+              {topDelta.direction === 'up' ? '↑' : '↓'} {topDelta.label}
+            </Text>
+          </View>
+        ) : null}
       </View>
       <View style={styles.actions}>
         <DeleteButton onConfirm={onDelete} />
@@ -111,21 +118,14 @@ const styles = StyleSheet.create({
     fontSize: fontSizes.body,
     color: colors.text.secondary,
   },
-  batRow: {
+  deltaRow: {
     flexDirection: 'row',
-    alignItems: 'baseline',
-    flexWrap: 'wrap',
+    alignItems: 'center',
   },
-  batValue: {
-    fontFamily: typography.display,
-    letterSpacing: letterSpacing.tight,
-    fontSize: fontSizes.listScore,
-    color: colors.text.gold,
-  },
-  batUnit: {
+  deltaText: {
     fontFamily: typography.body,
     fontSize: fontSizes.caption,
-    color: colors.text.muted,
+    fontWeight: fontWeights.medium,
   },
   actions: {
     flexDirection: 'row',

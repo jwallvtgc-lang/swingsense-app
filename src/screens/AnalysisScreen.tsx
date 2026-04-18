@@ -815,7 +815,7 @@ const styles = StyleSheet.create({
     alignSelf: 'stretch',
   },
   kicker: {
-    fontFamily: typography.display,
+    fontFamily: typography.displayTitle,
     fontSize: fontSizes.analysisKicker,
     letterSpacing: letterSpacing.label,
     color: colors.text.primary,

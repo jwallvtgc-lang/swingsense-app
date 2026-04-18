@@ -77,7 +77,9 @@ export const colors = {
 }
 
 export const typography = {
-  display: "'Bebas Neue', Impact, sans-serif", // scores, headlines, CTA labels
+  display: "'BebasNeue_400Regular', Impact, sans-serif", // scores, headlines, CTA labels
+  /** Screen title headers only (e.g. ScreenHeader, Analysis kicker) — Righteous */
+  displayTitle: 'Righteous_400Regular',
   body: "'Inter', -apple-system, sans-serif", // all other text
 }
 
@@ -85,9 +87,10 @@ export const fontSizes = {
   heroScore: 58, // HeroScore large ring number
   display: 38, // Wordmark on Login
   displaySm: 32, // Wordmark on Splash
-  analysisKicker: 28, // AnalysisScreen "SWING ANALYSIS" kicker
-  screenTitle: 36, // ScreenHeader (e.g. "SWING HISTORY")
+  analysisKicker: 34, // AnalysisScreen "SWING ANALYSIS" kicker
+  screenTitle: 40, // ScreenHeader (e.g. "SWING HISTORY")
   headline: 48, // HeroHeader ("ANALYZE YOUR SWING")
+  wordmark: 40, // AnalyzeScreen returning-user Righteous SwingSense wordmark
   subScore: 22, // SubScoreCard number
   listScore: 20, // SwingListItem ScoreRing number
   batSpeed: 48, // StatDisplay large number
@@ -111,6 +114,7 @@ export const fontWeights = {
 export const letterSpacing = {
   wordmark: 6, // SWINGSENSE on Login
   wordmarkSm: 5, // SWINGSENSE on Splash
+  wordmarkTight: -0.5, // AnalyzeScreen Righteous wordmark (Swing / Sense)
   cta: 2, // Button labels
   label: 3, // Uppercase section labels
   tagline: 4, // Subtitle under wordmark

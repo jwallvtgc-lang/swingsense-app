@@ -10,10 +10,12 @@
 
 | Use | Font | Token |
 |-----|------|-------|
-| Scores, headlines, CTA labels, numbered steps | Bebas Neue | `typography.display` |
+| Scores, stats, CTA labels, numbered steps, numeric display | Bebas Neue | `typography.display` |
+| Screen title headers (`ScreenHeader`, Analysis screen kicker) | Righteous | `typography.displayTitle` |
 | All other text | Inter | `typography.body` |
 
 **Rules:**
+- **`typography.displayTitle`** uses **Righteous** (`Righteous_400Regular`, loaded via Expo Google Fonts) for **screen title headers** only: the **`ScreenHeader`** title (e.g. SWING HISTORY) and the **Analysis** screen kicker (SWING ANALYSIS). **`typography.display`** (Bebas Neue) remains for scores, numbers, rings, and CTAs — not those title lines.
 - The wordmark is always **ALL-CAPS**: `SWINGSENSE` with `SENSE` in gold (`colors.text.gold`). Never mixed case.
 - Display numbers (scores, bat speed, stats) always use `typography.display`.
 - Never use font weights 600 or 700 for body text — use 500 max.
@@ -273,7 +275,7 @@ Rules:
 - All colors from colors object in tokens.ts — no hardcoded hex
 - All spacing from spacing object in tokens.ts — no magic numbers
 - All radius values from radius object in tokens.ts
-- Display numbers (scores, stats, CTA labels): typography.display (Bebas Neue)
+- Display numbers (scores, stats, CTA labels): typography.display (Bebas Neue); screen title headers: typography.displayTitle (Righteous)
 - All other text: typography.body (Inter)
 - Cards use colors.bg.surface (#161616), radius.card (14px), spacing.card (16px) padding
 - ScoreRing uses SVG stroke-dasharray only — no third-party progress libraries
@@ -289,7 +291,7 @@ Rules:
 ```
 This doesn't match the design system. Fix:
 1. Replace hardcoded colors with imports from tokens.ts colors object
-2. Display font must be typography.display (Bebas Neue) — not Inter or system font
+2. Display numerics and CTAs use typography.display (Bebas Neue) — not Inter or system font. Screen title headers use typography.displayTitle (Righteous) — see Typography table.
 3. Card background is colors.bg.surface (#161616) — not white or default
 4. Border radius must use radius.card (14) token — not arbitrary values
 5. ScoreRing must use SVG strokeDasharray — remove any progress bar library
