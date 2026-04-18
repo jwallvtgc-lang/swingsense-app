@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Linking,
@@ -14,6 +14,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
+import { Video, ResizeMode } from 'expo-av';
 
 import BackNav from '../components/BackNav';
 import DrillStep from '../components/DrillStep';
@@ -43,8 +44,6 @@ import {
   spacing,
   typography,
 } from '../../design-system/tokens';
-
-const ANALYSIS_KICKER_SIZE = 28; // 28px analysis kicker — between display sizes, intentional
 
 const TAB_RESULTS = 'Results';
 const TAB_COACHING = 'Coaching';
@@ -153,6 +152,7 @@ export default function AnalysisScreen() {
   const route = useRoute<Route>();
   const { analysisId } = route.params;
   const { profile } = useAuth();
+  const videoRef = useRef<Video>(null);
   const [activeTab, setActiveTab] = useState(TAB_RESULTS);
   const [analysis, setAnalysis] = useState<SwingAnalysis | null>(null);
   const [previousAnalysis, setPreviousAnalysis] = useState<SwingAnalysis | null>(null);
@@ -356,13 +356,19 @@ export default function AnalysisScreen() {
 
         {activeTab === TAB_RESULTS ? (
           <View style={styles.tabPanels}>
-            <SectionCard>
-              <StatDisplay
-                value={batMph != null ? `~${batMph}` : '—'}
-                unit="mph"
-                disclaimer="Estimate only — not radar-accurate"
-              />
-            </SectionCard>
+            {analysis?.video_url ? (
+              <View style={styles.videoContainer}>
+                <Video
+                  ref={videoRef}
+                  source={{ uri: analysis.video_url }}
+                  style={styles.video}
+                  resizeMode={ResizeMode.CONTAIN}
+                  useNativeControls={true}
+                  isLooping={false}
+                  shouldPlay={false}
+                />
+              </View>
+            ) : null}
             {(keyTitle.length > 0 || keyDescription.length > 0) && (
               <SectionCard title="Quick Context">
                 {keyTitle.length > 0 ? (
@@ -420,6 +426,13 @@ export default function AnalysisScreen() {
                 ) : null}
               </SectionCard>
             ) : null}
+            <SectionCard>
+              <StatDisplay
+                value={batMph != null ? `~${batMph}` : '—'}
+                unit="mph"
+                disclaimer="Estimate only — not radar-accurate"
+              />
+            </SectionCard>
 
             <View style={styles.afterTabContent}>
               <FeedbackRow
@@ -698,7 +711,7 @@ const styles = StyleSheet.create({
   },
   kicker: {
     fontFamily: typography.display,
-    fontSize: ANALYSIS_KICKER_SIZE,
+    fontSize: fontSizes.analysisKicker,
     letterSpacing: letterSpacing.label,
     color: colors.text.primary,
     textTransform: 'uppercase',
@@ -708,6 +721,20 @@ const styles = StyleSheet.create({
     fontFamily: typography.body,
     fontSize: fontSizes.body,
     color: colors.text.muted,
+  },
+  videoContainer: {
+    marginTop: spacing.cardGap,
+    borderRadius: radius.card,
+    overflow: 'hidden',
+    backgroundColor: colors.bg.surface,
+    aspectRatio: 9 / 16,
+    maxHeight: 320,
+    alignSelf: 'center',
+    width: '100%',
+  },
+  video: {
+    width: '100%',
+    height: '100%',
   },
   heroScore: {
     marginTop: spacing.sectionGap,

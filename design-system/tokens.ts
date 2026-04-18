@@ -85,6 +85,7 @@ export const fontSizes = {
   heroScore: 58, // HeroScore large ring number
   display: 38, // Wordmark on Login
   displaySm: 32, // Wordmark on Splash
+  analysisKicker: 28, // AnalysisScreen "SWING ANALYSIS" kicker
   screenTitle: 36, // ScreenHeader (e.g. "SWING HISTORY")
   headline: 48, // HeroHeader ("ANALYZE YOUR SWING")
   subScore: 22, // SubScoreCard number

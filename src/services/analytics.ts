@@ -5,6 +5,11 @@ const posthog = new PostHog(process.env.EXPO_PUBLIC_POSTHOG_KEY ?? '', {
   host: 'https://us.i.posthog.com',
 });
 
+console.log(
+  '[PostHog] initialized with key:',
+  process.env.EXPO_PUBLIC_POSTHOG_KEY ? 'set' : 'MISSING'
+);
+
 export function identifyUser(
   userId: string,
   properties?: {
