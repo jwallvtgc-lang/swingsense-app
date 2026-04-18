@@ -26,6 +26,7 @@ import StatDisplay from '../components/StatDisplay';
 import SubScoreCard from '../components/SubScoreCard';
 import TabSwitcher from '../components/TabSwitcher';
 import { FEEDBACK_EMAIL } from '../config/constants';
+import { supabase } from '../config/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import type { MainStackParamList } from '../navigation/types';
 import {
@@ -47,6 +48,22 @@ import {
 
 const TAB_RESULTS = 'Results';
 const TAB_COACHING = 'Coaching';
+
+/** Path inside bucket `swing-videos` from a full Supabase Storage object or signed URL. */
+function swingVideosStoragePathFromUrl(url: string): string | null {
+  const marker = '/swing-videos/';
+  const idx = url.indexOf(marker);
+  if (idx === -1) return null;
+  let path = url.slice(idx + marker.length);
+  const q = path.indexOf('?');
+  if (q !== -1) path = path.slice(0, q);
+  try {
+    path = decodeURIComponent(path);
+  } catch {
+    /* keep raw slice */
+  }
+  return path.length > 0 ? path : null;
+}
 
 type Nav = NativeStackNavigationProp<MainStackParamList, 'Analysis'>;
 type Route = RouteProp<MainStackParamList, 'Analysis'>;
@@ -176,6 +193,51 @@ export default function AnalysisScreen() {
     encouragement: string;
   } | null>(null);
   const [drillLoading, setDrillLoading] = useState(false);
+  const [videoUrl, setVideoUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (analysis?.id !== analysisId) {
+      setVideoUrl(null);
+      return;
+    }
+
+    const raw = analysis.video_url?.trim();
+    if (!raw) {
+      setVideoUrl(null);
+      return;
+    }
+
+    if (!raw.includes('supabase')) {
+      setVideoUrl(raw);
+      return;
+    }
+
+    setVideoUrl(null);
+    let cancelled = false;
+    (async () => {
+      const path = swingVideosStoragePathFromUrl(raw);
+      if (!path) {
+        if (!cancelled) setVideoUrl(raw);
+        return;
+      }
+      const { data, error } = await supabase.storage
+        .from('swing-videos')
+        .createSignedUrl(path, 3600);
+      if (cancelled) return;
+      if (error || !data?.signedUrl) {
+        if (__DEV__) {
+          console.warn('[AnalysisScreen] createSignedUrl failed:', error?.message);
+        }
+        setVideoUrl(null);
+        return;
+      }
+      setVideoUrl(data.signedUrl);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [analysisId, analysis?.id, analysis?.video_url]);
 
   useEffect(() => {
     let cancelled = false;
@@ -383,11 +445,11 @@ export default function AnalysisScreen() {
 
         {activeTab === TAB_RESULTS ? (
           <View style={styles.tabPanels}>
-            {analysis?.video_url ? (
+            {videoUrl ? (
               <View style={styles.videoContainer}>
                 <Video
                   ref={videoRef}
-                  source={{ uri: analysis.video_url }}
+                  source={{ uri: videoUrl }}
                   style={styles.video}
                   resizeMode={ResizeMode.CONTAIN}
                   useNativeControls={true}

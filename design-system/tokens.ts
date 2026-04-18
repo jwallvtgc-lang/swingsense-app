@@ -124,6 +124,8 @@ export const radius = {
   logoMd: 16, // LogoTile corner radius (md)
   card: 14, // SectionCard, SwingListItem, ActionCard, PrimaryButton
   subCard: 12, // SubScoreCard, TextInput, TabSwitcher outer
+  input: 10, // Small square media thumbs (e.g. Analyze last swing)
+  xs: 4, // Micro badges on thumbnails
   tab: 8, // Active tab inner radius (inside TabSwitcher)
   badge: 6, // TrendBadge, section icon bg
   pill: 20, // DeltaPill

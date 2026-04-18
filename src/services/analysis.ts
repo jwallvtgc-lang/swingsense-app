@@ -49,6 +49,42 @@ export async function getPreviousCompletedAnalysis(
   return (data as SwingAnalysis) ?? null;
 }
 
+/** Most recent completed analysis for the user (by `created_at`). */
+export async function getLastCompletedAnalysis(
+  userId: string
+): Promise<SwingAnalysis | null> {
+  const { data, error } = await supabase
+    .from('swing_analyses')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('status', 'completed')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    console.warn('[analysis] getLastCompletedAnalysis:', error.message);
+    return null;
+  }
+  return (data as SwingAnalysis) ?? null;
+}
+
+/** All completed analyses for the user, newest first (for streaks, etc.). */
+export async function getAllCompletedAnalyses(userId: string): Promise<SwingAnalysis[]> {
+  const { data, error } = await supabase
+    .from('swing_analyses')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('status', 'completed')
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.warn('[analysis] getAllCompletedAnalyses:', error.message);
+    return [];
+  }
+  return (data as SwingAnalysis[]) ?? [];
+}
+
 /** Highest `similarity_score` among other completed analyses (excludes current row). */
 export async function getPreviousBestScore(
   userId: string,
