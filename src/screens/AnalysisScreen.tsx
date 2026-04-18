@@ -108,6 +108,14 @@ type CompareMetricRow = {
   diff: number;
 };
 
+type AllCompareRow = {
+  key: keyof SimilarityBreakdown;
+  label: string;
+  curr: number | null;
+  prev: number | null;
+  diff: number | null;
+};
+
 const COMPARE_KEYS: Array<{
   key: keyof SimilarityBreakdown;
   label: string;
@@ -214,7 +222,7 @@ export default function AnalysisScreen() {
   const batPath = Math.round(currScores?.bat_path ?? 0);
   const contact = Math.round(currScores?.contact_point ?? 0);
 
-  const compareRows = useMemo(() => {
+  const allCompareRows = useMemo((): AllCompareRow[] => {
     if (!previousAnalysis || !analysis) return [];
 
     const prevCoaching = previousAnalysis.coaching_output;
@@ -239,10 +247,29 @@ export default function AnalysisScreen() {
         curr = currScores?.[key];
         prev = prevBreakdown?.[key];
       }
-      const diff = curr != null && prev != null ? Math.round(curr - prev) : null;
-      return { key, label, diff };
-    }).filter((r) => r.diff != null && r.diff !== 0) as CompareMetricRow[];
+      const currNorm = curr ?? null;
+      const prevNorm = prev ?? null;
+      const diff =
+        currNorm != null && prevNorm != null
+          ? Math.round(currNorm - prevNorm)
+          : null;
+      return {
+        key,
+        label,
+        curr: currNorm,
+        prev: prevNorm,
+        diff,
+      };
+    });
   }, [analysis, previousAnalysis, currScores, co]);
+
+  const compareRows = useMemo(
+    () =>
+      allCompareRows
+        .filter((r) => r.diff != null && r.diff !== 0)
+        .map(({ key, label, diff }) => ({ key, label, diff: diff! })),
+    [allCompareRows]
+  ) as CompareMetricRow[];
 
   const showCompareSection =
     previousAnalysis != null &&
@@ -392,7 +419,7 @@ export default function AnalysisScreen() {
                 icon={
                   <Ionicons
                     name="git-compare-outline"
-                    size={16} // 16/18px icon sizes — standard small icons
+                    size={16}
                     color={colors.text.gold}
                   />
                 }
@@ -405,25 +432,41 @@ export default function AnalysisScreen() {
                     {String(co.vs_last_swing).trim()}
                   </Text>
                 )}
-                {compareRows.length > 0 ? (
-                  <View style={styles.compareDeltas}>
-                    {compareRows.map(({ key, label, diff }) => {
-                      const isUp = diff > 0;
-                      const color = isUp ? colors.text.green : colors.text.red;
-                      const arrow = isUp ? '↑' : '↓';
-                      return (
-                        <View key={key} style={styles.compareRow}>
-                          <Text style={styles.compareLabel} numberOfLines={1}>
-                            {label}
+                <View style={styles.compareMetricGrid}>
+                  {allCompareRows.map(({ key, label, curr, prev, diff }) => {
+                    const isUp = diff != null && diff > 0;
+                    const isDown = diff != null && diff < 0;
+                    const isFlat = diff === 0 || diff == null;
+                    const deltaColor = isUp
+                      ? colors.text.green
+                      : isDown
+                        ? colors.text.red
+                        : colors.text.muted;
+                    const arrow = isUp ? '↑' : isDown ? '↓' : '→';
+                    const deltaText = isFlat
+                      ? '→'
+                      : `${isUp ? '+' : ''}${diff} ${arrow}`;
+                    return (
+                      <View key={key} style={styles.compareMetricRow}>
+                        <Text style={styles.compareMetricLabel} numberOfLines={1}>
+                          {label}
+                        </Text>
+                        <View style={styles.compareMetricScores}>
+                          <Text style={styles.compareMetricPrev}>
+                            {prev != null ? Math.round(prev) : '—'}
                           </Text>
-                          <Text style={[styles.compareDeltaText, { color }]}>
-                            {`${isUp ? '+' : ''}${diff}`} {arrow}
+                          <Text style={styles.compareMetricArrow}>→</Text>
+                          <Text style={styles.compareMetricCurr}>
+                            {curr != null ? Math.round(curr) : '—'}
+                          </Text>
+                          <Text style={[styles.compareMetricDelta, { color: deltaColor }]}>
+                            {deltaText}
                           </Text>
                         </View>
-                      );
-                    })}
-                  </View>
-                ) : null}
+                      </View>
+                    );
+                  })}
+                </View>
               </SectionCard>
             ) : null}
             <SectionCard>
@@ -768,26 +811,57 @@ const styles = StyleSheet.create({
     lineHeight: Math.round(fontSizes.body * 1.45), // 1.45/1.35 line height — readability tuned for this context
     marginBottom: spacing.cardGap,
   },
-  compareDeltas: {
-    gap: spacing.iconGap,
-    alignSelf: 'stretch',
+  compareMetricGrid: {
+    marginTop: spacing.cardGap,
+    gap: spacing.pillGap,
   },
-  compareRow: {
+  compareMetricRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: spacing.cardGap,
+    paddingVertical: spacing.iconGap,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border.subtle,
   },
-  compareLabel: {
-    flex: 1,
+  compareMetricLabel: {
     fontFamily: typography.body,
     fontSize: fontSizes.body,
+    fontWeight: fontWeights.regular,
     color: colors.text.secondary,
+    flex: 1,
   },
-  compareDeltaText: {
+  compareMetricScores: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.iconGap,
+  },
+  compareMetricPrev: {
     fontFamily: typography.body,
-    fontWeight: fontWeights.bold,
     fontSize: fontSizes.body,
+    fontWeight: fontWeights.regular,
+    color: colors.text.muted,
+    minWidth: 24,
+    textAlign: 'right',
+  },
+  compareMetricArrow: {
+    fontFamily: typography.body,
+    fontSize: fontSizes.body,
+    color: colors.text.muted,
+  },
+  compareMetricCurr: {
+    fontFamily: typography.body,
+    fontSize: fontSizes.body,
+    fontWeight: fontWeights.medium,
+    color: colors.text.primary,
+    minWidth: 24,
+    textAlign: 'right',
+  },
+  compareMetricDelta: {
+    fontFamily: typography.body,
+    fontSize: fontSizes.body,
+    fontWeight: fontWeights.medium,
+    minWidth: 44,
+    textAlign: 'right',
   },
   tabPanels: {
     marginTop: spacing.sectionGap,
