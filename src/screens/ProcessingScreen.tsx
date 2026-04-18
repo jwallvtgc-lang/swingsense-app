@@ -12,6 +12,15 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, SPACING, FONT_SIZE, FONTS } from '../config/constants';
+import {
+  colors,
+  fontSizes,
+  fontWeights,
+  letterSpacing,
+  radius,
+  spacing,
+  typography,
+} from '../../design-system/tokens';
 import { useAuth } from '../contexts/AuthContext';
 import { getPreviousBestScore, startAnalysisPipeline } from '../services/analysis';
 import { trackEvent } from '../services/analytics';
@@ -22,10 +31,22 @@ type Nav = NativeStackNavigationProp<MainStackParamList, 'Processing'>;
 type Route = RouteProp<MainStackParamList, 'Processing'>;
 
 const PIPELINE_STEPS = [
-  { key: 'uploading', label: 'Uploading video', icon: 'cloud-upload' as const },
-  { key: 'extracting', label: 'Extracting body keypoints', icon: 'body' as const },
-  { key: 'analyzing', label: 'AI coach reviewing swing', icon: 'analytics' as const },
-  { key: 'completed', label: 'Analysis complete!', icon: 'checkmark-circle' as const },
+  { key: 'uploading', label: 'Uploading your swing', icon: 'cloud-upload' as const },
+  { key: 'extracting', label: 'Watching your mechanics', icon: 'eye' as const },
+  { key: 'analyzing', label: 'Finding your power positions', icon: 'fitness' as const },
+  { key: 'completed', label: 'Your report is ready!', icon: 'checkmark-circle' as const },
+];
+
+const COACHING_TIPS = [
+  'Hip rotation is the engine — hands are just along for the ride',
+  'A still head means your eyes can track the ball all the way to contact',
+  'The best swings start from a balanced, athletic stance',
+  'Let the ball travel deep — the power comes from waiting',
+  "Your back leg pushes your front leg — that's where rotation starts",
+  'Film from the side, 10-15 feet away for the most accurate analysis',
+  'Regular video mode gives better results than slow motion',
+  'The load creates tension — tension creates power',
+  "Finish high and balanced — the swing isn't over until the follow-through",
 ];
 
 export default function ProcessingScreen() {
@@ -38,6 +59,7 @@ export default function ProcessingScreen() {
   const [statusMessage, setStatusMessage] = useState('Preparing...');
   const [error, setError] = useState<string | null>(null);
   const [retryKey, setRetryKey] = useState(0);
+  const [tipIndex, setTipIndex] = useState(0);
 
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const progressAnim = useRef(new Animated.Value(0)).current;
@@ -67,7 +89,7 @@ export default function ProcessingScreen() {
             setCurrentStep(0);
             animateProgress(0.25);
           } else if (status === 'processing') {
-            if (message.includes('keypoint')) {
+            if (message.includes('Watching your mechanics')) {
               setCurrentStep(1);
               animateProgress(0.5);
             } else {
@@ -138,6 +160,13 @@ export default function ProcessingScreen() {
   }, [pulseAnim]);
 
   useEffect(() => {
+    const interval = setInterval(() => {
+      setTipIndex((i) => (i + 1) % COACHING_TIPS.length);
+    }, 8000);
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
     runPipeline();
   }, [retryKey, runPipeline]);
 
@@ -185,7 +214,7 @@ export default function ProcessingScreen() {
         </Animated.View>
       </View>
 
-      <Text style={styles.title}>Analyzing Your Swing</Text>
+      <Text style={styles.title}>Reading Your Swing</Text>
       <Text style={styles.subtitle}>{statusMessage}</Text>
 
       <View style={styles.progressBar}>
@@ -237,8 +266,13 @@ export default function ProcessingScreen() {
         })}
       </View>
 
+      <View style={styles.tipContainer}>
+        <Text style={styles.tipLabel}>COACHING TIP</Text>
+        <Text style={styles.tipText}>{COACHING_TIPS[tipIndex]}</Text>
+      </View>
+
       <Text style={styles.note}>
-        This typically takes 30–90 seconds. Hang tight!
+        Your AI coaching report is on its way — usually ready in under 60 seconds.
       </Text>
     </View>
   );
@@ -375,6 +409,29 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.body,
     color: COLORS.textMuted,
     textAlign: 'center',
+  },
+  tipContainer: {
+    marginTop: spacing.sectionGap,
+    marginHorizontal: spacing.screen,
+    backgroundColor: colors.bg.surface,
+    borderRadius: radius.card,
+    padding: spacing.card,
+    alignItems: 'center',
+  },
+  tipLabel: {
+    fontFamily: typography.body,
+    fontSize: fontSizes.caption,
+    color: colors.text.gold,
+    fontWeight: fontWeights.medium,
+    letterSpacing: letterSpacing.label,
+    marginBottom: spacing.iconGap,
+  },
+  tipText: {
+    fontFamily: typography.body,
+    fontSize: fontSizes.body,
+    color: colors.text.secondary,
+    textAlign: 'center',
+    lineHeight: Math.round(fontSizes.body * 1.5),
   },
   errorContainer: {
     alignItems: 'center',

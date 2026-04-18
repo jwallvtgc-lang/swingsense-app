@@ -355,7 +355,7 @@ export async function startAnalysisPipeline(
       .update({ video_url: videoUrl, status: 'processing' })
       .eq('id', analysisId);
 
-    onStatusChange?.('processing', 'Extracting body keypoints with MoveNet...');
+    onStatusChange?.('processing', 'Watching your mechanics...');
 
     const backendUrl = await getBackendUrl();
     const urlPreview = videoUrl.length > 80 ? `${videoUrl.slice(0, 80)}...` : videoUrl;

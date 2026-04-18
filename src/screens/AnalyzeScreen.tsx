@@ -1,9 +1,9 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { displayNameFromUser } from '../utils/displayName';
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { CompositeNavigationProp } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -61,53 +61,61 @@ export default function AnalyzeScreen() {
   const [tipsExpanded, setTipsExpanded] = useState(false);
   const [thumbUri, setThumbUri] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!user?.id) {
-      setLastAnalysis(null);
-      setStreak(0);
-      setThumbUri(null);
-      return;
-    }
-    (async () => {
-      const analysis = await getLastCompletedAnalysis(user.id);
-      setLastAnalysis(analysis ?? null);
-      if (analysis) {
-        const allAnalyses = await getAllCompletedAnalyses(user.id);
-        const { currentStreak } = computeStreak(
-          allAnalyses.map((a) => a.created_at)
-        );
-        setStreak(currentStreak);
-        if (analysis?.video_url) {
-          try {
-            let videoUrl = analysis.video_url;
-            if (videoUrl.includes('supabase')) {
-              const path =
-                videoUrl.split('/object/public/')[1] ??
-                videoUrl.split('/object/sign/')[1]?.split('?')[0] ??
-                videoUrl.split('/storage/v1/object/')[1];
-              if (path) {
-                const { data } = await supabase.storage
-                  .from(path.split('/')[0]!)
-                  .createSignedUrl(path.split('/').slice(1).join('/'), 3600);
-                if (data?.signedUrl) videoUrl = data.signedUrl;
+  useFocusEffect(
+    useCallback(() => {
+      if (!user?.id) {
+        setLastAnalysis(null);
+        setStreak(0);
+        setThumbUri(null);
+        return;
+      }
+      let cancelled = false;
+      (async () => {
+        const analysis = await getLastCompletedAnalysis(user.id);
+        if (cancelled) return;
+        setLastAnalysis(analysis ?? null);
+        if (analysis) {
+          const allAnalyses = await getAllCompletedAnalyses(user.id);
+          if (cancelled) return;
+          const { currentStreak } = computeStreak(
+            allAnalyses.map((a) => a.created_at)
+          );
+          setStreak(currentStreak);
+          if (analysis?.video_url) {
+            try {
+              let videoUrl = analysis.video_url;
+              if (videoUrl.includes('supabase')) {
+                const path =
+                  videoUrl.split('/object/public/')[1] ??
+                  videoUrl.split('/object/sign/')[1]?.split('?')[0] ??
+                  videoUrl.split('/storage/v1/object/')[1];
+                if (path) {
+                  const { data } = await supabase.storage
+                    .from(path.split('/')[0]!)
+                    .createSignedUrl(path.split('/').slice(1).join('/'), 3600);
+                  if (data?.signedUrl) videoUrl = data.signedUrl;
+                }
               }
+              const { uri } = await VideoThumbnails.getThumbnailAsync(videoUrl, {
+                time: 500,
+              });
+              if (!cancelled) setThumbUri(uri);
+            } catch {
+              if (!cancelled) setThumbUri(null);
             }
-            const { uri } = await VideoThumbnails.getThumbnailAsync(videoUrl, {
-              time: 500,
-            });
-            setThumbUri(uri);
-          } catch {
+          } else {
             setThumbUri(null);
           }
         } else {
+          setStreak(0);
           setThumbUri(null);
         }
-      } else {
-        setStreak(0);
-        setThumbUri(null);
-      }
-    })();
-  }, [user?.id]);
+      })();
+      return () => {
+        cancelled = true;
+      };
+    }, [user?.id])
+  );
 
   const greeting = useMemo(() => {
     const fromProfile = profile?.first_name?.trim();

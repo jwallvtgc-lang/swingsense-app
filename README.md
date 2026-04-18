@@ -1,6 +1,6 @@
 # SwingSense
 
-AI-powered baseball swing analysis app. Upload a swing video, MoveNet Thunder extracts body keypoints, Claude analyzes mechanics, and you get personalized coaching feedback.
+AI-powered baseball swing analysis app. Upload a swing video; the pipeline reads your mechanics from the footage and returns personalized coaching feedback.
 
 ## Architecture
 
@@ -13,7 +13,7 @@ Mobile App (React Native / Expo)
 
 Backend API (Python / FastAPI)
   ├── Downloads video from Supabase Storage
-  ├── MoveNet Thunder → extracts 17 keypoints per frame
+  ├── Body tracking from video frames → structured motion data
   ├── Claude API → structured coaching analysis
   └── Returns JSON results to mobile app
 
@@ -55,7 +55,7 @@ cp .env.example .env
 python server.py
 ```
 
-The backend starts on `http://localhost:8000`. It downloads the MoveNet Thunder model on first run.
+The backend starts on `http://localhost:8000`. It downloads the pose-estimation model on first run.
 
 ### 4. Start the Mobile App
 
@@ -106,7 +106,7 @@ Scan the QR code with Expo Go (iOS/Android) or press `a` for Android / `i` for i
 
 - **Auth**: Email/password via Supabase with player profile onboarding
 - **Upload**: Camera roll selection or in-app recording
-- **Processing**: MoveNet Thunder keypoint extraction + Claude coaching analysis
+- **Processing**: Video analysis (body tracking) + Claude coaching analysis
 - **Results**: Swing score (0-100 with category breakdown), bat speed estimate, mechanical observations, priority fixes, drill recommendations
 - **History**: Past analyses with scores
 - **Subscription**: Free tier (2/month) tracking — Pro tier via RevenueCat in Phase 1
