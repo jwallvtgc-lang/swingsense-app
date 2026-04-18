@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
+import Constants from 'expo-constants';
+import { Ionicons } from '@expo/vector-icons';
 import { Alert, Linking, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -9,10 +11,9 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import BottomTabBar from '../components/BottomTabBar';
 import DataRow from '../components/DataRow';
 import EditButton from '../components/EditButton';
+import PrimaryButton from '../components/PrimaryButton';
 import ProfileHeader from '../components/ProfileHeader';
 import SectionCard from '../components/SectionCard';
-import SubscriptionCard from '../components/SubscriptionCard';
-import { FEEDBACK_EMAIL } from '../config/constants';
 import { useAuth } from '../contexts/AuthContext';
 import { displayNameFromUser } from '../utils/displayName';
 import { getCompletedAnalysesCountThisMonth } from '../services/analysis';
@@ -92,7 +93,7 @@ export default function ProfileScreen() {
     const body = encodeURIComponent(
       "What worked? What didn't? (Even one word helps.)"
     );
-    Linking.openURL(`mailto:${FEEDBACK_EMAIL}?subject=${subject}&body=${body}`);
+    Linking.openURL(`mailto:swingsenseapp@gmail.com?subject=${subject}&body=${body}`);
   };
 
   const handleSignOut = () => {
@@ -156,16 +157,88 @@ export default function ProfileScreen() {
         </View>
 
         <View style={styles.afterCard}>
-          <SubscriptionCard analysesThisMonth={analysesThisMonth} />
+          <SectionCard title="Membership">
+            <DataRow label="Plan" value="Free" valueWeight="normal" />
+            <DataRow
+              label="Analyses this month"
+              value={analysesThisMonth === null ? '—' : String(analysesThisMonth)}
+              valueWeight="normal"
+            />
+            <View style={styles.membershipCta}>
+              <PrimaryButton
+                label="Upgrade to Pro"
+                onPress={() =>
+                  Alert.alert(
+                    'SwingSense Pro',
+                    'Pro features are coming soon — unlimited analyses, advanced metrics, and more. Stay tuned.',
+                    [{ text: 'Got it' }]
+                  )
+                }
+                icon={<Ionicons name="star" size={18} color={colors.text.onGold} />}
+              />
+            </View>
+            <DataRow
+              label="Manage Plan"
+              value="Coming soon"
+              valueWeight="normal"
+              showChevron
+              onPress={() =>
+                Alert.alert(
+                  'SwingSense Pro',
+                  'Pro features are coming soon — unlimited analyses, advanced metrics, and more. Stay tuned.',
+                  [{ text: 'Got it' }]
+                )
+              }
+            />
+            <DataRow
+              label="Notifications"
+              showChevron
+              last
+              onPress={() => Linking.openSettings()}
+            />
+          </SectionCard>
         </View>
 
+        {/* SUPPORT */}
+        <View style={styles.afterCard}>
+          <SectionCard title="Support">
+            <DataRow label="Send Feedback" showChevron onPress={openFeedback} />
+            <DataRow
+              label="Contact Us"
+              showChevron
+              onPress={() => Linking.openURL('mailto:swingsenseapp@gmail.com')}
+            />
+            <DataRow
+              label="About SwingSense"
+              value={`Version ${Constants.expoConfig?.version ?? '—'}`}
+              valueWeight="normal"
+              showChevron
+              last
+              onPress={() => {}}
+            />
+          </SectionCard>
+        </View>
+
+        {/* LEGAL */}
+        <View style={styles.afterCard}>
+          <SectionCard title="Legal">
+            <DataRow
+              label="Privacy Policy"
+              showChevron
+              onPress={() => navigation.navigate('PrivacyPolicy')}
+            />
+            <DataRow
+              label="Terms of Service"
+              showChevron
+              last
+              onPress={() => navigation.navigate('TermsOfService')}
+            />
+          </SectionCard>
+        </View>
+
+        {/* SIGN OUT */}
         <View style={styles.afterCard}>
           <SectionCard>
-            <DataRow
-              label="Send Feedback"
-              showChevron
-              onPress={openFeedback}
-            />
             <DataRow
               label="Sign Out"
               labelTone="danger"
@@ -197,5 +270,9 @@ const styles = StyleSheet.create({
   },
   afterCard: {
     marginTop: spacing.cardGap,
+  },
+  membershipCta: {
+    marginVertical: spacing.cardGap,
+    alignSelf: 'stretch',
   },
 });

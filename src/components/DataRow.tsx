@@ -27,6 +27,10 @@ export default function DataRow({
 }: DataRowProps) {
   const hasValue = value.length > 0;
   const showValue = hasValue && !showChevron;
+  const valueTypography = [
+    styles.value,
+    valueWeight === 'bold' ? styles.valueBold : styles.valueNormal,
+  ];
 
   const inner = (
     <View style={styles.row}>
@@ -39,16 +43,16 @@ export default function DataRow({
         {label}
       </Text>
       {showChevron ? (
-        <Ionicons name="chevron-forward" size={22} color={colors.text.gold} />
+        <View style={styles.chevronTrailing}>
+          {hasValue ? (
+            <Text style={[...valueTypography, styles.valueBeforeChevron]} numberOfLines={1}>
+              {value}
+            </Text>
+          ) : null}
+          <Ionicons name="chevron-forward" size={22} color={colors.text.gold} />
+        </View>
       ) : showValue ? (
-        <Text
-          style={[
-            styles.value,
-            valueWeight === 'bold' ? styles.valueBold : styles.valueNormal,
-          ]}
-        >
-          {value}
-        </Text>
+        <Text style={valueTypography}>{value}</Text>
       ) : null}
     </View>
   );
@@ -84,6 +88,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: spacing.iconGap,
+  },
+  chevronTrailing: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    flexGrow: 1,
+    flexShrink: 1,
+    minWidth: 0,
+    gap: spacing.iconGap,
+  },
+  valueBeforeChevron: {
+    flex: 0,
+    flexShrink: 1,
+    textAlign: 'right',
   },
   label: {
     flex: 1,

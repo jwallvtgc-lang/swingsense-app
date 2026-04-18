@@ -22,6 +22,8 @@ export type MainStackParamList = {
   };
   Analysis: { analysisId: string };
   EditProfile: undefined;
+  PrivacyPolicy: undefined;
+  TermsOfService: undefined;
 };
 
 export type TabParamList = {
