@@ -3,14 +3,18 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
-  Pressable,
   ScrollView,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
 import * as AppleAuthentication from 'expo-apple-authentication';
-import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
+import {
+  GoogleSignin,
+  GoogleSigninButton,
+  statusCodes,
+} from '@react-native-google-signin/google-signin';
+import * as Crypto from 'expo-crypto';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -25,7 +29,6 @@ import {
   colors,
   displayTitleProps,
   fontSizes,
-  fontWeights,
   radius,
   spacing,
   typography,
@@ -102,20 +105,26 @@ export default function AuthScreen() {
       if (Platform.OS === 'android') {
         await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
       }
-      const response = await GoogleSignin.signIn();
-      if (response.type !== 'success') return;
-      const idToken = response.data.idToken;
+      const rawNonce = Math.random().toString(36).substring(2);
+      const hashedNonce = await Crypto.digestStringAsync(
+        Crypto.CryptoDigestAlgorithm.SHA256,
+        rawNonce
+      );
+      await GoogleSignin.signIn({ nonce: hashedNonce } as Parameters<
+        typeof GoogleSignin.signIn
+      >[0]);
+      const { idToken } = await GoogleSignin.getTokens();
       if (!idToken) throw new Error('No ID token returned from Google');
       const { error } = await supabase.auth.signInWithIdToken({
         provider: 'google',
         token: idToken,
+        nonce: rawNonce,
       });
       if (error) alertAuthError(new Error(error.message), true);
-    } catch (e: unknown) {
-      const err = e as { code?: string; message?: string };
-      if (err.code === statusCodes.SIGN_IN_CANCELLED) return;
-      if (err.code === statusCodes.IN_PROGRESS) return;
-      Alert.alert('Google Sign In Error', err.message ?? 'Something went wrong');
+    } catch (e: any) {
+      if (e.code === statusCodes.SIGN_IN_CANCELLED) return;
+      if (e.code === statusCodes.IN_PROGRESS) return;
+      Alert.alert('Google Sign In Error', e.message ?? 'Something went wrong');
     }
   };
 
@@ -216,9 +225,12 @@ export default function AuthScreen() {
                   onPress={handleAppleSignIn}
                 />
               ) : null}
-              <Pressable style={styles.googleButton} onPress={handleGoogleSignIn}>
-                <Text style={styles.googleButtonText}>Continue with Google</Text>
-              </Pressable>
+              <GoogleSigninButton
+                size={GoogleSigninButton.Size.Wide}
+                color={GoogleSigninButton.Color.Dark}
+                onPress={handleGoogleSignIn}
+                style={styles.googleButton}
+              />
               <View style={styles.divider}>
                 <View style={styles.dividerLine} />
                 <Text style={styles.dividerText}>or</Text>
@@ -295,18 +307,6 @@ const styles = StyleSheet.create({
   googleButton: {
     width: '100%',
     height: 52,
-    backgroundColor: colors.bg.surface,
-    borderRadius: radius.card,
-    borderWidth: 1,
-    borderColor: colors.border.subtle,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  googleButtonText: {
-    fontFamily: typography.body,
-    fontSize: fontSizes.body,
-    color: colors.text.primary,
-    fontWeight: fontWeights.medium,
   },
   divider: {
     flexDirection: 'row',

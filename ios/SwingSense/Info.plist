@@ -30,6 +30,12 @@
 				<string>com.swingsense.app</string>
 			</array>
 		</dict>
+		<dict>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.582356086091-6bns6rv7m2a4cav0scq47923apsetvep</string>
+			</array>
+		</dict>
 	</array>
 	<key>CFBundleVersion</key>
 	<string>19</string>
