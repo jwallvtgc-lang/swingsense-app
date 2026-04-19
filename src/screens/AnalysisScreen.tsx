@@ -38,6 +38,7 @@ import { trackEvent } from '../services/analytics';
 import type { CoachingOutput, SimilarityBreakdown, SwingAnalysis } from '../types';
 import {
   colors,
+  displayTitleProps,
   fontSizes,
   fontWeights,
   letterSpacing,
@@ -412,7 +413,7 @@ export default function AnalysisScreen() {
         <BackNav label="History" onPress={() => navigation.goBack()} />
 
         <View style={styles.afterBack}>
-          <Text style={styles.kicker} maxFontSizeMultiplier={1.35}>
+          <Text style={styles.kicker} {...displayTitleProps} maxFontSizeMultiplier={1.35}>
             SWING ANALYSIS
           </Text>
           <Text style={styles.dateLine} maxFontSizeMultiplier={1.35}>

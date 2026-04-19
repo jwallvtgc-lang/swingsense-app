@@ -16,6 +16,7 @@
 
 **Rules:**
 - **`typography.displayTitle`** uses **Righteous** (`Righteous_400Regular`, loaded via Expo Google Fonts) for **screen title headers** only: the **`ScreenHeader`** title (e.g. SWING HISTORY) and the **Analysis** screen kicker (SWING ANALYSIS). **`typography.display`** (Bebas Neue) remains for scores, numbers, rings, and CTAs — not those title lines.
+- All screen title headers using **`typography.displayTitle`** must spread **`displayTitleProps`** from `tokens.ts` to prevent text wrapping at large accessibility font sizes: `<Text style={styles.title} {...displayTitleProps}>`
 - The wordmark is always **ALL-CAPS**: `SWINGSENSE` with `SENSE` in gold (`colors.text.gold`). Never mixed case.
 - Display numbers (scores, bat speed, stats) always use `typography.display`.
 - Never use font weights 600 or 700 for body text — use 500 max.

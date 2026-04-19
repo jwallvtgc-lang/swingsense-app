@@ -23,6 +23,7 @@ import { supabase } from '../config/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import {
   colors,
+  displayTitleProps,
   fontSizes,
   fontWeights,
   radius,
@@ -199,7 +200,11 @@ export default function AuthScreen() {
           <View style={styles.column}>
             <LogoTile size="md" />
             <View style={styles.afterLogo}>
-              <Wordmark size="md" tagline="AI Feedback for your swing" />
+              <Wordmark
+                size="md"
+                tagline="AI Feedback for your swing"
+                titleTextProps={displayTitleProps}
+              />
             </View>
             <View style={styles.socialButtons}>
               {Platform.OS === 'ios' ? (

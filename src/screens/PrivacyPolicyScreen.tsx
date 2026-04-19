@@ -3,7 +3,14 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 
 import BackNav from '../components/BackNav';
-import { colors, fontSizes, fontWeights, spacing, typography } from '../../design-system/tokens';
+import {
+  colors,
+  displayTitleProps,
+  fontSizes,
+  fontWeights,
+  spacing,
+  typography,
+} from '../../design-system/tokens';
 
 const SECTIONS = [
   {
@@ -60,7 +67,9 @@ export default function PrivacyPolicyScreen() {
         ]}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.title}>Privacy Policy</Text>
+        <Text style={styles.title} {...displayTitleProps}>
+          Privacy Policy
+        </Text>
         <Text style={styles.updated}>Last updated: April 18, 2026</Text>
         {SECTIONS.map((section) => (
           <View key={section.heading} style={styles.section}>

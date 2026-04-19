@@ -227,3 +227,10 @@ export function getScoreColor(score: number): string {
   if (score >= 50) return colors.text.gold // '#f0a500'
   return colors.text.red // '#e05454'
 }
+
+/** Use on `<Text>` with `typography.displayTitle` (ScreenHeader, kicker, Righteous wordmarks). */
+export const displayTitleProps = {
+  numberOfLines: 1,
+  adjustsFontSizeToFit: true,
+  minimumFontScale: 0.7,
+} as const

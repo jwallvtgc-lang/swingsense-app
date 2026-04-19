@@ -1,6 +1,12 @@
 import { StyleSheet, Text, View } from 'react-native';
 
-import { colors, fontSizes, spacing, typography } from '../../design-system/tokens';
+import {
+  colors,
+  displayTitleProps,
+  fontSizes,
+  spacing,
+  typography,
+} from '../../design-system/tokens';
 
 export type ScreenHeaderProps = {
   title: string;
@@ -10,7 +16,9 @@ export type ScreenHeaderProps = {
 export default function ScreenHeader({ title, subtitle }: ScreenHeaderProps) {
   return (
     <View style={styles.root}>
-      <Text style={styles.title}>{title}</Text>
+      <Text style={styles.title} {...displayTitleProps}>
+        {title}
+      </Text>
       {subtitle != null && subtitle.length > 0 ? (
         <Text style={styles.subtitle}>{subtitle}</Text>
       ) : null}

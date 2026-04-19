@@ -24,6 +24,7 @@ import {
   actionCard,
   bottomTab,
   colors,
+  displayTitleProps,
   fontSizes,
   fontWeights,
   letterSpacing,
@@ -146,8 +147,12 @@ export default function AnalyzeScreen() {
         <Text style={styles.greeting}>{greeting}</Text>
         {lastAnalysis ? (
           <Text style={styles.wordmark}>
-            <Text style={styles.wordmarkSwing}>Swing</Text>
-            <Text style={styles.wordmarkSense}>Sense</Text>
+            <Text style={styles.wordmarkSwing} {...displayTitleProps}>
+              Swing
+            </Text>
+            <Text style={styles.wordmarkSense} {...displayTitleProps}>
+              Sense
+            </Text>
           </Text>
         ) : (
           <Text style={styles.headline}>

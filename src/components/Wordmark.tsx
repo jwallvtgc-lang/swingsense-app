@@ -1,19 +1,28 @@
 import { StyleSheet, Text, View } from 'react-native';
 
-import { colors, fontSizes, letterSpacing, spacing, typography } from '../../design-system/tokens';
+import {
+  colors,
+  displayTitleProps,
+  fontSizes,
+  letterSpacing,
+  spacing,
+  typography,
+} from '../../design-system/tokens';
 
 export type WordmarkProps = {
   size?: 'lg' | 'md';
   tagline?: string;
+  /** e.g. pass `displayTitleProps` from Auth for Righteous wordmark line. */
+  titleTextProps?: typeof displayTitleProps;
 };
 
-export default function Wordmark({ size = 'lg', tagline }: WordmarkProps) {
+export default function Wordmark({ size = 'lg', tagline, titleTextProps }: WordmarkProps) {
   const isLg = size === 'lg';
   const wordStyle = isLg ? styles.wordLg : styles.wordMd;
 
   return (
     <View style={styles.root}>
-      <Text style={wordStyle} maxFontSizeMultiplier={1.35}>
+      <Text style={wordStyle} maxFontSizeMultiplier={1.35} {...(titleTextProps ?? {})}>
         <Text style={styles.swing}>SWING</Text>
         <Text style={styles.sense}>SENSE</Text>
       </Text>
