@@ -191,14 +191,14 @@ def validate_swing_video(keypoint_data: dict) -> None:
             status_code=400,
             detail={
                 "error": "no_swing_detected",
-                "message": "We couldn't detect a swing in this video. Make sure you're visible in the frame and take a full swing.",
+                "message": "No swing detected — try filming from the side in good lighting, 10-15 feet away with your full body visible in frame.",
             },
         )
 
     # 1. Person check: require meaningful body detection
-    CONF_THRESHOLD = 0.3
-    MIN_KEYPOINTS_PER_FRAME = 8  # at least 8 of 17 keypoints with decent confidence
-    MIN_GOOD_FRAMES_RATIO = 0.3  # at least 30% of frames must have good detection
+    CONF_THRESHOLD = 0.2
+    MIN_KEYPOINTS_PER_FRAME = 6  # at least 6 of 17 keypoints with decent confidence
+    MIN_GOOD_FRAMES_RATIO = 0.25  # at least 25% of frames must have good detection
 
     good_frames = 0
     for frame in frames:
@@ -212,14 +212,14 @@ def validate_swing_video(keypoint_data: dict) -> None:
             status_code=400,
             detail={
                 "error": "no_swing_detected",
-                "message": "We couldn't detect a swing in this video. Make sure you're visible in the frame and take a full swing.",
+                "message": "No swing detected — try filming from the side in good lighting, 10-15 feet away with your full body visible in frame.",
             },
         )
 
     # 2. Swing motion check: require significant wrist/arm movement
     WRIST_KEYS = ["left_wrist", "right_wrist"]
     ELBOW_KEYS = ["left_elbow", "right_elbow"]
-    MIN_MOVEMENT_RANGE = 0.08  # normalized coords 0-1; 0.08 = ~8% of frame
+    MIN_MOVEMENT_RANGE = 0.06  # normalized coords 0-1; 0.06 = ~6% of frame
 
     def movement_range(keys: list[str]) -> float:
         xs, ys = [], []
@@ -241,7 +241,7 @@ def validate_swing_video(keypoint_data: dict) -> None:
             status_code=400,
             detail={
                 "error": "no_swing_detected",
-                "message": "We couldn't detect a swing in this video. Make sure you're visible in the frame and take a full swing.",
+                "message": "No swing detected — try filming from the side in good lighting, 10-15 feet away with your full body visible in frame.",
             },
         )
 
