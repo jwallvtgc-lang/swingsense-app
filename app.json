@@ -14,7 +14,7 @@
       "backgroundColor": "#050508"
     },
     "ios": {
-      "buildNumber": "17",
+      "buildNumber": "19",
       "supportsTablet": true,
       "backgroundColor": "#050508",
       "bundleIdentifier": "com.swingsense.app",
@@ -26,6 +26,7 @@
       }
     },
     "android": {
+      "versionCode": 19,
       "package": "com.jwallvtgc.swingsense",
       "adaptiveIcon": {
         "backgroundColor": "#1B4D3E",
