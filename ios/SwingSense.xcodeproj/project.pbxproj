@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
 		3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */; };
+		3ECE051D2F951D7500194181 /* client_582356086091-6bns6rv7m2a4cav0scq47923apsetvep.apps.googleusercontent.com.plist in Resources */ = {isa = PBXBuildFile; fileRef = 3ECE051C2F951D7500194181 /* client_582356086091-6bns6rv7m2a4cav0scq47923apsetvep.apps.googleusercontent.com.plist */; };
 		892E44C9039ABAD02064A0CC /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = FC218F5CBA6E44E7C2409DD1 /* PrivacyInfo.xcprivacy */; };
 		9F128A7BA24E0BDE536C2EFC /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1138F0C1C5F6B0DA0755FA5C /* ExpoModulesProvider.swift */; };
 		BB2F792D24A3F905000567C9 /* Expo.plist in Resources */ = {isa = PBXBuildFile; fileRef = BB2F792C24A3F905000567C9 /* Expo.plist */; };
@@ -22,6 +23,7 @@
 		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = SwingSense/Images.xcassets; sourceTree = "<group>"; };
 		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = SwingSense/Info.plist; sourceTree = "<group>"; };
 		263708695B7DE34F2130F4F7 /* Pods-SwingSense.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-SwingSense.debug.xcconfig"; path = "Target Support Files/Pods-SwingSense/Pods-SwingSense.debug.xcconfig"; sourceTree = "<group>"; };
+		3ECE051C2F951D7500194181 /* client_582356086091-6bns6rv7m2a4cav0scq47923apsetvep.apps.googleusercontent.com.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "client_582356086091-6bns6rv7m2a4cav0scq47923apsetvep.apps.googleusercontent.com.plist"; sourceTree = "<group>"; };
 		836BE93E570AAC844A4D4D86 /* libPods-SwingSense.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-SwingSense.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = SplashScreen.storyboard; path = SwingSense/SplashScreen.storyboard; sourceTree = "<group>"; };
 		BB2F792C24A3F905000567C9 /* Expo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Expo.plist; sourceTree = "<group>"; };
@@ -29,7 +31,7 @@
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
 		F11748412D0307B40044C1D9 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = SwingSense/AppDelegate.swift; sourceTree = "<group>"; };
 		F11748442D0722820044C1D9 /* SwingSense-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "SwingSense-Bridging-Header.h"; path = "SwingSense/SwingSense-Bridging-Header.h"; sourceTree = "<group>"; };
-		FC218F5CBA6E44E7C2409DD1 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; name = PrivacyInfo.xcprivacy; path = SwingSense/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		FC218F5CBA6E44E7C2409DD1 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xml; name = PrivacyInfo.xcprivacy; path = SwingSense/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -55,6 +57,7 @@
 		13B07FAE1A68108700A75B9A /* SwingSense */ = {
 			isa = PBXGroup;
 			children = (
+				3ECE051C2F951D7500194181 /* client_582356086091-6bns6rv7m2a4cav0scq47923apsetvep.apps.googleusercontent.com.plist */,
 				F11748412D0307B40044C1D9 /* AppDelegate.swift */,
 				F11748442D0722820044C1D9 /* SwingSense-Bridging-Header.h */,
 				BB2F792B24A3F905000567C9 /* Supporting */,
@@ -81,7 +84,6 @@
 				263708695B7DE34F2130F4F7 /* Pods-SwingSense.debug.xcconfig */,
 				C1E4DBB7F8400A441C3AC737 /* Pods-SwingSense.release.xcconfig */,
 			);
-			name = Pods;
 			path = Pods;
 			sourceTree = "<group>";
 		};
@@ -195,6 +197,7 @@
 			files = (
 				BB2F792D24A3F905000567C9 /* Expo.plist in Resources */,
 				13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */,
+				3ECE051D2F951D7500194181 /* client_582356086091-6bns6rv7m2a4cav0scq47923apsetvep.apps.googleusercontent.com.plist in Resources */,
 				3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */,
 				892E44C9039ABAD02064A0CC /* PrivacyInfo.xcprivacy in Resources */,
 			);

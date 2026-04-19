@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Alert,
   KeyboardAvoidingView,
   Platform,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -19,7 +20,24 @@ import TextInput from '../components/TextInput';
 import Wordmark from '../components/Wordmark';
 import { supabase } from '../config/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { colors, fontSizes, radius, spacing, typography } from '../../design-system/tokens';
+import {
+  colors,
+  fontSizes,
+  fontWeights,
+  radius,
+  spacing,
+  typography,
+} from '../../design-system/tokens';
+
+let GoogleSignin: any = null;
+let statusCodes: any = {};
+try {
+  const googleModule = require('@react-native-google-signin/google-signin');
+  GoogleSignin = googleModule.GoogleSignin;
+  statusCodes = googleModule.statusCodes;
+} catch {
+  // not available in Expo Go
+}
 
 const TAB_SIGN_IN = 'Sign In';
 const TAB_SIGN_UP = 'Sign Up';
@@ -54,6 +72,13 @@ export default function AuthScreen() {
 
   const isSignIn = activeTab === TAB_SIGN_IN;
 
+  useEffect(() => {
+    if (!GoogleSignin) return;
+    GoogleSignin.configure({
+      iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
+    });
+  }, []);
+
   const handleAppleSignIn = async () => {
     try {
       const credential = await AppleAuthentication.signInAsync({
@@ -77,6 +102,32 @@ export default function AuthScreen() {
       const err = e as { code?: string; message?: string };
       if (err.code !== 'ERR_REQUEST_CANCELED') {
         Alert.alert('Apple Sign In Error', err.message ?? 'Something went wrong');
+      }
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    if (!GoogleSignin) {
+      Alert.alert('Not available', 'Google Sign In requires a full app build.');
+      return;
+    }
+    try {
+      if (Platform.OS === 'android') {
+        await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+      }
+      const response = await GoogleSignin.signIn();
+      if (response.type !== 'success') return;
+      const idToken = response.data.idToken;
+      if (!idToken) throw new Error('No ID token returned from Google');
+      const { error } = await supabase.auth.signInWithIdToken({
+        provider: 'google',
+        token: idToken,
+      });
+      if (error) alertAuthError(new Error(error.message), true);
+    } catch (e: unknown) {
+      const err = e as { code?: string; message?: string };
+      if (err.code !== statusCodes.SIGN_IN_CANCELLED) {
+        Alert.alert('Google Sign In Error', err.message ?? 'Something went wrong');
       }
     }
   };
@@ -164,8 +215,8 @@ export default function AuthScreen() {
             <View style={styles.afterLogo}>
               <Wordmark size="md" tagline="AI Feedback for your swing" />
             </View>
-            {Platform.OS === 'ios' ? (
-              <View style={styles.socialButtons}>
+            <View style={styles.socialButtons}>
+              {Platform.OS === 'ios' ? (
                 <AppleAuthentication.AppleAuthenticationButton
                   buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
                   buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.WHITE}
@@ -173,13 +224,16 @@ export default function AuthScreen() {
                   style={styles.appleButton}
                   onPress={handleAppleSignIn}
                 />
-                <View style={styles.divider}>
-                  <View style={styles.dividerLine} />
-                  <Text style={styles.dividerText}>or</Text>
-                  <View style={styles.dividerLine} />
-                </View>
+              ) : null}
+              <Pressable style={styles.googleButton} onPress={handleGoogleSignIn}>
+                <Text style={styles.googleButtonText}>Continue with Google</Text>
+              </Pressable>
+              <View style={styles.divider}>
+                <View style={styles.dividerLine} />
+                <Text style={styles.dividerText}>or</Text>
+                <View style={styles.dividerLine} />
               </View>
-            ) : null}
+            </View>
             <View style={styles.afterWordmark}>
               <TabSwitcher
                 tabs={[TAB_SIGN_IN, TAB_SIGN_UP]}
@@ -246,6 +300,22 @@ const styles = StyleSheet.create({
   appleButton: {
     width: '100%',
     height: 52,
+  },
+  googleButton: {
+    width: '100%',
+    height: 52,
+    backgroundColor: colors.bg.surface,
+    borderRadius: radius.card,
+    borderWidth: 1,
+    borderColor: colors.border.subtle,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  googleButtonText: {
+    fontFamily: typography.body,
+    fontSize: fontSizes.body,
+    color: colors.text.primary,
+    fontWeight: fontWeights.medium,
   },
   divider: {
     flexDirection: 'row',

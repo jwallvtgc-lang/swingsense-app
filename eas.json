@@ -17,7 +17,8 @@
         "EXPO_PUBLIC_BACKEND_URL": "https://swingsense-api.onrender.com",
         "EXPO_PUBLIC_SUPABASE_URL": "https://qwzkgyyvtqhdeqkandaf.supabase.co",
         "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF3emtneXl2dHFoZGVxa2FuZGFmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIzOTk5MzEsImV4cCI6MjA4Nzk3NTkzMX0.llvIOj1u19NcoKXgNcECd7BP6z9mk9RMC8R0KaCHy3M",
-        "EXPO_PUBLIC_POSTHOG_KEY": "phc_BixHVyV1mfTIN1iXZyZOPALco4AYFIEtd64dRRcGU5d"
+        "EXPO_PUBLIC_POSTHOG_KEY": "phc_BixHVyV1mfTIN1iXZyZOPALco4AYFIEtd64dRRcGU5d",
+        "EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID": "582356086091-6bns6rv7m2a4cav0scq47923apsetvep.apps.googleusercontent.com"
       }
     },
     "development": {
