@@ -10,6 +10,7 @@ import {
   View,
 } from 'react-native';
 import * as AppleAuthentication from 'expo-apple-authentication';
+import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -28,16 +29,6 @@ import {
   spacing,
   typography,
 } from '../../design-system/tokens';
-
-let GoogleSignin: any = null;
-let statusCodes: any = {};
-try {
-  const googleModule = require('@react-native-google-signin/google-signin');
-  GoogleSignin = googleModule.GoogleSignin;
-  statusCodes = googleModule.statusCodes;
-} catch {
-  // not available in Expo Go
-}
 
 const TAB_SIGN_IN = 'Sign In';
 const TAB_SIGN_UP = 'Sign Up';
@@ -73,9 +64,8 @@ export default function AuthScreen() {
   const isSignIn = activeTab === TAB_SIGN_IN;
 
   useEffect(() => {
-    if (!GoogleSignin) return;
     GoogleSignin.configure({
-      iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
+      iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID ?? '',
     });
   }, []);
 
@@ -107,10 +97,6 @@ export default function AuthScreen() {
   };
 
   const handleGoogleSignIn = async () => {
-    if (!GoogleSignin) {
-      Alert.alert('Not available', 'Google Sign In requires a full app build.');
-      return;
-    }
     try {
       if (Platform.OS === 'android') {
         await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
@@ -126,9 +112,9 @@ export default function AuthScreen() {
       if (error) alertAuthError(new Error(error.message), true);
     } catch (e: unknown) {
       const err = e as { code?: string; message?: string };
-      if (err.code !== statusCodes.SIGN_IN_CANCELLED) {
-        Alert.alert('Google Sign In Error', err.message ?? 'Something went wrong');
-      }
+      if (err.code === statusCodes.SIGN_IN_CANCELLED) return;
+      if (err.code === statusCodes.IN_PROGRESS) return;
+      Alert.alert('Google Sign In Error', err.message ?? 'Something went wrong');
     }
   };
 
