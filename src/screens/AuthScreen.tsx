@@ -5,8 +5,10 @@ import {
   Platform,
   ScrollView,
   StyleSheet,
+  Text,
   View,
 } from 'react-native';
+import * as AppleAuthentication from 'expo-apple-authentication';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -15,8 +17,9 @@ import PrimaryButton from '../components/PrimaryButton';
 import TabSwitcher from '../components/TabSwitcher';
 import TextInput from '../components/TextInput';
 import Wordmark from '../components/Wordmark';
+import { supabase } from '../config/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { colors, spacing } from '../../design-system/tokens';
+import { colors, fontSizes, radius, spacing, typography } from '../../design-system/tokens';
 
 const TAB_SIGN_IN = 'Sign In';
 const TAB_SIGN_UP = 'Sign Up';
@@ -50,6 +53,33 @@ export default function AuthScreen() {
   const [loading, setLoading] = useState(false);
 
   const isSignIn = activeTab === TAB_SIGN_IN;
+
+  const handleAppleSignIn = async () => {
+    try {
+      const credential = await AppleAuthentication.signInAsync({
+        requestedScopes: [
+          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+          AppleAuthentication.AppleAuthenticationScope.EMAIL,
+        ],
+      });
+      if (!credential.identityToken) {
+        Alert.alert('Apple Sign In', 'Could not get identity token from Apple.');
+        return;
+      }
+      const { error } = await supabase.auth.signInWithIdToken({
+        provider: 'apple',
+        token: credential.identityToken,
+      });
+      if (error) {
+        alertAuthError(new Error(error.message), true);
+      }
+    } catch (e: unknown) {
+      const err = e as { code?: string; message?: string };
+      if (err.code !== 'ERR_REQUEST_CANCELED') {
+        Alert.alert('Apple Sign In Error', err.message ?? 'Something went wrong');
+      }
+    }
+  };
 
   const handleSubmit = async () => {
     if (!emailValue.trim() || !passwordValue.trim()) {
@@ -134,6 +164,22 @@ export default function AuthScreen() {
             <View style={styles.afterLogo}>
               <Wordmark size="md" tagline="AI Feedback for your swing" />
             </View>
+            {Platform.OS === 'ios' ? (
+              <View style={styles.socialButtons}>
+                <AppleAuthentication.AppleAuthenticationButton
+                  buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
+                  buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.WHITE}
+                  cornerRadius={radius.card}
+                  style={styles.appleButton}
+                  onPress={handleAppleSignIn}
+                />
+                <View style={styles.divider}>
+                  <View style={styles.dividerLine} />
+                  <Text style={styles.dividerText}>or</Text>
+                  <View style={styles.dividerLine} />
+                </View>
+              </View>
+            ) : null}
             <View style={styles.afterWordmark}>
               <TabSwitcher
                 tabs={[TAB_SIGN_IN, TAB_SIGN_UP]}
@@ -189,6 +235,33 @@ const styles = StyleSheet.create({
   afterWordmark: {
     marginTop: spacing.sectionGap,
     alignSelf: 'stretch',
+  },
+  socialButtons: {
+    width: '100%',
+    gap: spacing.cardGap,
+    marginBottom: spacing.cardGap,
+    alignSelf: 'stretch',
+    marginTop: spacing.sectionGap,
+  },
+  appleButton: {
+    width: '100%',
+    height: 52,
+  },
+  divider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.iconGap,
+    marginVertical: spacing.cardGap,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: colors.border.subtle,
+  },
+  dividerText: {
+    fontFamily: typography.body,
+    fontSize: fontSizes.caption,
+    color: colors.text.muted,
   },
   form: {
     marginTop: spacing.sectionGap,
