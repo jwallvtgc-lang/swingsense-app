@@ -230,7 +230,7 @@ export default function AuthScreen() {
                     fill="#EA4335"
                   />
                 </Svg>
-                <Text style={styles.googleButtonText}>Continue with Google</Text>
+                <Text style={styles.googleButtonText}>Sign in with Google</Text>
               </Pressable>
               <View style={styles.divider}>
                 <View style={styles.dividerLine} />
@@ -319,7 +319,7 @@ const styles = StyleSheet.create({
   },
   googleButtonText: {
     fontFamily: typography.body,
-    fontSize: fontSizes.body,
+    fontSize: 17,
     fontWeight: '600',
     color: '#000000',
   },
