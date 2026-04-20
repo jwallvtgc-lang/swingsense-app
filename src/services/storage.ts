@@ -43,7 +43,13 @@ export async function uploadSwingVideo(
       .createSignedUrl(storagePath, 3600);
 
     if (signError || !signedData?.signedUrl) {
-      return { url: '', error: new Error(`Failed to create signed URL: ${signError?.message}`) };
+      const isNetworkError =
+        signError?.message?.toLowerCase().includes('network') ||
+        signError?.message?.toLowerCase().includes('failed to fetch');
+      const friendlyMessage = isNetworkError
+        ? 'Upload failed — check your connection and try again.'
+        : `Failed to create signed URL: ${signError?.message}`;
+      return { url: '', error: new Error(friendlyMessage) };
     }
 
     return { url: signedData.signedUrl, error: null };

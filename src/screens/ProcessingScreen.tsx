@@ -179,7 +179,11 @@ export default function ProcessingScreen() {
           <Text style={styles.errorTitle}>
             {isNoSwing ? 'No Swing Detected' : 'Analysis Failed'}
           </Text>
-          <Text style={styles.errorMessage}>{error}</Text>
+          <Text style={styles.errorMessage}>
+            {error?.includes('Network request failed') || error?.includes('Failed to create signed URL')
+              ? 'Upload failed — check your connection and try again.'
+              : error}
+          </Text>
           <View style={styles.errorActions}>
             <Pressable
               style={({ pressed }) => [styles.ctaButton, pressed && styles.ctaButtonPressed]}

@@ -347,7 +347,7 @@ export async function startAnalysisPipeline(
 
     if (uploadError) {
       await updateAnalysisStatus(analysisId, 'failed');
-      return { analysis: null, error: new Error(`Upload failed: ${uploadError.message}`) };
+      return { analysis: null, error: uploadError };
     }
 
     await supabase
