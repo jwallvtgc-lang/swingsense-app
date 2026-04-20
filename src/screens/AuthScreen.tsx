@@ -329,7 +329,7 @@ const styles = StyleSheet.create({
   },
   googleButtonText: {
     fontFamily: typography.body,
-    fontSize: 17,
+    fontSize: 19,
     fontWeight: '600',
     color: '#000000',
   },
