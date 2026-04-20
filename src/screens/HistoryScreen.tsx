@@ -4,6 +4,7 @@ import {
   FlatList,
   ListRenderItem,
   StyleSheet,
+  Text,
   View,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
@@ -29,7 +30,13 @@ import {
   getUserAnalyses,
 } from '../services/analysis';
 import type { SimilarityBreakdown, SwingAnalysis } from '../types';
-import { bottomTab, colors, spacing } from '../../design-system/tokens';
+import {
+  bottomTab,
+  colors,
+  fontSizes,
+  spacing,
+  typography,
+} from '../../design-system/tokens';
 
 function listScore(analysis: SwingAnalysis): number {
   return (
@@ -196,8 +203,8 @@ export default function HistoryScreen() {
     [insets.bottom]
   );
 
-  const { headerSubtitle, headerStreak } = useMemo(() => {
-    const { currentStreak } = computeStreak(
+  const { headerSubtitle, headerStreak, headerLongestStreak } = useMemo(() => {
+    const { currentStreak, longestStreak } = computeStreak(
       swings
         .filter((s) => s.status === 'completed' && s.created_at)
         .map((s) => s.created_at)
@@ -206,6 +213,7 @@ export default function HistoryScreen() {
     return {
       headerSubtitle: `${n} ${n === 1 ? 'analysis' : 'analyses'}`,
       headerStreak: currentStreak,
+      headerLongestStreak: longestStreak,
     };
   }, [swings]);
 
@@ -258,7 +266,14 @@ export default function HistoryScreen() {
       >
         <View style={styles.headerSection}>
           <ScreenHeader title="SWING HISTORY" subtitle={headerSubtitle} />
-          {headerStreak > 0 ? <StreakPill streak={headerStreak} /> : null}
+          <View style={styles.streakRow}>
+            {headerStreak > 0 ? <StreakPill streak={headerStreak} /> : null}
+            {headerLongestStreak > 0 ? (
+              <Text style={styles.longestStreak}>
+                Best: {headerLongestStreak} day{headerLongestStreak === 1 ? '' : 's'}
+              </Text>
+            ) : null}
+          </View>
         </View>
         <View style={styles.afterHeader}>
           <PrimaryButton
@@ -326,6 +341,16 @@ const styles = StyleSheet.create({
   headerSection: {
     marginBottom: spacing.cardGap,
     gap: spacing.iconGap,
+  },
+  streakRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.cardGap,
+  },
+  longestStreak: {
+    fontFamily: typography.body,
+    fontSize: fontSizes.caption,
+    color: colors.text.muted,
   },
   afterHeader: {
     marginTop: spacing.cardGap,
