@@ -17,13 +17,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { Video, ResizeMode } from 'expo-av';
 
 import BackNav from '../components/BackNav';
+import DecisionFactors from '../components/DecisionFactors';
 import DrillStep from '../components/DrillStep';
 import FeedbackRow from '../components/FeedbackRow';
 import PrimaryButton from '../components/PrimaryButton';
 import ScoreRing from '../components/ScoreRing';
 import SectionCard from '../components/SectionCard';
-import StatDisplay from '../components/StatDisplay';
-import SubScoreCard from '../components/SubScoreCard';
 import TabSwitcher from '../components/TabSwitcher';
 import { FEEDBACK_EMAIL } from '../config/constants';
 import { supabase } from '../config/supabase';
@@ -35,12 +34,13 @@ import {
   submitDrillFeedback,
 } from '../services/analysis';
 import { trackEvent } from '../services/analytics';
-import type { CoachingOutput, SimilarityBreakdown, SwingAnalysis } from '../types';
+import type { CoachingOutput, SwingAnalysis } from '../types';
 import {
   colors,
   displayTitleProps,
   fontSizes,
   fontWeights,
+  getCore5BandColor,
   letterSpacing,
   radius,
   spacing,
@@ -69,12 +69,6 @@ function swingVideosStoragePathFromUrl(url: string): string | null {
 type Nav = NativeStackNavigationProp<MainStackParamList, 'Analysis'>;
 type Route = RouteProp<MainStackParamList, 'Analysis'>;
 
-function similarityScoresForRow(a: SwingAnalysis | null): SimilarityBreakdown | null {
-  if (!a) return null;
-  const co = a.coaching_output;
-  return co?.similarity_scores ?? a.similarity_breakdown ?? null;
-}
-
 /** Same source order as HistoryScreen `listScore` — coaching overall, then row `similarity_score`. */
 function heroOverallScore(a: SwingAnalysis | null): number {
   if (!a) return 0;
@@ -83,7 +77,86 @@ function heroOverallScore(a: SwingAnalysis | null): number {
   return Math.round(raw);
 }
 
-function parseDrillSteps(c: CoachingOutput | null): string[] {
+type ActionPlanDrill = {
+  title: string;
+  steps: { num: number; text: string }[];
+  discomfort?: string;
+  successCue?: string;
+};
+
+function extractDrillTitle(beforeSteps: string): string {
+  const t = beforeSteps.trim();
+  if (!t) return '';
+  const sentences = t
+    .split(/(?<=[.!?])\s+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const endingDrill = sentences.find((s) => /\bDrill\.?$/.test(s.trim()));
+  if (endingDrill) return endingDrill.replace(/\.$/, '').trim();
+  return sentences[0] ?? t;
+}
+
+function parseStepChunk(chunk: string): { num: number; text: string } | null {
+  const trimmed = chunk.trim();
+  const m = trimmed.match(/^Step\s*(\d+)\s*[—–\-]\s*(.+)$/is);
+  if (m) return { num: parseInt(m[1], 10), text: m[2].trim() };
+  const m2 = trimmed.match(/^Step\s*(\d+)\s*[\.:]\s*(.+)$/is);
+  if (m2) return { num: parseInt(m2[1], 10), text: m2[2].trim() };
+  const m3 = trimmed.match(/^Step\s*(\d+)\s+(.+)$/is);
+  if (m3) return { num: parseInt(m3[1], 10), text: m3[2].trim() };
+  return null;
+}
+
+/** Splits on Step 1–4 and "When you get it right"; pulls discomfort sentence when present. */
+function parseStructuredDrillString(drillRaw: string): ActionPlanDrill | null {
+  const raw = drillRaw.trim();
+  if (!raw) return null;
+
+  const whenRe = /\bWhen\s+you\s+get\s+it\s+right\b/i;
+  const whenIdx = raw.search(whenRe);
+  const beforeCue = whenIdx >= 0 ? raw.slice(0, whenIdx).trim() : raw;
+  let successCue = '';
+  if (whenIdx >= 0) {
+    successCue = raw
+      .slice(whenIdx)
+      .replace(whenRe, '')
+      .replace(/^[,:;\s\-–—]+/, '')
+      .trim();
+  }
+
+  let stepsBlock = beforeCue;
+  let discomfort: string | undefined;
+  const weirdIdx = beforeCue.search(/\bThis\s+is\s+going\s+to\s+feel\s+weird\b/i);
+  if (weirdIdx >= 0) {
+    stepsBlock = beforeCue.slice(0, weirdIdx).trim();
+    const weirdTail = beforeCue.slice(weirdIdx);
+    const oneSentence = weirdTail.match(/^(.+?[.!?])(\s|$)/s);
+    discomfort = oneSentence ? oneSentence[1].trim() : weirdTail.trim();
+  }
+
+  const rawParts = stepsBlock.split(/\s*(?=\bStep\s*[1-4]\b)/i);
+  const titleCandidate = (rawParts[0] ?? '').trim();
+  const stepChunks = rawParts.slice(1).map((s) => s.trim()).filter(Boolean);
+
+  const steps: { num: number; text: string }[] = [];
+  for (const chunk of stepChunks) {
+    const parsed = parseStepChunk(chunk);
+    if (parsed) steps.push(parsed);
+  }
+
+  if (steps.length === 0) return null;
+
+  const title = extractDrillTitle(titleCandidate);
+
+  return {
+    title,
+    steps,
+    discomfort: discomfort?.trim() || undefined,
+    successCue: successCue || undefined,
+  };
+}
+
+function parseLegacyDrillSteps(c: CoachingOutput | null): string[] {
   if (!c) return [];
   const drillRaw = typeof c.drill === 'string' ? c.drill.trim() : '';
   if (drillRaw.length > 0) {
@@ -120,29 +193,51 @@ function parseDrillSteps(c: CoachingOutput | null): string[] {
   return [];
 }
 
-type CompareMetricRow = {
-  key: keyof SimilarityBreakdown;
-  label: string;
-  diff: number;
-};
+function parseActionPlanDrill(
+  c: CoachingOutput | null
+):
+  | { kind: 'structured'; data: ActionPlanDrill }
+  | { kind: 'legacy'; steps: string[] }
+  | null {
+  if (!c) return null;
+  const drillRaw = typeof c.drill === 'string' ? c.drill.trim() : '';
+  if (drillRaw.length > 0) {
+    const structured = parseStructuredDrillString(drillRaw);
+    if (structured) {
+      return { kind: 'structured', data: structured };
+    }
+  }
+  const legacySteps = parseLegacyDrillSteps(c);
+  if (legacySteps.length > 0) {
+    return { kind: 'legacy', steps: legacySteps };
+  }
+  return null;
+}
 
-type AllCompareRow = {
-  key: keyof SimilarityBreakdown;
-  label: string;
-  curr: number | null;
-  prev: number | null;
-  diff: number | null;
-};
+function deltaIfBoth(
+  curr: number | null | undefined,
+  prev: number | null | undefined
+): number | null {
+  if (curr == null || prev == null) return null;
+  return Math.round(Number(curr) - Number(prev));
+}
 
-const COMPARE_KEYS: Array<{
-  key: keyof SimilarityBreakdown;
+const CORE5_COMPARE: Array<{
+  key: keyof Pick<
+    SwingAnalysis,
+    | 'stance_score'
+    | 'load_score'
+    | 'power_position_score'
+    | 'slot_score'
+    | 'balance_at_contact_score'
+  >;
   label: string;
 }> = [
-  { key: 'overall', label: 'Overall' },
-  { key: 'hip_rotation', label: 'Hip rotation' },
-  { key: 'weight_transfer', label: 'Weight transfer' },
-  { key: 'bat_path', label: 'Bat path' },
-  { key: 'contact_point', label: 'Contact' },
+  { key: 'stance_score', label: 'Stance' },
+  { key: 'load_score', label: 'Load' },
+  { key: 'power_position_score', label: 'Power Position' },
+  { key: 'slot_score', label: 'Slot' },
+  { key: 'balance_at_contact_score', label: 'Balance at Contact' },
 ];
 
 function formatPrevSwingDate(iso: string): string {
@@ -276,80 +371,40 @@ export default function AnalysisScreen() {
   }, [navigation]);
 
   const co = analysis?.coaching_output ?? null;
-  const currScores = similarityScoresForRow(analysis);
 
   const heroScore = heroOverallScore(analysis);
 
-  const hip = Math.round(currScores?.hip_rotation ?? 0);
-  const weight = Math.round(currScores?.weight_transfer ?? 0);
-  const batPath = Math.round(currScores?.bat_path ?? 0);
-  const contact = Math.round(currScores?.contact_point ?? 0);
-
-  const allCompareRows = useMemo((): AllCompareRow[] => {
+  const compareDeltaRows = useMemo(() => {
     if (!previousAnalysis || !analysis) return [];
+    const rows: { key: string; label: string; diff: number }[] = [];
 
-    const prevCoaching = previousAnalysis.coaching_output;
-    const prevBreakdown =
-      previousAnalysis.similarity_breakdown ??
-      prevCoaching?.similarity_scores ??
-      null;
+    const overallDiff = deltaIfBoth(
+      analysis.similarity_score,
+      previousAnalysis.similarity_score
+    );
+    if (overallDiff !== null) {
+      rows.push({ key: 'overall', label: 'Overall', diff: overallDiff });
+    }
 
-    return COMPARE_KEYS.map(({ key, label }) => {
-      let curr: number | null | undefined;
-      let prev: number | null | undefined;
-      if (key === 'overall') {
-        curr =
-          analysis.similarity_score ??
-          currScores?.overall ??
-          co?.similarity_scores?.overall;
-        prev =
-          previousAnalysis.similarity_score ??
-          prevBreakdown?.overall ??
-          prevCoaching?.similarity_scores?.overall;
-      } else {
-        curr = currScores?.[key];
-        prev = prevBreakdown?.[key];
+    for (const { key, label } of CORE5_COMPARE) {
+      const d = deltaIfBoth(analysis[key], previousAnalysis[key]);
+      if (d !== null) {
+        rows.push({ key, label, diff: d });
       }
-      const currNorm = curr ?? null;
-      const prevNorm = prev ?? null;
-      const diff =
-        currNorm != null && prevNorm != null
-          ? Math.round(currNorm - prevNorm)
-          : null;
-      return {
-        key,
-        label,
-        curr: currNorm,
-        prev: prevNorm,
-        diff,
-      };
-    });
-  }, [analysis, previousAnalysis, currScores, co]);
+    }
 
-  const compareRows = useMemo(
-    () =>
-      allCompareRows
-        .filter((r) => r.diff != null && r.diff !== 0)
-        .map(({ key, label, diff }) => ({ key, label, diff: diff! })),
-    [allCompareRows]
-  ) as CompareMetricRow[];
+    return rows;
+  }, [analysis, previousAnalysis]);
 
   const showCompareSection =
     previousAnalysis != null &&
-    (compareRows.length > 0 ||
+    (compareDeltaRows.length > 0 ||
       (co?.vs_last_swing != null && String(co.vs_last_swing).trim().length > 0));
 
   const coachSummary = co?.overall_summary?.trim() ?? '';
   const keyTitle = co?.primary_mechanical_issue?.title?.trim() ?? '';
   const keyDescription = co?.primary_mechanical_issue?.description?.trim() ?? '';
-  const drillSteps = useMemo(() => parseDrillSteps(co), [co]);
-
-  const batMph =
-    co?.bat_speed_estimate?.mph != null
-      ? Math.round(co.bat_speed_estimate.mph)
-      : analysis?.bat_speed_mph != null
-        ? Math.round(analysis.bat_speed_mph)
-        : null;
+  const actionPlanDrill = useMemo(() => parseActionPlanDrill(co), [co]);
 
   const handleDrillFeedback = async (
     feedback: 'helped' | 'still_struggling' | 'confused'
@@ -422,18 +477,23 @@ export default function AnalysisScreen() {
         </View>
 
         <View style={styles.heroScore}>
-          <ScoreRing score={heroScore} size="lg" showLabel />
+          <ScoreRing
+            score={heroScore}
+            size="lg"
+            showLabel={false}
+            accentColor={getCore5BandColor(heroScore)}
+          />
         </View>
 
-        <View style={styles.subGrid}>
-          <View style={styles.subRow}>
-            <SubScoreCard score={hip} label="Hip Rotation" />
-            <SubScoreCard score={weight} label="Weight Transfer" />
-          </View>
-          <View style={styles.subRow}>
-            <SubScoreCard score={batPath} label="Bat Path" />
-            <SubScoreCard score={contact} label="Contact" />
-          </View>
+        <View style={styles.decisionFactorsWrap}>
+          <DecisionFactors
+            stanceScore={analysis?.stance_score ?? null}
+            loadScore={analysis?.load_score ?? null}
+            powerPositionScore={analysis?.power_position_score ?? null}
+            slotScore={analysis?.slot_score ?? null}
+            balanceAtContactScore={analysis?.balance_at_contact_score ?? null}
+            primaryIssue={co?.primary_mechanical_issue?.title}
+          />
         </View>
 
         <View style={styles.afterSubGrid}>
@@ -495,50 +555,39 @@ export default function AnalysisScreen() {
                     {String(co.vs_last_swing).trim()}
                   </Text>
                 )}
-                <View style={styles.compareMetricGrid}>
-                  {allCompareRows.map(({ key, label, curr, prev, diff }) => {
-                    const isUp = diff != null && diff > 0;
-                    const isDown = diff != null && diff < 0;
-                    const isFlat = diff === 0 || diff == null;
-                    const deltaColor = isUp
-                      ? colors.text.green
-                      : isDown
-                        ? colors.text.red
-                        : colors.text.muted;
-                    const arrow = isUp ? '↑' : isDown ? '↓' : '→';
-                    const deltaText = isFlat
-                      ? '→'
-                      : `${isUp ? '+' : ''}${diff} ${arrow}`;
-                    return (
-                      <View key={key} style={styles.compareMetricRow}>
-                        <Text style={styles.compareMetricLabel} numberOfLines={1}>
-                          {label}
-                        </Text>
-                        <View style={styles.compareMetricScores}>
-                          <Text style={styles.compareMetricPrev}>
-                            {prev != null ? Math.round(prev) : '—'}
+                {compareDeltaRows.length > 0 ? (
+                  <View style={styles.compareMetricGrid}>
+                    {compareDeltaRows.map(({ key, label, diff }) => {
+                      const isUp = diff > 0;
+                      const isDown = diff < 0;
+                      const isFlat = diff === 0;
+                      const deltaColor = isUp
+                        ? colors.text.green
+                        : isDown
+                          ? colors.text.red
+                          : colors.text.muted;
+                      const arrow = isUp ? '↑' : isDown ? '↓' : '→';
+                      const deltaText = isFlat
+                        ? '→'
+                        : `${isUp ? '+' : ''}${diff} ${arrow}`;
+                      return (
+                        <View key={key} style={styles.compareMetricRow}>
+                          <Text style={styles.compareMetricLabel} numberOfLines={1}>
+                            {label}
                           </Text>
-                          <Text style={styles.compareMetricArrow}>→</Text>
-                          <Text style={styles.compareMetricCurr}>
-                            {curr != null ? Math.round(curr) : '—'}
-                          </Text>
-                          <Text style={[styles.compareMetricDelta, { color: deltaColor }]}>
+                          <Text
+                            style={[styles.compareMetricDelta, { color: deltaColor }]}
+                            maxFontSizeMultiplier={1.35}
+                          >
                             {deltaText}
                           </Text>
                         </View>
-                      </View>
-                    );
-                  })}
-                </View>
+                      );
+                    })}
+                  </View>
+                ) : null}
               </SectionCard>
             ) : null}
-            <SectionCard>
-              <StatDisplay
-                value={batMph != null ? `~${batMph}` : '—'}
-                unit="mph"
-                disclaimer="Estimate only — not radar-accurate"
-              />
-            </SectionCard>
 
             <View style={styles.afterTabContent}>
               <FeedbackRow
@@ -606,10 +655,35 @@ export default function AnalysisScreen() {
               )}
             </SectionCard>
             <SectionCard title="Action Plan">
-              {drillSteps.length > 0 ? (
+              {actionPlanDrill?.kind === 'structured' ? (
                 <View style={styles.drillList}>
-                  {drillSteps.map((text, i) => (
-                    <DrillStep key={`${i}-${text.slice(0, 24)}`} step={i + 1} text={text} />
+                  {actionPlanDrill.data.title.length > 0 ? (
+                    <Text style={styles.drillPlanTitle} maxFontSizeMultiplier={1.35}>
+                      {actionPlanDrill.data.title}
+                    </Text>
+                  ) : null}
+                  {actionPlanDrill.data.steps.map((s) => (
+                    <DrillStep key={`step-${s.num}`} step={s.num} text={s.text} />
+                  ))}
+                  {actionPlanDrill.data.discomfort ? (
+                    <Text style={styles.drillDiscomfort} maxFontSizeMultiplier={1.35}>
+                      {actionPlanDrill.data.discomfort}
+                    </Text>
+                  ) : null}
+                  {actionPlanDrill.data.successCue ? (
+                    <Text style={styles.drillSuccessCue} maxFontSizeMultiplier={1.35}>
+                      {actionPlanDrill.data.successCue}
+                    </Text>
+                  ) : null}
+                </View>
+              ) : actionPlanDrill?.kind === 'legacy' ? (
+                <View style={styles.drillList}>
+                  {actionPlanDrill.steps.map((text, i) => (
+                    <DrillStep
+                      key={`${i}-${text.slice(0, 24)}`}
+                      step={i + 1}
+                      text={text}
+                    />
                   ))}
                 </View>
               ) : (
@@ -847,14 +921,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     alignSelf: 'stretch',
   },
-  subGrid: {
+  decisionFactorsWrap: {
     marginTop: spacing.sectionGap,
-    alignSelf: 'stretch',
-    gap: spacing.subGrid,
-  },
-  subRow: {
-    flexDirection: 'row',
-    gap: spacing.subGrid,
     alignSelf: 'stretch',
   },
   afterSubGrid: {
@@ -892,39 +960,15 @@ const styles = StyleSheet.create({
     fontWeight: fontWeights.regular,
     color: colors.text.secondary,
     flex: 1,
-  },
-  compareMetricScores: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.iconGap,
-  },
-  compareMetricPrev: {
-    fontFamily: typography.body,
-    fontSize: fontSizes.body,
-    fontWeight: fontWeights.regular,
-    color: colors.text.muted,
-    minWidth: 24,
-    textAlign: 'right',
-  },
-  compareMetricArrow: {
-    fontFamily: typography.body,
-    fontSize: fontSizes.body,
-    color: colors.text.muted,
-  },
-  compareMetricCurr: {
-    fontFamily: typography.body,
-    fontSize: fontSizes.body,
-    fontWeight: fontWeights.medium,
-    color: colors.text.primary,
-    minWidth: 24,
-    textAlign: 'right',
+    paddingRight: spacing.pillGap,
   },
   compareMetricDelta: {
     fontFamily: typography.body,
     fontSize: fontSizes.body,
     fontWeight: fontWeights.medium,
-    minWidth: 44,
+    minWidth: 56,
     textAlign: 'right',
+    flexShrink: 0,
   },
   tabPanels: {
     marginTop: spacing.sectionGap,
@@ -949,6 +993,29 @@ const styles = StyleSheet.create({
   drillList: {
     gap: spacing.drillGap,
     alignSelf: 'stretch',
+  },
+  drillPlanTitle: {
+    fontFamily: typography.body,
+    fontSize: fontSizes.actionCardTitle,
+    fontWeight: fontWeights.bold,
+    color: colors.text.primary,
+    lineHeight: Math.round(fontSizes.actionCardTitle * 1.35),
+    marginBottom: spacing.iconGap,
+  },
+  drillDiscomfort: {
+    fontFamily: typography.body,
+    fontSize: fontSizes.body,
+    color: colors.text.muted,
+    lineHeight: Math.round(fontSizes.body * 1.45),
+    marginTop: spacing.cardSm,
+  },
+  drillSuccessCue: {
+    fontFamily: typography.body,
+    fontSize: fontSizes.body,
+    fontStyle: 'italic',
+    color: colors.text.secondary,
+    lineHeight: Math.round(fontSizes.body * 1.45),
+    marginTop: spacing.cardSm,
   },
   afterTabContent: {
     marginTop: spacing.sectionGap,

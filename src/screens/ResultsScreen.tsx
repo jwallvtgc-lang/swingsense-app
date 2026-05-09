@@ -311,10 +311,6 @@ export default function ResultsScreen() {
     260,
     windowWidth - scrollHorizontalPad * 2 - cardHorizontalPad * 2
   );
-  const breakdownColWidth = scoreCardInnerWidth / 2;
-  const smallRingSize = Math.round(
-    Math.min(56, Math.max(42, breakdownColWidth * 0.36))
-  );
   const overallRingSize = Math.min(
     100,
     Math.max(76, Math.round(scoreCardInnerWidth * 0.34))
@@ -355,38 +351,7 @@ export default function ResultsScreen() {
               size={overallRingSize}
             />
           </View>
-          {breakdown && (
-            <View style={styles.breakdownGrid}>
-              <View style={styles.breakdownCell}>
-                <ScoreRing
-                  score={breakdown.hip_rotation}
-                  label="Hip Rotation"
-                  size={smallRingSize}
-                />
-              </View>
-              <View style={styles.breakdownCell}>
-                <ScoreRing
-                  score={breakdown.weight_transfer}
-                  label="Weight Transfer"
-                  size={smallRingSize}
-                />
-              </View>
-              <View style={styles.breakdownCell}>
-                <ScoreRing
-                  score={breakdown.bat_path}
-                  label="Bat Path"
-                  size={smallRingSize}
-                />
-              </View>
-              <View style={styles.breakdownCell}>
-                <ScoreRing
-                  score={breakdown.contact_point}
-                  label="Contact"
-                  size={smallRingSize}
-                />
-              </View>
-            </View>
-          )}
+          {/* Old metrics removed — replaced by DecisionFactors component */}
         </SectionCard>
       )}
 
@@ -657,18 +622,6 @@ const styles = StyleSheet.create({
   overallScoreRow: {
     alignItems: 'center',
     marginBottom: 16,
-  },
-  breakdownGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginHorizontal: -4,
-  },
-  breakdownCell: {
-    width: '50%',
-    minWidth: 0,
-    alignItems: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 4,
   },
   batSpeedRow: {
     flexDirection: 'row',

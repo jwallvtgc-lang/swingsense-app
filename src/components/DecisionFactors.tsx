@@ -81,23 +81,6 @@ function matchesPrimaryIssue(factorLabel: string, primaryIssue?: string): boolea
   return p === l || p.includes(l) || l.includes(p);
 }
 
-function impactForScore(score: number): { label: string; tone: 'high' | 'medium' | 'low' } {
-  if (score < 50) return { label: 'HIGH', tone: 'high' };
-  if (score < 70) return { label: 'MEDIUM', tone: 'medium' };
-  return { label: 'LOW', tone: 'low' };
-}
-
-function impactBadgeColors(tone: 'high' | 'medium' | 'low') {
-  switch (tone) {
-    case 'high':
-      return { bg: colors.bg.redDim, fg: colors.text.red };
-    case 'medium':
-      return { bg: colors.bg.goldDim, fg: colors.text.gold };
-    default:
-      return { bg: colors.bg.greenDim, fg: colors.text.green };
-  }
-}
-
 function buildSummary(scores: number[]): string {
   let issues = 0;
   let improve = 0;
@@ -199,8 +182,6 @@ export default function DecisionFactors({
           {rows.map((row) => {
             const hasScore = row.score != null;
             const scoreVal = row.score ?? 0;
-            const impact = hasScore ? impactForScore(scoreVal) : null;
-            const badge = impact ? impactBadgeColors(impact.tone) : null;
             const isPrimary = matchesPrimaryIssue(row.label, primaryIssue);
 
             return (
@@ -215,15 +196,6 @@ export default function DecisionFactors({
                     ) : null}
                   </View>
                   <Text style={styles.factorScore}>{hasScore ? row.score : '—'}</Text>
-                  {badge ? (
-                    <View style={[styles.impactBadge, { backgroundColor: badge.bg }]}>
-                      <Text style={[styles.impactBadgeText, { color: badge.fg }]}>
-                        {impact!.label}
-                      </Text>
-                    </View>
-                  ) : (
-                    <Text style={styles.impactDash}>—</Text>
-                  )}
                 </View>
                 <View style={styles.barTrack}>
                   {hasScore ? (
@@ -353,25 +325,6 @@ const styles = StyleSheet.create({
     color: colors.text.primary,
     letterSpacing: letterSpacing.tight,
     minWidth: 36,
-    textAlign: 'right',
-  },
-  impactBadge: {
-    paddingHorizontal: spacing.pillGap,
-    paddingVertical: 3,
-    borderRadius: radius.badge,
-  },
-  impactBadgeText: {
-    fontFamily: typography.body,
-    fontWeight: fontWeights.bold,
-    fontSize: fontSizes.micro,
-    letterSpacing: letterSpacing.label,
-  },
-  impactDash: {
-    fontFamily: typography.body,
-    fontWeight: fontWeights.medium,
-    fontSize: fontSizes.caption,
-    color: colors.text.hint,
-    minWidth: spacing.cardSm,
     textAlign: 'right',
   },
   barTrack: {

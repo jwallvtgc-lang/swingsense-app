@@ -75,11 +75,13 @@ export const colors = {
     gold: '#f0a500', // active input border
   },
 
-  /** Results DecisionFactors — pip & bar bands (thresholds 50 / 70, distinct from brand gold/green/red text) */
+  /** DecisionFactors + hero ScoreRing — mechanic / overall score bands */
   core5: {
-    bandLow: '#E24B4A',
-    bandMid: '#EF9F27',
-    bandHigh: '#639922',
+    bandLow: '#E24B4A', // red — 0–25
+    bandMid: '#EF9F27', // amber — 26–54
+    bandHigh: '#639922', // green — 55–79
+    bandExcellent: '#5B4FE8', // purple — 80–89
+    bandLegendary: '#C9A84C', // gold — 90+
   },
 }
 
@@ -228,18 +230,23 @@ export const logoTile = {
   sizeMd: 64,
 }
 
-/** Similarity score → display color (same thresholds as ResultsScreen ScoreRing). */
+/** Similarity score → display color (aligned with `colors.core5` bands). */
 export function getScoreColor(score: number): string {
-  if (score >= 75) return colors.text.green // '#3dbd7a'
-  if (score >= 50) return colors.text.gold // '#f0a500'
-  return colors.text.red // '#e05454'
+  if (score >= 90) return colors.core5.bandLegendary // gold
+  if (score >= 80) return colors.core5.bandExcellent // purple
+  if (score >= 55) return colors.core5.bandHigh // green
+  if (score >= 26) return colors.core5.bandMid // amber
+  return colors.core5.bandLow // red
 }
 
-/** Core 5 mechanic score → DecisionFactors pip/bar color (<50 / 50–69 / 70+). */
-export function getCore5BandColor(score: number): string {
-  if (score >= 70) return colors.core5.bandHigh
-  if (score >= 50) return colors.core5.bandMid
-  return colors.core5.bandLow
+/** Core 5 / hero ring — score band color (null → hint). */
+export function getCore5BandColor(score: number | null): string {
+  if (score == null) return colors.text.hint
+  if (score <= 25) return colors.core5.bandLow
+  if (score < 55) return colors.core5.bandMid
+  if (score < 80) return colors.core5.bandHigh
+  if (score < 90) return colors.core5.bandExcellent
+  return colors.core5.bandLegendary
 }
 
 /** Use on `<Text>` with `typography.displayTitle` (ScreenHeader, kicker, Righteous wordmarks). */

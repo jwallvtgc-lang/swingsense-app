@@ -348,11 +348,20 @@ SLOT:
 - Is the back knee pressing toward the pitcher?
 - Is the back elbow working forward alongside the back knee?
 - Is the knob traveling A to C — straight path to contact, no loop?
+Hand drop before swing initiation: if the hands fall below the back shoulder before \
+the forward move starts, this is a slot/load issue — the hands need to stay up with \
+the barrel above the ball until the last second before contact. \
+Cue: 'Attack from the top. Keep your barrel above the ball until contact — \
+above, above, above, then create the angle right at contact.'
 
 BALANCE AT CONTACT:
 - Does the player finish through the ball or pull off early?
 - Is the head still at contact?
 - Is weight transferring through to the front side?
+IMPORTANT: Evaluate balance AT the moment of contact only — not what happens after. \
+A player who is balanced at contact but falls off in the follow-through should NOT \
+be penalized for balance. Freeze the player at contact — are the feet in line \
+(toe to toe from starting stance to stride landing)? If yes, balance at contact is solid.
 
 ---
 
@@ -524,6 +533,30 @@ Drill Darian assigned: High Tee Work (middle-high). Helps break habit of diving 
 App got right: Score nearly perfect (48 vs 50). Correctly identified head movement.
 App mistake to avoid: Do not describe drills in circular confusing language. Name the drill \
 first. Then physical steps. Then success cue. Keep it straight.
+
+EXAMPLE 3 — 7yo Coach Pitch, Right-handed, Darian score: 68
+What Darian saw working: Starting stance good, hand load and stride good, knee roll \
+and hip rotation good, core mechanics almost all present, slot is pretty good although \
+hands slightly low.
+Primary issue Darian identified: Hands dropping below the back shoulder before the \
+swing starts. Back shoulder dropping with the hands. Creates a long slow swing and \
+forces extension to go upward at contact. Secondary: eyes/head sliding away from \
+looking down at contact.
+Feel cue: Attack from the top. Keep the barrel above the ball until contact — above, \
+above, above, then create the angle right at contact. Keep your right hand above the \
+shoulder at the start of the swing. Feel like you are swinging down toward the ball \
+like an ax chopping wood.
+Drills: (1) Rest bat on shoulder, take 50% swing to tee — shoulder gives a barrier \
+keeping hands up and barrel above ball. (2) Top hand only drill — choke up or use \
+smaller bat, right hand only, take the swing in a straight line slightly down to the ball.
+App score: 55 (Darian: 68 — 13 points off)
+App quality: 6/10 — improvement from previous. Got 90% of action plan right.
+App mistake to avoid: Primary issue was hands dropping (slot/load), NOT balance at \
+contact. App correctly noted balance issue but it was secondary and happened AFTER \
+contact in the follow-through, not AT contact. Freeze the player at contact to \
+evaluate balance — at contact this player was balanced. Also never say 'get on your \
+front side' or 'feel weight on your front foot' — weight stays mostly back until \
+contact, landing light on the stride foot.
 
 ---
 

@@ -204,80 +204,78 @@ export default function ProcessingScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.glow} />
-      <View style={styles.pulseWrapper}>
-        <View style={styles.pulseRingOuter} />
-        <View style={styles.pulseRingMid} />
-        <Animated.View
-          style={[styles.pulseRing, { transform: [{ scale: pulseAnim }] }]}
-        >
-          <Ionicons
-            name={PIPELINE_STEPS[currentStep].icon}
-            size={42}
-            color={COLORS.accent}
+      <View style={styles.processingColumn}>
+        <View style={styles.pulseWrapper}>
+          <View style={styles.pulseRingOuter} />
+          <View style={styles.pulseRingMid} />
+          <Animated.View
+            style={[styles.pulseRing, { transform: [{ scale: pulseAnim }] }]}
+          >
+            <Ionicons
+              name={PIPELINE_STEPS[currentStep].icon}
+              size={42}
+              color={COLORS.accent}
+            />
+          </Animated.View>
+        </View>
+
+        <Text style={styles.title}>Reading Your Swing</Text>
+        <Text style={styles.subtitle}>{statusMessage}</Text>
+
+        <View style={styles.progressBar}>
+          <Animated.View
+            style={[
+              styles.progressFill,
+              {
+                width: progressAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: ['0%', '100%'],
+                }),
+              },
+            ]}
           />
-        </Animated.View>
-      </View>
+        </View>
 
-      <Text style={styles.title}>Reading Your Swing</Text>
-      <Text style={styles.subtitle}>{statusMessage}</Text>
-
-      <View style={styles.progressBar}>
-        <Animated.View
-          style={[
-            styles.progressFill,
-            {
-              width: progressAnim.interpolate({
-                inputRange: [0, 1],
-                outputRange: ['0%', '100%'],
-              }),
-            },
-          ]}
-        />
-      </View>
-
-      <View style={styles.stepList}>
-        {PIPELINE_STEPS.map((step, index) => {
-          const isDone = index < currentStep;
-          const isActive = index === currentStep;
-          return (
-            <View key={step.key} style={styles.stepItem}>
-              <View
-                style={[
-                  styles.stepIndicator,
-                  isDone && styles.stepIndicator_done,
-                  isActive && styles.stepIndicator_active,
-                  !isDone && !isActive && styles.stepIndicator_pending,
-                ]}
-              >
-                {isDone ? (
-                  <Text style={styles.stepCheck}>✓</Text>
-                ) : isActive ? (
-                  <ActivityIndicator size="small" color={COLORS.accent} />
-                ) : null}
+        <View style={styles.stepList}>
+          {PIPELINE_STEPS.map((step, index) => {
+            const isDone = index < currentStep;
+            const isActive = index === currentStep;
+            return (
+              <View key={step.key} style={styles.stepItem}>
+                <View
+                  style={[
+                    styles.stepIndicator,
+                    isDone && styles.stepIndicator_done,
+                    isActive && styles.stepIndicator_active,
+                    !isDone && !isActive && styles.stepIndicator_pending,
+                  ]}
+                >
+                  {isDone ? (
+                    <Text style={styles.stepCheck}>✓</Text>
+                  ) : isActive ? (
+                    <ActivityIndicator size="small" color={COLORS.accent} />
+                  ) : null}
+                </View>
+                <Text
+                  style={[
+                    styles.stepLabel,
+                    isDone && styles.stepLabel_done,
+                    isActive && styles.stepLabel_active,
+                    !isDone && !isActive && styles.stepLabel_pending,
+                  ]}
+                >
+                  {step.label}
+                </Text>
               </View>
-              <Text
-                style={[
-                  styles.stepLabel,
-                  isDone && styles.stepLabel_done,
-                  isActive && styles.stepLabel_active,
-                  !isDone && !isActive && styles.stepLabel_pending,
-                ]}
-              >
-                {step.label}
-              </Text>
-            </View>
-          );
-        })}
-      </View>
+            );
+          })}
+        </View>
 
-      <View style={styles.tipContainer}>
-        <Text style={styles.tipLabel}>COACHING TIP</Text>
-        <Text style={styles.tipText}>{COACHING_TIPS[tipIndex]}</Text>
+        <View style={styles.tipContainer}>
+          <Text style={styles.tipLabel}>COACHING TIP</Text>
+          <Text style={styles.tipText}>{COACHING_TIPS[tipIndex]}</Text>
+        </View>
       </View>
-
-      <Text style={styles.note}>
-        Your AI coaching report is on its way — usually ready in under 60 seconds.
-      </Text>
     </View>
   );
 }
@@ -286,10 +284,14 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
-    alignItems: 'center',
-    justifyContent: 'center',
     padding: 28,
     position: 'relative',
+  },
+  processingColumn: {
+    flex: 1,
+    width: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   glow: {
     position: 'absolute',
@@ -406,13 +408,6 @@ const styles = StyleSheet.create({
   },
   stepLabel_pending: {
     color: COLORS.textMuted,
-  },
-  note: {
-    marginTop: 28,
-    fontSize: 12,
-    fontFamily: FONTS.body,
-    color: COLORS.textMuted,
-    textAlign: 'center',
   },
   tipContainer: {
     marginTop: spacing.sectionGap,

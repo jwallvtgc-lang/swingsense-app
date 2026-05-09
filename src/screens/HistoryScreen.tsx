@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -7,7 +7,7 @@ import {
   Text,
   View,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -29,7 +29,7 @@ import {
   fetchProgressCoach,
   getUserAnalyses,
 } from '../services/analysis';
-import type { SimilarityBreakdown, SwingAnalysis } from '../types';
+import type { SwingAnalysis } from '../types';
 import {
   bottomTab,
   colors,
@@ -67,19 +67,20 @@ function topDeltaFromAnalysis(
   previousItem: SwingAnalysis | null
 ): { label: string; direction: 'up' | 'down' | 'flat' } | null {
   if (!previousItem) return null;
-  const keys: Array<{ key: keyof SimilarityBreakdown; label: string }> = [
-    { key: 'hip_rotation', label: 'Hip rotation' },
-    { key: 'weight_transfer', label: 'Weight transfer' },
-    { key: 'bat_path', label: 'Bat path' },
-    { key: 'contact_point', label: 'Contact' },
+
+  const keys: Array<{ key: keyof SwingAnalysis; label: string }> = [
+    { key: 'stance_score', label: 'Stance' },
+    { key: 'load_score', label: 'Load' },
+    { key: 'power_position_score', label: 'Power position' },
+    { key: 'slot_score', label: 'Slot' },
+    { key: 'balance_at_contact_score', label: 'Balance at contact' },
   ];
-  const currBreakdown = item.similarity_breakdown;
-  const prevBreakdown = previousItem.similarity_breakdown;
-  if (!currBreakdown || !prevBreakdown) return null;
+
   let best: { label: string; direction: 'up' | 'down' | 'flat'; diff: number } | null = null;
+
   for (const { key, label } of keys) {
-    const curr = currBreakdown[key];
-    const prev = prevBreakdown[key];
+    const curr = item[key] as number | null | undefined;
+    const prev = previousItem[key] as number | null | undefined;
     if (curr == null || prev == null) continue;
     const diff = Math.round(curr - prev);
     if (diff === 0) continue;
@@ -87,6 +88,7 @@ function topDeltaFromAnalysis(
       best = { label, direction: diff > 0 ? 'up' : 'down', diff };
     }
   }
+
   return best ? { label: best.label, direction: best.direction } : null;
 }
 
@@ -130,73 +132,75 @@ export default function HistoryScreen() {
   const progressUserIdRef = useRef<string | undefined>(undefined);
   const progressFetchedRef = useRef(false);
 
-  useEffect(() => {
-    let cancelled = false;
+  useFocusEffect(
+    useCallback(() => {
+      let cancelled = false;
 
-    async function load() {
-      const userId = user?.id;
-      if (!userId) {
-        if (!cancelled) {
-          setSwings([]);
-          setLoading(false);
-          setProgressData(null);
-          setProgressLoading(false);
-          progressUserIdRef.current = undefined;
+      async function load() {
+        const userId = user?.id;
+        if (!userId) {
+          if (!cancelled) {
+            setSwings([]);
+            setLoading(false);
+            setProgressData(null);
+            setProgressLoading(false);
+            progressUserIdRef.current = undefined;
+            progressFetchedRef.current = false;
+          }
+          return;
+        }
+
+        if (progressUserIdRef.current !== userId) {
+          progressUserIdRef.current = userId;
+          if (!cancelled) setProgressDismissed(false);
           progressFetchedRef.current = false;
         }
-        return;
-      }
 
-      if (progressUserIdRef.current !== userId) {
-        progressUserIdRef.current = userId;
-        if (!cancelled) setProgressDismissed(false);
-        progressFetchedRef.current = false;
-      }
+        if (!cancelled) setLoading(true);
+        const list = await getUserAnalyses(userId);
+        if (!cancelled) {
+          setSwings(list);
+          setLoading(false);
 
-      if (!cancelled) setLoading(true);
-      const list = await getUserAnalyses(userId);
-      if (!cancelled) {
-        setSwings(list);
-        setLoading(false);
-
-        if (
-          list.length >= 3 &&
-          !progressDismissedRef.current &&
-          !progressFetchedRef.current
-        ) {
-          progressFetchedRef.current = true;
-          if (!cancelled) setProgressLoading(true);
-          const result = await fetchProgressCoach({
-            userId,
-            swings: list.slice(0, 5),
-            playerProfile: {
-              first_name: profile?.first_name,
-              age: profile?.age,
-              experience_level: profile?.experience_level,
-            },
-          });
-          if (!cancelled && !progressDismissedRef.current) {
-            setProgressData(result);
-            setProgressLoading(false);
-          } else if (!cancelled) {
-            setProgressLoading(false);
-          }
-        } else {
-          if (!cancelled) {
-            if (list.length < 3) {
-              setProgressData(null);
+          if (
+            list.length >= 3 &&
+            !progressDismissedRef.current &&
+            !progressFetchedRef.current
+          ) {
+            progressFetchedRef.current = true;
+            if (!cancelled) setProgressLoading(true);
+            const result = await fetchProgressCoach({
+              userId,
+              swings: list.slice(0, 5),
+              playerProfile: {
+                first_name: profile?.first_name,
+                age: profile?.age,
+                experience_level: profile?.experience_level,
+              },
+            });
+            if (!cancelled && !progressDismissedRef.current) {
+              setProgressData(result);
+              setProgressLoading(false);
+            } else if (!cancelled) {
+              setProgressLoading(false);
             }
-            setProgressLoading(false);
+          } else {
+            if (!cancelled) {
+              if (list.length < 3) {
+                setProgressData(null);
+              }
+              setProgressLoading(false);
+            }
           }
         }
       }
-    }
 
-    load();
-    return () => {
-      cancelled = true;
-    };
-  }, [user?.id, profile?.first_name, profile?.age, profile?.experience_level]);
+      void load();
+      return () => {
+        cancelled = true;
+      };
+    }, [user?.id, profile?.first_name, profile?.age, profile?.experience_level])
+  );
 
   const listBottomPad = useMemo(
     () => bottomTab.height + insets.bottom + spacing.screen,
