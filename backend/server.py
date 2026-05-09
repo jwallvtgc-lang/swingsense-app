@@ -1104,14 +1104,14 @@ async def health():
 @app.post("/admin/backfill-core5")
 async def backfill_core5():
     SUPABASE_URL = (os.environ.get("SUPABASE_URL") or "").rstrip("/")
-    SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_KEY", "") or os.environ.get(
-        "SUPABASE_ANON_KEY", ""
+    SUPABASE_KEY = os.environ.get("SUPABASE_ANON_KEY", "") or os.environ.get(
+        "SUPABASE_SERVICE_KEY", ""
     )
 
     if not SUPABASE_URL or not SUPABASE_KEY:
         raise HTTPException(
             status_code=500,
-            detail="Missing SUPABASE_URL or SUPABASE_SERVICE_KEY / SUPABASE_ANON_KEY",
+            detail="Missing SUPABASE_URL or SUPABASE_ANON_KEY / SUPABASE_SERVICE_KEY",
         )
 
     headers = {
