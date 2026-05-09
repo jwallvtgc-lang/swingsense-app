@@ -950,7 +950,6 @@ def compute_core_5(frames: list, head_stability_score: int | None = None) -> dic
     elif min_score < 55:
         base_overall = min(base_overall, 65)
     scores["overall"] = base_overall
-    scores["_debug_nose_range"] = round(nose_range, 4) if nose_ys else -1
     return scores
 
 
@@ -990,13 +989,17 @@ def analyze_with_claude(
 
     core_5_block = ""
     if core_5_scores:
-        core_5_block = f"""COMPUTED CORE 5 SCORES (use these to anchor your evaluation):
+        core_5_block = f"""
+COMPUTED CORE 5 MECHANICS (use these to anchor your evaluation — do not override without strong keypoint evidence):
 Stance: {core_5_scores['stance']}/100
 Load: {core_5_scores['load']}/100
 Slot: {core_5_scores['slot']}/100
 Balance at Contact: {core_5_scores['balance_at_contact']}/100
+Overall (weighted): {core_5_scores['overall']}/100
 
-NOTE: Power Position score is not included — evaluate it qualitatively from the keypoint data. Look for: stride foot gaining ground, hands back with bat tip at stride landing, hips slightly leading hands before firing.
+Power Position: evaluate qualitatively from keypoint data — look for stride foot gaining ground, hands back with bat tip at stride landing, hips slightly leading hands before firing.
+
+The lowest scoring mechanic above is the most likely primary issue. Use overall score as your anchor for similarity_scores.overall — stay within 8 points of it unless keypoint data strongly contradicts it.
 
 """
 
