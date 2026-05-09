@@ -930,6 +930,28 @@ def compute_core_5(frames: list, head_stability_score: int | None = None) -> dic
     if len(elbow_xs) >= 3:
         if max(elbow_xs) - min(elbow_xs) >= 0.04:
             slot_score += 8
+
+    # Hand height check — wrists should stay at or above back shoulder during load
+    wrist_drops = []
+    for f in frames[: len(frames) // 2]:  # first half (load phase)
+        lw = get_kp(f, "left_wrist")
+        rw = get_kp(f, "right_wrist")
+        ls = get_kp(f, "left_shoulder")
+        rs = get_kp(f, "right_shoulder")
+        wrist = lw or rw
+        shoulder = ls or rs
+        if wrist and shoulder:
+            # Y increases downward, so wrist Y > shoulder Y means wrist is below shoulder
+            drop = wrist[1] - shoulder[1]
+            wrist_drops.append(drop)
+
+    if len(wrist_drops) >= 3:
+        avg_drop = sum(wrist_drops) / len(wrist_drops)
+        if avg_drop > 0.08:  # wrists significantly below shoulders
+            slot_score -= 20  # major hand drop
+        elif avg_drop > 0.04:  # wrists slightly below shoulders
+            slot_score -= 10  # minor hand drop
+
     slot_score = max(0, min(100, slot_score))
 
     # BALANCE AT CONTACT — head stability + weight transfer in last third
