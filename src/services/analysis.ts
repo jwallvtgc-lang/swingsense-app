@@ -433,6 +433,10 @@ export async function startAnalysisPipeline(
         }
       | undefined;
 
+    console.log('[Analysis] core_5_scores from response:', result.core_5_scores);
+    console.log('[Analysis] analysisId:', analysisId);
+    console.log('[Analysis] c5 values:', c5);
+
     const { data: updated, error: updateError } = await supabase
       .from('swing_analyses')
       .update({
