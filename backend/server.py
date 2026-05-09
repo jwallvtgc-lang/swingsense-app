@@ -1145,10 +1145,6 @@ async def analyze(request: AnalyzeRequest):
         validate_swing_video(keypoint_data)
 
         swing_metrics_text = compute_swing_metrics(keypoint_data["frames"])
-        _log(f"[Core5Debug] first frame keys: {list(keypoint_data['frames'][0].keys())}")
-        _log(
-            f"[Core5Debug] timestamp_ms sample: {keypoint_data['frames'][0].get('timestamp_ms', 'NOT FOUND')}"
-        )
         head_stability = calculate_head_stability(keypoint_data["frames"])
         _log(f"[Analyze] head_stability_score={head_stability}")
 
@@ -1190,6 +1186,7 @@ async def analyze(request: AnalyzeRequest):
             "analysis_id": request.analysis_id,
             "keypoint_data": keypoint_data,
             "coaching_output": coaching_output,
+            "core_5_scores": core_5_scores,
             "processing_time_seconds": round(elapsed, 1),
         }
     except httpx.HTTPStatusError as e:

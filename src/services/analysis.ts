@@ -422,6 +422,16 @@ export async function startAnalysisPipeline(
 
     const coachingOutput = parseCoachingOutput(result.coaching_output);
     const similarityBreakdown = coachingOutput?.similarity_scores ?? null;
+    const c5 = result.core_5_scores as
+      | {
+          stance?: number;
+          load?: number;
+          power_position?: number;
+          slot?: number;
+          balance_at_contact?: number;
+          overall?: number;
+        }
+      | undefined;
 
     const { data: updated, error: updateError } = await supabase
       .from('swing_analyses')
@@ -432,6 +442,12 @@ export async function startAnalysisPipeline(
         similarity_score: similarityBreakdown?.overall ?? null,
         similarity_breakdown: similarityBreakdown,
         key_frames: result.key_frames ?? null,
+        stance_score: c5?.stance ?? null,
+        load_score: c5?.load ?? null,
+        power_position_score: c5?.power_position ?? null,
+        slot_score: c5?.slot ?? null,
+        balance_at_contact_score: c5?.balance_at_contact ?? null,
+        core5_overall: c5?.overall ?? null,
         status: 'completed',
       })
       .eq('id', analysisId)

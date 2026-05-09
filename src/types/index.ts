@@ -37,6 +37,12 @@ export interface SwingAnalysis {
   similarity_score: number | null;
   similarity_breakdown: SimilarityBreakdown | null;
   key_frames: KeyFrame[] | null;
+  stance_score?: number | null;
+  load_score?: number | null;
+  power_position_score?: number | null;
+  slot_score?: number | null;
+  balance_at_contact_score?: number | null;
+  core5_overall?: number | null;
   status: AnalysisStatus;
   created_at: string;
 }
