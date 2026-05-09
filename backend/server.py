@@ -259,7 +259,8 @@ def calculate_head_stability(frames: list) -> int | None:
     if len(valid) < 10:
         return None
 
-    nose_y = [f["keypoints"]["nose"]["y"] for f in valid]
+    start_idx = max(0, len(valid) // 3)
+    nose_y = [f["keypoints"]["nose"]["y"] for f in valid[start_idx:]]
 
     baseline_count = max(1, len(nose_y) // 5)
     baseline_y = sum(nose_y[:baseline_count]) / baseline_count
