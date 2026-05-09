@@ -817,7 +817,7 @@ def compute_core_5(frames: list, head_stability_score: int | None = None) -> dic
         if lh and rh:
             hip_series.append((ts, (lh[0] + rh[0]) / 2))
 
-    power_score = 60  # default — not enough data
+    power_score = 65  # default — not enough data
 
     if len(hip_series) >= 6 and len(ankle_y_series) >= 4:
         # Find stride landing: only look AFTER ankle has moved significantly from setup
@@ -857,15 +857,15 @@ def compute_core_5(frames: list, head_stability_score: int | None = None) -> dic
             gap_ms = fire_ts - stride_ts
             # Score the gap
             if gap_ms >= 400:
-                power_score = 85  # very patient, excellent load
+                power_score = 85
             elif gap_ms >= 280:
-                power_score = 72  # solid
+                power_score = 72
             elif gap_ms >= 180:
-                power_score = 55  # a bit quick
-            elif gap_ms >= 100:
-                power_score = 42  # too quick — Darian's issue
+                power_score = 58
+            elif gap_ms >= 80:
+                power_score = 48
             else:
-                power_score = 30  # firing immediately — major issue
+                power_score = 35  # under 80ms — truly instant firing
 
     power_score = max(0, min(100, power_score))
 
