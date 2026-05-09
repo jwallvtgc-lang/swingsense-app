@@ -36,6 +36,11 @@ def _log(msg: str) -> None:
 _log(f"[Startup] Python {sys.version}")
 _log(f"[Startup] PORT={os.environ.get('PORT', 'not set')}")
 _log(f"[Startup] ANTHROPIC_API_KEY={'set' if os.environ.get('ANTHROPIC_API_KEY') else 'NOT SET'}")
+_log(f"[Startup] SUPABASE_URL={'set' if os.environ.get('SUPABASE_URL') else 'NOT SET'}")
+_log(
+    f"[Startup] SUPABASE_SERVICE_KEY={'set' if os.environ.get('SUPABASE_SERVICE_KEY') else 'NOT SET'}"
+)
+_log(f"[Startup] SUPABASE_ANON_KEY={'set' if os.environ.get('SUPABASE_ANON_KEY') else 'NOT SET'}")
 
 try:
     from tflite_runtime.interpreter import Interpreter
@@ -1094,6 +1099,75 @@ async def health():
         status="ok",
         model_loaded=_interpreter is not None,
     )
+
+
+@app.post("/admin/backfill-core5")
+async def backfill_core5():
+    SUPABASE_URL = (os.environ.get("SUPABASE_URL") or "").rstrip("/")
+    SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_KEY", "") or os.environ.get(
+        "SUPABASE_ANON_KEY", ""
+    )
+
+    if not SUPABASE_URL or not SUPABASE_KEY:
+        raise HTTPException(
+            status_code=500,
+            detail="Missing SUPABASE_URL or SUPABASE_SERVICE_KEY / SUPABASE_ANON_KEY",
+        )
+
+    headers = {
+        "apikey": SUPABASE_KEY,
+        "Authorization": f"Bearer {SUPABASE_KEY}",
+        "Content-Type": "application/json",
+    }
+
+    base = f"{SUPABASE_URL}/rest/v1"
+
+    async with httpx.AsyncClient(timeout=120.0) as client:
+        resp = await client.get(
+            f"{base}/swing_analyses",
+            headers=headers,
+            params={"select": "id,keypoint_data", "limit": "1000"},
+        )
+        resp.raise_for_status()
+        swings = resp.json()
+
+    backfilled = 0
+    skipped = 0
+    errors = 0
+
+    async with httpx.AsyncClient(timeout=120.0) as client:
+        for swing in swings:
+            swing_id = swing["id"]
+            keypoint_data = swing.get("keypoint_data")
+            if not keypoint_data:
+                skipped += 1
+                continue
+            frames = keypoint_data.get("frames", [])
+            if len(frames) < 20:
+                skipped += 1
+                continue
+            try:
+                scores = compute_core_5(frames)
+                patch_resp = await client.patch(
+                    f"{base}/swing_analyses",
+                    headers=headers,
+                    params={"id": f"eq.{swing_id}"},
+                    json={
+                        "stance_score": scores["stance"],
+                        "load_score": scores["load"],
+                        "power_position_score": scores["power_position"],
+                        "slot_score": scores["slot"],
+                        "balance_at_contact_score": scores["balance_at_contact"],
+                        "core5_overall": scores["overall"],
+                    },
+                )
+                patch_resp.raise_for_status()
+                backfilled += 1
+            except Exception as e:
+                errors += 1
+                _log(f"[Backfill] ERR {swing_id}: {e}")
+
+    return {"backfilled": backfilled, "skipped": skipped, "errors": errors}
 
 
 @app.post("/analyze")
