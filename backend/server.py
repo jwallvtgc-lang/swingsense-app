@@ -1128,6 +1128,10 @@ async def analyze(request: AnalyzeRequest):
         validate_swing_video(keypoint_data)
 
         swing_metrics_text = compute_swing_metrics(keypoint_data["frames"])
+        _log(f"[Core5Debug] first frame keys: {list(keypoint_data['frames'][0].keys())}")
+        _log(
+            f"[Core5Debug] timestamp_ms sample: {keypoint_data['frames'][0].get('timestamp_ms', 'NOT FOUND')}"
+        )
         core_5_scores = compute_core_5(keypoint_data["frames"])
         _log(f"[Analyze] core_5_scores={core_5_scores}")
 
