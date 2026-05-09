@@ -248,7 +248,8 @@ def validate_swing_video(keypoint_data: dict) -> None:
 
 def calculate_head_stability(frames: list) -> int | None:
     """
-    Head stability 0–100 from nose vertical movement across frames.
+    Head stability 0-100 from nose vertical movement across frames.
+    Measures total vertical range — captures both rising and dropping.
     Returns None if there is not enough high-confidence nose data.
     """
     valid = [
@@ -259,22 +260,21 @@ def calculate_head_stability(frames: list) -> int | None:
     if len(valid) < 10:
         return None
 
-    start_idx = max(0, len(valid) // 3)
-    nose_y = [f["keypoints"]["nose"]["y"] for f in valid[start_idx:]]
+    nose_y = [f["keypoints"]["nose"]["y"] for f in valid]
 
-    baseline_count = max(1, len(nose_y) // 5)
-    baseline_y = sum(nose_y[:baseline_count]) / baseline_count
+    # Measure total vertical range — how much the head moves up and down total
+    total_range = max(nose_y) - min(nose_y)
 
-    max_drop = max(y - baseline_y for y in nose_y)
-
+    # Measure variance for smoothness
     mean_y = sum(nose_y) / len(nose_y)
     variance = (sum((y - mean_y) ** 2 for y in nose_y) / len(nose_y)) ** 0.5
 
-    drop_score = max(0, 1 - (max_drop / 0.12)) * 100
-    variance_score = max(0, 1 - (variance / 0.06)) * 100
+    # 0.15 = 15% of frame height is the threshold for poor stability
+    # 0.07 = 7% variance threshold
+    range_score = max(0, 1 - (total_range / 0.15)) * 100
+    variance_score = max(0, 1 - (variance / 0.07)) * 100
 
-    final_score = (drop_score * 0.7) + (variance_score * 0.3)
-
+    final_score = (range_score * 0.6) + (variance_score * 0.4)
     return round(min(100, max(0, final_score)))
 
 
