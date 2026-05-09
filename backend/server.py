@@ -269,8 +269,8 @@ def calculate_head_stability(frames: list) -> int | None:
     mean_y = sum(nose_y) / len(nose_y)
     variance = (sum((y - mean_y) ** 2 for y in nose_y) / len(nose_y)) ** 0.5
 
-    drop_score = max(0, 1 - (max_drop / 0.08)) * 100
-    variance_score = max(0, 1 - (variance / 0.04)) * 100
+    drop_score = max(0, 1 - (max_drop / 0.12)) * 100
+    variance_score = max(0, 1 - (variance / 0.06)) * 100
 
     final_score = (drop_score * 0.7) + (variance_score * 0.3)
 
