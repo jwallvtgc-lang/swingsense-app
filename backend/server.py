@@ -721,11 +721,209 @@ def compute_swing_metrics(frames: list) -> str:
     return "\n".join(lines)
 
 
+def compute_core_5(frames: list) -> dict:
+    """
+    Compute Darian's core 5 mechanics from MoveNet keypoints.
+    Returns scores 0-100 for stance, load, power_position, slot, balance_at_contact.
+    """
+    CONF = 0.3
+
+    def get_kp(frame, name):
+        kp = frame.get("keypoints", {}).get(name, {})
+        if kp.get("confidence", 0) >= CONF:
+            return kp["x"], kp["y"]
+        return None
+
+    # STANCE — evaluate from setup frames (first 20%)
+    setup_frames = frames[: max(2, len(frames) // 5)]
+    hip_widths, knee_bends = [], []
+    for f in setup_frames:
+        lh = get_kp(f, "left_hip")
+        rh = get_kp(f, "right_hip")
+        lk = get_kp(f, "left_knee")
+        la = get_kp(f, "left_ankle")
+        if lh and rh:
+            hip_widths.append(abs(lh[0] - rh[0]))
+        if lk and lh and la:
+            total = abs(la[1] - lh[1])
+            if total > 0:
+                knee_bends.append(abs(lk[1] - lh[1]) / total)
+    stance_score = 65
+    if hip_widths:
+        avg = sum(hip_widths) / len(hip_widths)
+        if 0.04 <= avg <= 0.18:
+            stance_score += 10
+        elif avg < 0.03:
+            stance_score -= 15
+    if knee_bends:
+        avg = sum(knee_bends) / len(knee_bends)
+        if 0.35 <= avg <= 0.65:
+            stance_score += 8
+        elif avg < 0.2 or avg > 0.8:
+            stance_score -= 10
+    stance_score = max(0, min(100, stance_score))
+
+    # LOAD — hip and hand movement in first half
+    load_frames = frames[: len(frames) // 2]
+    hip_xs, wrist_xs = [], []
+    for f in load_frames:
+        lh = get_kp(f, "left_hip")
+        rh = get_kp(f, "right_hip")
+        lw = get_kp(f, "left_wrist")
+        rw = get_kp(f, "right_wrist")
+        if lh and rh:
+            hip_xs.append((lh[0] + rh[0]) / 2)
+        if lw:
+            wrist_xs.append(lw[0])
+        elif rw:
+            wrist_xs.append(rw[0])
+    load_score = 60
+    if len(hip_xs) >= 3:
+        if max(hip_xs) - min(hip_xs) >= 0.03:
+            load_score += 15
+        elif max(hip_xs) - min(hip_xs) < 0.01:
+            load_score -= 10
+    if len(wrist_xs) >= 3:
+        if max(wrist_xs) - min(wrist_xs) >= 0.05:
+            load_score += 10
+        elif max(wrist_xs) - min(wrist_xs) < 0.02:
+            load_score -= 8
+    load_score = max(0, min(100, load_score))
+
+    # POWER POSITION — stride foot ground gained + hands back at landing
+    ankle_positions = []
+    for f in frames:
+        ra = get_kp(f, "right_ankle")
+        la = get_kp(f, "left_ankle")
+        lw = get_kp(f, "left_wrist")
+        rw = get_kp(f, "right_wrist")
+        lh = get_kp(f, "left_hip")
+        rh = get_kp(f, "right_hip")
+        if ra and la:
+            ankle_positions.append(
+                {
+                    "stride": abs(ra[0] - la[0]),
+                    "wrist_x": lw[0] if lw else (rw[0] if rw else None),
+                    "hip_x": (lh[0] + rh[0]) / 2 if lh and rh else None,
+                }
+            )
+    power_score = 50
+    if ankle_positions:
+        max_stride = max(p["stride"] for p in ankle_positions)
+        if max_stride >= 0.15:
+            power_score += 20
+        elif max_stride >= 0.10:
+            power_score += 10
+        elif max_stride < 0.06:
+            power_score -= 15
+        msf = max(ankle_positions, key=lambda p: p["stride"])
+        if msf["wrist_x"] and msf["hip_x"]:
+            if msf["wrist_x"] < msf["hip_x"]:
+                power_score += 15
+            else:
+                power_score -= 10
+        mid = ankle_positions[len(ankle_positions) // 3 : 2 * len(ankle_positions) // 3]
+        if mid:
+            ratio = (
+                sum(
+                    1
+                    for p in mid
+                    if p["hip_x"] and p["wrist_x"] and p["hip_x"] > p["wrist_x"]
+                )
+                / len(mid)
+            )
+            if ratio >= 0.6:
+                power_score += 10
+            elif ratio < 0.3:
+                power_score -= 8
+    power_score = max(0, min(100, power_score))
+
+    # SLOT — back knee and elbow pressing forward
+    slot_frames = frames[len(frames) // 3 :]
+    knee_xs, elbow_xs = [], []
+    for f in slot_frames:
+        lk = get_kp(f, "left_knee")
+        le = get_kp(f, "left_elbow")
+        re = get_kp(f, "right_elbow")
+        if lk:
+            knee_xs.append(lk[0])
+        if le:
+            elbow_xs.append(le[0])
+        elif re:
+            elbow_xs.append(re[0])
+    slot_score = 62
+    if len(knee_xs) >= 3:
+        movement = knee_xs[-1] - knee_xs[0]
+        if movement > 0.02:
+            slot_score += 12
+        elif movement < -0.02:
+            slot_score -= 12
+    if len(elbow_xs) >= 3:
+        if max(elbow_xs) - min(elbow_xs) >= 0.04:
+            slot_score += 8
+    slot_score = max(0, min(100, slot_score))
+
+    # BALANCE AT CONTACT — head stability + weight transfer in last third
+    contact_frames = frames[2 * len(frames) // 3 :]
+    nose_ys, hip_xs_c = [], []
+    for f in contact_frames:
+        nose = get_kp(f, "nose")
+        lh = get_kp(f, "left_hip")
+        rh = get_kp(f, "right_hip")
+        if nose:
+            nose_ys.append(nose[1])
+        if lh and rh:
+            hip_xs_c.append((lh[0] + rh[0]) / 2)
+    balance_score = 65
+    if len(nose_ys) >= 3:
+        nose_range = max(nose_ys) - min(nose_ys)
+        if nose_range < 0.04:
+            balance_score += 12
+        elif nose_range < 0.07:
+            balance_score += 0
+        elif nose_range < 0.10:
+            balance_score -= 15
+        else:
+            balance_score -= 25
+    if len(hip_xs_c) >= 3:
+        movement = hip_xs_c[-1] - hip_xs_c[0]
+        if movement > 0.01:
+            balance_score += 8
+        elif movement < -0.02:
+            balance_score -= 8
+    balance_score = max(0, min(100, balance_score))
+
+    # OVERALL — weighted average with drag-down penalty
+    scores = {
+        "stance": round(stance_score),
+        "load": round(load_score),
+        "power_position": round(power_score),
+        "slot": round(slot_score),
+        "balance_at_contact": round(balance_score),
+    }
+    base_overall = round(
+        scores["stance"] * 0.15
+        + scores["load"] * 0.20
+        + scores["power_position"] * 0.25
+        + scores["slot"] * 0.25
+        + scores["balance_at_contact"] * 0.15
+    )
+    min_score = min(scores.values())
+    if min_score < 45:
+        base_overall = min(base_overall, 58)
+    elif min_score < 55:
+        base_overall = min(base_overall, 65)
+    scores["overall"] = base_overall
+    return scores
+
+
 def analyze_with_claude(
     keypoint_data: dict,
     player_profile: dict,
     analysis_id: str | None = None,
     previous_swing: dict | None = None,
+    swing_metrics: str = "",
+    core_5_scores: dict | None = None,
 ) -> dict:
     """Send keypoints to Claude and get structured coaching output."""
     api_key = os.environ.get("ANTHROPIC_API_KEY")
@@ -750,7 +948,15 @@ def analyze_with_claude(
         profile_lines.append(f"Height: {h}")
 
     keypoint_summary = summarize_keypoints_for_prompt(keypoint_data, analysis_id)
-    swing_metrics = compute_swing_metrics(keypoint_data.get("frames", []))
+    if not swing_metrics:
+        swing_metrics = compute_swing_metrics(keypoint_data.get("frames", []))
+
+    core_5_block = ""
+    if core_5_scores:
+        core_5_block = (
+            "--- Core 5 mechanics (computed scores 0-100 from MoveNet keypoints) ---\n"
+            f"{json.dumps(core_5_scores, indent=2)}\n\n"
+        )
 
     prev_block = ""
     if previous_swing:
@@ -769,6 +975,7 @@ def analyze_with_claude(
         f"Here is the player profile:\n\n"
         f"{chr(10).join(profile_lines)}\n\n"
         f"{swing_metrics}\n\n"
+        f"{core_5_block}"
         f"And here is the raw keypoint data for additional reference:\n\n"
         f"{keypoint_summary}\n\n"
         f"{prev_block}"
@@ -892,6 +1099,10 @@ async def analyze(request: AnalyzeRequest):
 
         validate_swing_video(keypoint_data)
 
+        swing_metrics_text = compute_swing_metrics(keypoint_data["frames"])
+        core_5_scores = compute_core_5(keypoint_data["frames"])
+        _log(f"[Analyze] core_5_scores={core_5_scores}")
+
         head_stability = calculate_head_stability(keypoint_data["frames"])
         _log(f"[Analyze] head_stability_score={head_stability}")
 
@@ -910,6 +1121,8 @@ async def analyze(request: AnalyzeRequest):
             profile,
             analysis_id=request.analysis_id,
             previous_swing=prev_sw,
+            swing_metrics=swing_metrics_text,
+            core_5_scores=core_5_scores,
         )
 
         if head_stability is not None:
