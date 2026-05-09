@@ -721,7 +721,7 @@ def compute_swing_metrics(frames: list) -> str:
     return "\n".join(lines)
 
 
-def compute_core_5(frames: list) -> dict:
+def compute_core_5(frames: list, head_stability_score: int | None = None) -> dict:
     """
     Compute Darian's core 5 mechanics from MoveNet keypoints.
     Returns scores 0-100 for stance, load, power_position, slot, balance_at_contact.
@@ -907,6 +907,11 @@ def compute_core_5(frames: list) -> dict:
             hip_xs_c.append((lh[0] + rh[0]) / 2)
     balance_score = 65
     nose_range = (max(nose_ys) - min(nose_ys)) if nose_ys else None
+    # Also factor in pre-computed head stability if available
+    if head_stability_score is not None and head_stability_score < 30:
+        balance_score = min(balance_score, 45)  # cap at 45 if head stability is very poor
+    elif head_stability_score is not None and head_stability_score < 50:
+        balance_score = min(balance_score, 60)  # cap at 60 if head stability is poor
     if len(nose_ys) >= 3:
         if nose_range < 0.04:
             balance_score += 12
@@ -1141,11 +1146,13 @@ async def analyze(request: AnalyzeRequest):
         _log(
             f"[Core5Debug] timestamp_ms sample: {keypoint_data['frames'][0].get('timestamp_ms', 'NOT FOUND')}"
         )
-        core_5_scores = compute_core_5(keypoint_data["frames"])
-        _log(f"[Analyze] core_5_scores={core_5_scores}")
-
         head_stability = calculate_head_stability(keypoint_data["frames"])
         _log(f"[Analyze] head_stability_score={head_stability}")
+
+        core_5_scores = compute_core_5(
+            keypoint_data["frames"], head_stability_score=head_stability
+        )
+        _log(f"[Analyze] core_5_scores={core_5_scores}")
 
         profile = request.player_profile or {}
         prev_sw = None
