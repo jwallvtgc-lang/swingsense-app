@@ -726,7 +726,6 @@ def analyze_with_claude(
     player_profile: dict,
     analysis_id: str | None = None,
     previous_swing: dict | None = None,
-    head_stability_score: int | None = None,
 ) -> dict:
     """Send keypoints to Claude and get structured coaching output."""
     api_key = os.environ.get("ANTHROPIC_API_KEY")
@@ -753,25 +752,6 @@ def analyze_with_claude(
     keypoint_summary = summarize_keypoints_for_prompt(keypoint_data, analysis_id)
     swing_metrics = compute_swing_metrics(keypoint_data.get("frames", []))
 
-    HEAD_STABILITY_COACH_NOTE = (
-        "NOTE FOR COACH: Head stability score is provided for reference only. "
-        "Evaluate core mechanics (stance, load, power position, slot, balance at contact) FIRST "
-        "before considering head stability. Only flag head stability as the primary issue if all "
-        "core mechanics look solid.\n\n"
-    )
-    if head_stability_score is not None:
-        head_stability_block = (
-            f"\n\n{HEAD_STABILITY_COACH_NOTE}"
-            f"Computed head stability score: {head_stability_score}/100 "
-            f"(based on nose keypoint vertical movement — use this as your head_stability score value)\n"
-        )
-    else:
-        head_stability_block = (
-            f"\n\n{HEAD_STABILITY_COACH_NOTE}"
-            "Head stability could not be computed (insufficient nose keypoint confidence); "
-            "still estimate head_stability in similarity_scores from keypoint data if possible.\n"
-        )
-
     prev_block = ""
     if previous_swing:
         scores = previous_swing.get("similarity_scores") or {}
@@ -796,7 +776,6 @@ def analyze_with_claude(
         f"(2) drill has all three parts — why + steps with rep count + feel cue, "
         f"(3) no raw metric numbers appear in overall_summary or drill text. "
         f"Then respond with the JSON structure specified."
-        f"{head_stability_block}"
     )
 
     client = Anthropic(api_key=api_key)
@@ -931,8 +910,14 @@ async def analyze(request: AnalyzeRequest):
             profile,
             analysis_id=request.analysis_id,
             previous_swing=prev_sw,
-            head_stability_score=head_stability,
         )
+
+        if head_stability is not None:
+            ss = coaching_output.get("similarity_scores")
+            if not isinstance(ss, dict):
+                ss = {}
+                coaching_output["similarity_scores"] = ss
+            ss["head_stability"] = head_stability
 
         elapsed = time.time() - start_time
         _log(f"[Analyze] Done in {elapsed:.1f}s")
