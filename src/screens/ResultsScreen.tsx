@@ -27,6 +27,7 @@ import type {
   SimilarityBreakdown,
 } from '../types';
 import type { MainStackParamList } from '../navigation/types';
+import DecisionFactors from '../components/DecisionFactors';
 
 type Nav = NativeStackNavigationProp<MainStackParamList, 'Results'>;
 type Route = RouteProp<MainStackParamList, 'Results'>;
@@ -388,6 +389,15 @@ export default function ResultsScreen() {
           )}
         </SectionCard>
       )}
+
+      <DecisionFactors
+        stanceScore={analysis.stance_score ?? null}
+        loadScore={analysis.load_score ?? null}
+        powerPositionScore={analysis.power_position_score ?? null}
+        slotScore={analysis.slot_score ?? null}
+        balanceAtContactScore={analysis.balance_at_contact_score ?? null}
+        primaryIssue={coaching?.primary_mechanical_issue?.title}
+      />
 
       {previousAnalysis && (compareRows.length > 0 || coaching?.vs_last_swing) && (
         <SectionCard title="Compared to your last swing" icon="git-compare-outline">

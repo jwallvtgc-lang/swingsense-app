@@ -74,6 +74,13 @@ export const colors = {
     medium: 'rgba(255,255,255,0.15)', // hover states
     gold: '#f0a500', // active input border
   },
+
+  /** Results DecisionFactors — pip & bar bands (thresholds 50 / 70, distinct from brand gold/green/red text) */
+  core5: {
+    bandLow: '#E24B4A',
+    bandMid: '#EF9F27',
+    bandHigh: '#639922',
+  },
 }
 
 export const typography = {
@@ -226,6 +233,13 @@ export function getScoreColor(score: number): string {
   if (score >= 75) return colors.text.green // '#3dbd7a'
   if (score >= 50) return colors.text.gold // '#f0a500'
   return colors.text.red // '#e05454'
+}
+
+/** Core 5 mechanic score → DecisionFactors pip/bar color (<50 / 50–69 / 70+). */
+export function getCore5BandColor(score: number): string {
+  if (score >= 70) return colors.core5.bandHigh
+  if (score >= 50) return colors.core5.bandMid
+  return colors.core5.bandLow
 }
 
 /** Use on `<Text>` with `typography.displayTitle` (ScreenHeader, kicker, Righteous wordmarks). */
