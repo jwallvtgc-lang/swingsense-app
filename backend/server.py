@@ -906,8 +906,8 @@ def compute_core_5(frames: list) -> dict:
         if lh and rh:
             hip_xs_c.append((lh[0] + rh[0]) / 2)
     balance_score = 65
+    nose_range = (max(nose_ys) - min(nose_ys)) if nose_ys else None
     if len(nose_ys) >= 3:
-        nose_range = max(nose_ys) - min(nose_ys)
         if nose_range < 0.04:
             balance_score += 12
         elif nose_range < 0.07:
@@ -945,6 +945,7 @@ def compute_core_5(frames: list) -> dict:
     elif min_score < 55:
         base_overall = min(base_overall, 65)
     scores["overall"] = base_overall
+    scores["_debug_nose_range"] = round(nose_range, 4) if nose_ys else -1
     return scores
 
 
