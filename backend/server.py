@@ -820,17 +820,25 @@ def compute_core_5(frames: list) -> dict:
     power_score = 60  # default — not enough data
 
     if len(hip_series) >= 6 and len(ankle_y_series) >= 4:
-        # Find stride landing: look for ankle Y stabilizing (stops moving much)
-        # Take the frame in the first 60% where ankle Y variance drops
+        # Find stride landing: only look AFTER ankle has moved significantly from setup
+        # This prevents detecting 'landed' during the static setup phase
         stride_ts = None
-        mid_idx = len(ankle_y_series) * 6 // 10
-        for i in range(1, mid_idx):
-            prev_y = ankle_y_series[i - 1][1]
-            curr_y = ankle_y_series[i][1]
-            # Ankle planted when it stops moving significantly
-            if abs(curr_y - prev_y) < 0.008:
-                stride_ts = ankle_y_series[i][0]
-                break
+        if len(ankle_y_series) >= 4:
+            start_y = ankle_y_series[0][1]
+            mid_idx = len(ankle_y_series) * 6 // 10
+            movement_started = False
+            for i in range(1, mid_idx):
+                curr_y = ankle_y_series[i][1]
+                # Wait until ankle has actually moved (stride is happening)
+                if not movement_started:
+                    if abs(curr_y - start_y) >= 0.05:
+                        movement_started = True
+                    continue
+                # Now look for stabilization — ankle stopped moving
+                prev_y = ankle_y_series[i - 1][1]
+                if abs(curr_y - prev_y) < 0.008:
+                    stride_ts = ankle_y_series[i][0]
+                    break
 
         # Find hip firing: sustained hip X movement in second half
         fire_ts = None
@@ -848,13 +856,13 @@ def compute_core_5(frames: list) -> dict:
         if stride_ts is not None and fire_ts is not None:
             gap_ms = fire_ts - stride_ts
             # Score the gap
-            if gap_ms >= 300:
-                power_score = 85  # patient, well loaded
-            elif gap_ms >= 200:
+            if gap_ms >= 400:
+                power_score = 85  # very patient, excellent load
+            elif gap_ms >= 280:
                 power_score = 72  # solid
-            elif gap_ms >= 120:
+            elif gap_ms >= 180:
                 power_score = 55  # a bit quick
-            elif gap_ms >= 60:
+            elif gap_ms >= 100:
                 power_score = 42  # too quick — Darian's issue
             else:
                 power_score = 30  # firing immediately — major issue
