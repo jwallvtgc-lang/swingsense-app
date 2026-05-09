@@ -790,52 +790,75 @@ def compute_core_5(frames: list) -> dict:
             load_score -= 8
     load_score = max(0, min(100, load_score))
 
-    # POWER POSITION — stride foot ground gained + hands back at landing
-    ankle_positions = []
+    # POWER POSITION — timing: gap between stride landing and hip firing
+    # Short gap = fired too quick = weak power position (Darian's key insight)
+    # Uses timestamp_ms from frame data
+
+    # Step 1: Find stride landing frame
+    # Stride foot (front foot) ankle Y reaches minimum — foot planted
+    ankle_y_series = []
     for f in frames:
-        ra = get_kp(f, "right_ankle")
+        ts = f.get("timestamp_ms", 0)
+        # Try both ankles — use the one with better confidence
         la = get_kp(f, "left_ankle")
-        lw = get_kp(f, "left_wrist")
-        rw = get_kp(f, "right_wrist")
+        ra = get_kp(f, "right_ankle")
+        if la:
+            ankle_y_series.append((ts, la[1], "left"))
+        elif ra:
+            ankle_y_series.append((ts, ra[1], "right"))
+
+    # Step 2: Find hip firing frame
+    # Hip center X starts sustained movement toward pitcher
+    hip_series = []
+    for f in frames:
+        ts = f.get("timestamp_ms", 0)
         lh = get_kp(f, "left_hip")
         rh = get_kp(f, "right_hip")
-        if ra and la:
-            ankle_positions.append(
-                {
-                    "stride": abs(ra[0] - la[0]),
-                    "wrist_x": lw[0] if lw else (rw[0] if rw else None),
-                    "hip_x": (lh[0] + rh[0]) / 2 if lh and rh else None,
-                }
-            )
-    power_score = 50
-    if ankle_positions:
-        max_stride = max(p["stride"] for p in ankle_positions)
-        if max_stride >= 0.15:
-            power_score += 20
-        elif max_stride >= 0.10:
-            power_score += 10
-        elif max_stride < 0.06:
-            power_score -= 15
-        msf = max(ankle_positions, key=lambda p: p["stride"])
-        if msf["wrist_x"] and msf["hip_x"]:
-            if msf["wrist_x"] < msf["hip_x"]:
-                power_score += 15
+        if lh and rh:
+            hip_series.append((ts, (lh[0] + rh[0]) / 2))
+
+    power_score = 60  # default — not enough data
+
+    if len(hip_series) >= 6 and len(ankle_y_series) >= 4:
+        # Find stride landing: look for ankle Y stabilizing (stops moving much)
+        # Take the frame in the first 60% where ankle Y variance drops
+        stride_ts = None
+        mid_idx = len(ankle_y_series) * 6 // 10
+        for i in range(1, mid_idx):
+            prev_y = ankle_y_series[i - 1][1]
+            curr_y = ankle_y_series[i][1]
+            # Ankle planted when it stops moving significantly
+            if abs(curr_y - prev_y) < 0.008:
+                stride_ts = ankle_y_series[i][0]
+                break
+
+        # Find hip firing: sustained hip X movement in second half
+        fire_ts = None
+        if stride_ts is not None:
+            for i in range(len(hip_series) - 2):
+                ts, hx = hip_series[i]
+                if ts <= stride_ts:
+                    continue
+                # Check if next 2 frames also show hip moving same direction
+                next_hx = hip_series[min(i + 2, len(hip_series) - 1)][1]
+                if abs(next_hx - hx) >= 0.015:
+                    fire_ts = ts
+                    break
+
+        if stride_ts is not None and fire_ts is not None:
+            gap_ms = fire_ts - stride_ts
+            # Score the gap
+            if gap_ms >= 300:
+                power_score = 85  # patient, well loaded
+            elif gap_ms >= 200:
+                power_score = 72  # solid
+            elif gap_ms >= 120:
+                power_score = 55  # a bit quick
+            elif gap_ms >= 60:
+                power_score = 42  # too quick — Darian's issue
             else:
-                power_score -= 10
-        mid = ankle_positions[len(ankle_positions) // 3 : 2 * len(ankle_positions) // 3]
-        if mid:
-            ratio = (
-                sum(
-                    1
-                    for p in mid
-                    if p["hip_x"] and p["wrist_x"] and p["hip_x"] > p["wrist_x"]
-                )
-                / len(mid)
-            )
-            if ratio >= 0.6:
-                power_score += 10
-            elif ratio < 0.3:
-                power_score -= 8
+                power_score = 30  # firing immediately — major issue
+
     power_score = max(0, min(100, power_score))
 
     # SLOT — back knee and elbow pressing forward
@@ -953,10 +976,15 @@ def analyze_with_claude(
 
     core_5_block = ""
     if core_5_scores:
-        core_5_block = (
-            "--- Core 5 mechanics (computed scores 0-100 from MoveNet keypoints) ---\n"
-            f"{json.dumps(core_5_scores, indent=2)}\n\n"
-        )
+        core_5_block = f"""COMPUTED CORE 5 SCORES (use these to anchor your evaluation):
+Stance: {core_5_scores['stance']}/100
+Load: {core_5_scores['load']}/100
+Slot: {core_5_scores['slot']}/100
+Balance at Contact: {core_5_scores['balance_at_contact']}/100
+
+NOTE: Power Position score is not included — evaluate it qualitatively from the keypoint data. Look for: stride foot gaining ground, hands back with bat tip at stride landing, hips slightly leading hands before firing.
+
+"""
 
     prev_block = ""
     if previous_swing:
