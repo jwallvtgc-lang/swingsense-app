@@ -73,6 +73,10 @@ export const colors = {
     dim: 'rgba(255,255,255,0.10)', // slightly more visible
     medium: 'rgba(255,255,255,0.15)', // hover states
     gold: '#f0a500', // active input border
+    /** Auth — Continue with Google subtle edge */
+    authGoogle: '#e0e0e0',
+    /** Auth — Log in with Email outline */
+    authEmail: '#333333',
   },
 
   /** DecisionFactors + hero ScoreRing — mechanic / overall score bands */
@@ -104,6 +108,8 @@ export const fontSizes = {
   listScore: 20, // SwingListItem ScoreRing number
   batSpeed: 48, // StatDisplay large number
   ctaLabel: 18, // PrimaryButton
+  /** Auth — Continue with Apple / Google / Email method buttons */
+  oauthMethodLabel: 17,
   actionCardTitle: 15, // ActionCard title
   sectionTitle: 14, // SectionCard header
   body: 13, // General body text
@@ -157,6 +163,10 @@ export const spacing = {
   deltaPillInnerGap: 4, // Gap between label and delta inside DeltaPill
   iconGap: 8, // Gap between icon and label in rows
   sectionGap: 20, // Vertical gap between major screen sections
+  /** Auth — OAuth / email method buttons */
+  authMethodButton: 52,
+  /** Auth — horizontal gap between icon column and label (matches spec 10px) */
+  oauthMethodGap: 10,
   inputGap: 8, // Gap between stacked inputs
   inputVertical: 14, // TextInput vertical padding
   inputHorizontal: 16, // TextInput horizontal padding

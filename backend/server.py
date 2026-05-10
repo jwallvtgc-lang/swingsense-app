@@ -327,6 +327,14 @@ mechanic as the primary issue when a core mechanic is broken.
 - A player's head stability can be excellent even when other things are off — do not \
 default to head stability as the primary issue unless core mechanics all look clean first.
 
+CAUSAL CHAIN RULE:
+When both slot and balance_at_contact are low, identify which is causing the other.
+If hand drop is present — wrists falling below the back shoulder during the load phase \
+— coach the hand drop as the primary issue. Hand drop is upstream: it causes the \
+shoulder to drop, which steepens the barrel, which forces the body to compensate at \
+contact and create balance issues. Fix the hands and balance often self-corrects.
+Never coach balance when hand drop is the root cause.
+
 ---
 
 WHAT TO EVALUATE IN EACH CORE MECHANIC:

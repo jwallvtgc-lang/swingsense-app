@@ -1,5 +1,4 @@
-import React, { useEffect } from 'react';
-import { View, ActivityIndicator } from 'react-native';
+import React, { useEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import {
@@ -20,15 +19,14 @@ import {
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider } from './src/contexts/AuthContext';
 import AppNavigator from './src/navigation/AppNavigator';
-import { logConfig, COLORS, SPLASH_BACKGROUND } from './src/config/constants';
+import { logConfig } from './src/config/constants';
+import { SPLASH_MIN_MS, SPLASH_T0_MS } from './src/splashClock';
 
 SplashScreen.preventAutoHideAsync();
 logConfig();
 
-/** Safety: hide native splash if fonts never resolve (avoid stuck splash) */
-const SPLASH_FALLBACK_MS = 8000;
-
 export default function App() {
+  const [nativeSplashDone, setNativeSplashDone] = useState(false);
   const [fontsLoaded] = useFonts({
     BebasNeue_400Regular,
     Righteous_400Regular,
@@ -40,29 +38,35 @@ export default function App() {
     Inter_600SemiBold,
   });
 
-  // Do NOT hide native splash here when fonts load — that dismisses it in ~100–300ms and
-  // defeats AppNavigator’s minimum display time. Hide only from AppNavigator after auth is ready.
+  // Expo hides the native splash as soon as any React view hierarchy mounts (see expo-splash-screen
+  // README). So: keep returning null until fonts are ready AND we've called hideAsync after a
+  // minimum display time. Do NOT mount SafeAreaProvider before then — that was replacing the PNG.
 
   useEffect(() => {
-    const t = setTimeout(() => {
-      SplashScreen.hideAsync().catch(() => {});
-    }, SPLASH_FALLBACK_MS);
-    return () => clearTimeout(t);
-  }, []);
+    if (!fontsLoaded) return;
 
-  if (!fontsLoaded) {
-    return (
-      <View
-        style={{
-          flex: 1,
-          backgroundColor: SPLASH_BACKGROUND,
-          justifyContent: 'center',
-          alignItems: 'center',
-        }}
-      >
-        <ActivityIndicator size="large" color={COLORS.accent} />
-      </View>
-    );
+    const elapsed = Date.now() - SPLASH_T0_MS;
+    const waitMs = Math.max(0, SPLASH_MIN_MS - elapsed);
+    let cancelled = false;
+
+    const t = setTimeout(async () => {
+      try {
+        await SplashScreen.hideAsync();
+      } catch (e) {
+        console.warn('[App] SplashScreen.hideAsync:', e);
+      } finally {
+        if (!cancelled) setNativeSplashDone(true);
+      }
+    }, waitMs);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
+  }, [fontsLoaded]);
+
+  if (!fontsLoaded || !nativeSplashDone) {
+    return null;
   }
 
   return (

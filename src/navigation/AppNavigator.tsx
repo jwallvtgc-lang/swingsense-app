@@ -1,9 +1,8 @@
-import React, { useEffect, useRef } from 'react';
+import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { View } from 'react-native';
-import * as ExpoSplashScreen from 'expo-splash-screen';
 
 import { useAuth } from '../contexts/AuthContext';
 import { rootNavigationRef } from './rootNavigationRef';
@@ -53,6 +52,8 @@ function AuthNavigator() {
     >
       <SplashAuthStack.Screen name="Splash" component={SplashScreen} />
       <SplashAuthStack.Screen name="Auth" component={AuthScreen} />
+      <SplashAuthStack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />
+      <SplashAuthStack.Screen name="TermsOfService" component={TermsOfServiceScreen} />
     </SplashAuthStack.Navigator>
   );
 }
@@ -91,8 +92,6 @@ function MainNavigator() {
   );
 }
 
-const SPLASH_MIN_MS = 1800; // Show native splash at least 1.8s
-
 /**
  * `session` from `useAuth()` is React state updated by `getSession` and
  * `onAuthStateChange` → `applyAuthSession` in `AuthContext`. Remounting these roots when
@@ -116,22 +115,6 @@ function SessionBranchNavigator() {
 
 export default function AppNavigator() {
   const { loading } = useAuth();
-  const appStartTime = useRef(Date.now());
-
-  useEffect(() => {
-    if (loading) return;
-    const elapsed = Date.now() - appStartTime.current;
-    const waitMs = Math.max(0, SPLASH_MIN_MS - elapsed);
-    const t = setTimeout(async () => {
-      try {
-        await ExpoSplashScreen.hideAsync();
-        console.log('[AppNavigator] Splash hidden');
-      } catch (e) {
-        console.warn('[AppNavigator] Splash hide error:', e);
-      }
-    }, waitMs);
-    return () => clearTimeout(t);
-  }, [loading]);
 
   if (loading) {
     // Same edge color as native splash so there’s no black flash before the first screen

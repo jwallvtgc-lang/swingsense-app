@@ -1,6 +1,8 @@
 export type AuthStackParamList = {
   Splash: undefined;
   Auth: undefined;
+  PrivacyPolicy: undefined;
+  TermsOfService: undefined;
 };
 
 /** Switches between auth, onboarding, and main app (session-driven). */
