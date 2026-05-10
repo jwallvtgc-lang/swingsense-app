@@ -13,6 +13,7 @@ import {
   View,
 } from 'react-native';
 import * as AppleAuthentication from 'expo-apple-authentication';
+import Constants, { ExecutionEnvironment } from 'expo-constants';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -83,7 +84,8 @@ function alertAuthError(error: Error, isSignIn: boolean) {
 type EmailFormMode = 'none' | 'login' | 'signup';
 
 export default function AuthScreen() {
-  const isExpoGo = typeof __DEV__ !== 'undefined' && __DEV__;
+  const isExpoGo =
+    Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
   const GoogleSignin = !isExpoGo
     ? require('@react-native-google-signin/google-signin').GoogleSignin
     : null;

@@ -9,12 +9,12 @@
     "newArchEnabled": false,
     "backgroundColor": "#050508",
     "splash": {
-      "image": "./assets/splash-full.png",
+      "image": "./assets/splash-new.png",
       "resizeMode": "contain",
-      "backgroundColor": "#050508"
+      "backgroundColor": "#000000"
     },
     "ios": {
-      "buildNumber": "23",
+      "buildNumber": "24",
       "supportsTablet": true,
       "backgroundColor": "#050508",
       "bundleIdentifier": "com.swingsense.app",
@@ -52,9 +52,9 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/splash-full.png",
+          "image": "./assets/splash-new.png",
           "resizeMode": "contain",
-          "backgroundColor": "#050508"
+          "backgroundColor": "#000000"
         }
       ],
       [
