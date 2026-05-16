@@ -65,6 +65,7 @@ export default function AnalyzeScreen() {
   const [tipsExpanded, setTipsExpanded] = useState(false);
   const [thumbUri, setThumbUri] = useState<string | null>(null);
   const [showFilmingModal, setShowFilmingModal] = useState(false);
+  const [cameraType, setCameraType] = useState<'front' | 'back'>('back');
 
   useFocusEffect(
     useCallback(() => {
@@ -139,7 +140,7 @@ export default function AnalyzeScreen() {
     setShowFilmingModal(false);
     await incrementFilmingInstructionsCount();
 
-    const uri = await recordVideo();
+    const uri = await recordVideo(cameraType);
     if (uri) {
       // Play audio cue when camera launches
       Speech.speak(
@@ -152,6 +153,10 @@ export default function AnalyzeScreen() {
 
   const handleCloseModal = () => {
     setShowFilmingModal(false);
+  };
+
+  const handleCameraTypeChange = (type: 'front' | 'back') => {
+    setCameraType(type);
   };
 
   return (
@@ -268,7 +273,7 @@ export default function AnalyzeScreen() {
               if (shouldShow) {
                 setShowFilmingModal(true);
               } else {
-                const uri = await recordVideo();
+                const uri = await recordVideo(cameraType);
                 if (uri) {
                   // Play audio cue
                   Speech.speak(
@@ -307,6 +312,8 @@ export default function AnalyzeScreen() {
 
       <FilmingInstructionsModal
         visible={showFilmingModal}
+        cameraType={cameraType}
+        onCameraTypeChange={handleCameraTypeChange}
         onStartRecording={handleStartRecording}
         onClose={handleCloseModal}
       />
@@ -423,7 +430,7 @@ const styles = StyleSheet.create({
   },
   cardChevron: {
     fontFamily: typography.body,
-    fontSize: 18,
+    fontSize: fontSizes.ctaLabel,
     color: colors.text.muted,
   },
   tipsCollapsed: {

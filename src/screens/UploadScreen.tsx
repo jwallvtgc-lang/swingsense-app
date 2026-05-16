@@ -39,6 +39,7 @@ export default function UploadScreen() {
   const { user, profile } = useAuth();
   const [selectedVideo, setSelectedVideo] = useState<string | null>(null);
   const [showFilmingModal, setShowFilmingModal] = useState(false);
+  const [cameraType, setCameraType] = useState<'front' | 'back'>('back');
 
   // Debug logging for modal state changes
   useEffect(() => {
@@ -174,6 +175,10 @@ export default function UploadScreen() {
     setShowFilmingModal(false);
   };
 
+  const handleCameraTypeChange = (type: 'front' | 'back') => {
+    setCameraType(type);
+  };
+
   const startAnalysis = () => {
     if (!selectedVideo) return;
     navigation.navigate('Processing', { videoUri: selectedVideo });
@@ -293,6 +298,8 @@ export default function UploadScreen() {
 
       <FilmingInstructionsModal
         visible={showFilmingModal}
+        cameraType={cameraType}
+        onCameraTypeChange={handleCameraTypeChange}
         onStartRecording={handleStartRecording}
         onClose={handleCloseModal}
       />

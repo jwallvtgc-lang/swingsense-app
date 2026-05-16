@@ -91,7 +91,7 @@ export function useVideoPicker() {
     return tryPick();
   }, [checkQuota]);
 
-  const recordVideo = useCallback(async (): Promise<string | null> => {
+  const recordVideo = useCallback(async (cameraType: 'front' | 'back' = 'back'): Promise<string | null> => {
     try {
       const ok = await checkQuota();
       if (!ok) return null;
@@ -107,6 +107,7 @@ export function useVideoPicker() {
         quality: 1,
         videoMaxDuration: 30,
         videoQuality: 1,
+        cameraType: cameraType === 'front' ? ImagePicker.CameraType.front : ImagePicker.CameraType.back,
       });
 
       if (!result.canceled && result.assets[0]) {

@@ -20,6 +20,8 @@ import {
 
 interface FilmingInstructionsModalProps {
   visible: boolean;
+  cameraType: 'front' | 'back';
+  onCameraTypeChange: (type: 'front' | 'back') => void;
   onStartRecording: () => void;
   onClose: () => void;
 }
@@ -41,6 +43,8 @@ const INSTRUCTIONS = [
 
 export default function FilmingInstructionsModal({
   visible,
+  cameraType,
+  onCameraTypeChange,
   onStartRecording,
   onClose,
 }: FilmingInstructionsModalProps) {
@@ -57,10 +61,19 @@ export default function FilmingInstructionsModal({
         <View style={styles.modal}>
           <View style={styles.header}>
             <Text style={styles.title}>Recording Tips</Text>
-            <Pressable onPress={onClose} style={styles.closeButton}>
-              <Ionicons name="close" size={24} color={COLORS.textMuted} />
-            </Pressable>
+            <View style={styles.headerControls}>
+              <Pressable onPress={() => onCameraTypeChange(cameraType === 'front' ? 'back' : 'front')} style={styles.flipButton}>
+                <Ionicons name="camera-reverse-outline" size={20} color={colors.text.primary} />
+              </Pressable>
+              <Pressable onPress={onClose} style={styles.closeButton}>
+                <Ionicons name="close" size={24} color={COLORS.textMuted} />
+              </Pressable>
+            </View>
           </View>
+
+          <Text style={styles.cameraTypeText}>
+            Recording with {cameraType === 'front' ? 'Front' : 'Back'} Camera
+          </Text>
 
           <View style={styles.instructions}>
             {INSTRUCTIONS.map((instruction, index) => (
@@ -98,7 +111,7 @@ export default function FilmingInstructionsModal({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    backgroundColor: colors.bg.authGradientBottom,
     alignItems: 'center',
     justifyContent: 'center',
     padding: spacing.screen,
@@ -124,8 +137,29 @@ const styles = StyleSheet.create({
     fontWeight: fontWeights.medium,
     color: colors.text.primary,
   },
+  headerControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.iconGap,
+  },
+  flipButton: {
+    padding: spacing.iconGap,
+    borderRadius: radius.badge,
+    backgroundColor: colors.bg.goldDim,
+    borderWidth: 1,
+    borderColor: colors.text.gold,
+  },
   closeButton: {
     padding: spacing.iconGap,
+  },
+  cameraTypeText: {
+    fontSize: fontSizes.caption,
+    fontFamily: typography.body,
+    color: colors.text.secondary,
+    textAlign: 'center',
+    marginBottom: spacing.cardGap,
+    textTransform: 'uppercase',
+    letterSpacing: letterSpacing.tight,
   },
   instructions: {
     gap: spacing.cardGap,
