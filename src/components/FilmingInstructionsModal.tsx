@@ -44,6 +44,8 @@ export default function FilmingInstructionsModal({
   onStartRecording,
   onClose,
 }: FilmingInstructionsModalProps) {
+  console.log(`[FilmingInstructionsModal] Rendered with visible=${visible}`);
+
   return (
     <Modal
       visible={visible}

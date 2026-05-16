@@ -21,7 +21,7 @@ import BottomTabBar from '../components/BottomTabBar';
 import { useMainTabBarNav } from '../navigation/useMainTabBarNav';
 import { bottomTab } from '../../design-system/tokens';
 import FilmingInstructionsModal from '../components/FilmingInstructionsModal';
-import { shouldShowFilmingInstructions, incrementFilmingInstructionsCount } from '../utils/preferences';
+import { shouldShowFilmingInstructions, incrementFilmingInstructionsCount, resetFilmingInstructionsCount } from '../utils/preferences';
 
 type Nav = NativeStackNavigationProp<MainStackParamList, 'Upload'>;
 
@@ -40,10 +40,24 @@ export default function UploadScreen() {
   const [selectedVideo, setSelectedVideo] = useState<string | null>(null);
   const [showFilmingModal, setShowFilmingModal] = useState(false);
 
+  // Debug logging for modal state changes
+  useEffect(() => {
+    console.log(`[UploadScreen] showFilmingModal state changed to: ${showFilmingModal}`);
+  }, [showFilmingModal]);
+
   const scrollBottomPad = useMemo(
     () => bottomTab.height + insets.bottom + SPACING.xl,
     [insets.bottom]
   );
+
+  // Reset count for testing - remove in production
+  useEffect(() => {
+    const resetCount = async () => {
+      await resetFilmingInstructionsCount();
+      console.log('[UploadScreen] Reset filming instructions count for testing');
+    };
+    resetCount();
+  }, []);
 
 
   const checkQuota = async (): Promise<boolean> => {
@@ -134,7 +148,11 @@ export default function UploadScreen() {
     const shouldShow = await shouldShowFilmingInstructions();
     console.log('[UploadScreen] shouldShowFilmingInstructions:', shouldShow);
 
-    if (shouldShow) {
+    // Force show modal for testing - remove this line in production
+    const forceShow = true;
+    console.log('[UploadScreen] Force showing modal for testing');
+
+    if (shouldShow || forceShow) {
       console.log('[UploadScreen] Showing filming modal');
       setShowFilmingModal(true);
     } else {

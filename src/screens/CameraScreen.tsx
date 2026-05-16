@@ -45,19 +45,27 @@ export default function CameraScreen() {
     // Play audio cue once per session
     console.log(`[CameraScreen] Audio cue check: permission=${permission?.granted}, hasPlayedAudioCue=${hasPlayedAudioCue}`);
     if (permission?.granted && !hasPlayedAudioCue) {
-      console.log('[CameraScreen] Starting audio cue in 1 second...');
-      setTimeout(() => {
-        console.log('[CameraScreen] Playing audio cue');
-        Speech.speak(
-          'Make sure your full body is visible from head to toe, then record your swing.',
-          {
-            language: 'en',
-            pitch: 1,
-            rate: 0.9,
-          }
-        );
-        setHasPlayedAudioCue(true);
-      }, 1000);
+      console.log('[CameraScreen] Starting audio cue in 2 seconds...');
+      const timeoutId = setTimeout(async () => {
+        try {
+          console.log('[CameraScreen] Playing audio cue');
+          await Speech.speak(
+            'Make sure your full body is visible from head to toe, then record your swing.',
+            {
+              language: 'en',
+              pitch: 1.0,
+              rate: 0.8,
+            }
+          );
+          console.log('[CameraScreen] Audio cue completed');
+          setHasPlayedAudioCue(true);
+        } catch (error) {
+          console.error('[CameraScreen] Audio cue failed:', error);
+          setHasPlayedAudioCue(true); // Set to true anyway to avoid infinite retries
+        }
+      }, 2000);
+
+      return () => clearTimeout(timeoutId);
     }
   }, [permission?.granted, hasPlayedAudioCue]);
 
