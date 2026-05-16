@@ -1,9 +1,12 @@
 import { useCallback } from 'react';
 import { Alert, Platform } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
+import Constants, { ExecutionEnvironment } from 'expo-constants';
 
 import { useAuth } from '../contexts/AuthContext';
 import { canUserAnalyze } from '../services/subscription';
+
+const isExpoGo = Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
 
 const ICLOUD_ERROR_MSG =
   'This video may be in iCloud and not fully downloaded. Try again (ensure Wi‑Fi), or use a video saved on this device.';
@@ -100,6 +103,15 @@ export function useVideoPicker() {
       const permission = await ImagePicker.requestCameraPermissionsAsync();
       if (!permission.granted) {
         Alert.alert('Permission needed', 'Please allow camera access to record.');
+        return null;
+      }
+
+      if (isExpoGo) {
+        Alert.alert(
+          'Camera Not Available',
+          'Camera recording requires a production build. Please use the TestFlight version to test recording.',
+          [{ text: 'OK' }]
+        );
         return null;
       }
 
