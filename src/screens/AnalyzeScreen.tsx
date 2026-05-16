@@ -66,6 +66,7 @@ export default function AnalyzeScreen() {
   const [thumbUri, setThumbUri] = useState<string | null>(null);
   const [showFilmingModal, setShowFilmingModal] = useState(false);
   const [cameraType, setCameraType] = useState<'front' | 'back'>('front');
+  const [isRecording, setIsRecording] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -137,27 +138,45 @@ export default function AnalyzeScreen() {
   );
 
   const handleStartRecording = async () => {
-    console.log('[AI-67] handleStartRecording called');
+    console.log('[AI-67] handleStartRecording called, isRecording:', isRecording);
+
+    // Prevent multiple calls
+    if (isRecording) {
+      console.log('[AI-67] already recording, ignoring call');
+      return;
+    }
+
+    setIsRecording(true);
     setShowFilmingModal(false);
-    console.log('[AI-67] modal closed');
-    await incrementFilmingInstructionsCount();
-    console.log('[AI-67] count incremented');
-    Speech.speak('Make sure your full body is visible from head to toe, then record your swing.', {
-      language: 'en-US',
-      pitch: 0.8,
-      rate: 0.85,
-      voice: 'com.apple.ttsbundle.Alex-compact',
-    });
-    console.log('[AI-67] speech triggered');
+    console.log('[AI-67] modal closed, isRecording set to true');
+
     try {
+      await incrementFilmingInstructionsCount();
+      console.log('[AI-67] count incremented');
+
+      Speech.speak('Make sure your full body is visible from head to toe, then record your swing.', {
+        language: 'en-US',
+        pitch: 0.8,
+        rate: 0.85,
+        voice: 'com.apple.ttsbundle.Alex-compact',
+      });
+      console.log('[AI-67] speech triggered');
+
       console.log('[AI-67] calling recordVideo with cameraType:', cameraType);
       const uri = await recordVideo(cameraType);
       console.log('[AI-67] recordVideo returned uri:', uri);
+
       if (uri) {
+        console.log('[AI-67] navigating to Processing');
         navigation.navigate('Processing', { videoUri: uri, frontFacing: cameraType === 'front' });
+      } else {
+        console.log('[AI-67] no uri returned, recording failed or canceled');
       }
     } catch (e) {
-      console.log('[AI-67] recordVideo error:', e);
+      console.log('[AI-67] handleStartRecording error:', e);
+    } finally {
+      setIsRecording(false);
+      console.log('[AI-67] isRecording reset to false');
     }
   };
 
@@ -279,7 +298,13 @@ export default function AnalyzeScreen() {
             title="Record Now"
             subtitle="Film your swing with front or back camera"
             onPress={() => {
-              setShowFilmingModal(true);
+              console.log('[AI-67] Record Now button pressed, showFilmingModal:', showFilmingModal, 'isRecording:', isRecording);
+              if (!isRecording) {
+                setShowFilmingModal(true);
+                console.log('[AI-67] showFilmingModal set to true');
+              } else {
+                console.log('[AI-67] Record Now ignored - already recording');
+              }
             }}
           />
         </View>

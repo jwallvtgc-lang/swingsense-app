@@ -103,17 +103,40 @@ export function useVideoPicker() {
         return null;
       }
 
-      const result = await ImagePicker.launchCameraAsync({
-        mediaTypes: ['videos'],
-        quality: 1,
-        videoMaxDuration: 8,
-      });
+      try {
+        console.log('[AI-67] launching camera...');
+        const result = await ImagePicker.launchCameraAsync({
+          mediaTypes: ['videos'],
+          quality: 1,
+          videoMaxDuration: 8,
+        });
+        console.log('[AI-67] camera result:', result.canceled ? 'canceled' : 'success');
 
-      if (!result.canceled && result.assets[0]) {
-        const asset = result.assets[0];
-        return asset.uri;
+        if (!result.canceled && result.assets[0]) {
+          const asset = result.assets[0];
+          console.log('[AI-67] video recorded successfully:', asset.uri);
+          return asset.uri;
+        }
+        return null;
+      } catch (cameraErr) {
+        console.error('[useVideoPicker] camera launch error:', cameraErr);
+        const errorMsg = cameraErr instanceof Error ? cameraErr.message : String(cameraErr);
+
+        if (errorMsg.includes('expo-go') || errorMsg.includes('ExpoGo')) {
+          Alert.alert(
+            'Camera Error',
+            'Camera recording has issues in Expo Go. For full functionality, please use a development build or TestFlight version.',
+            [{ text: 'OK' }]
+          );
+        } else {
+          Alert.alert(
+            'Camera Error',
+            `Could not open camera: ${errorMsg}. Please check camera permissions and try again.`,
+            [{ text: 'OK' }]
+          );
+        }
+        return null;
       }
-      return null;
     } catch (err) {
       console.error('[useVideoPicker] recordVideo error:', err);
       Alert.alert('Error', 'Could not open camera. Please try again.');
