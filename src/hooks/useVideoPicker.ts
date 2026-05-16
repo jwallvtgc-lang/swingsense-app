@@ -106,7 +106,7 @@ export function useVideoPicker() {
       const result = await ImagePicker.launchCameraAsync({
         mediaTypes: ['videos'],
         quality: 1,
-        videoMaxDuration: 30,
+        videoMaxDuration: 8,
       });
 
       if (!result.canceled && result.assets[0]) {
