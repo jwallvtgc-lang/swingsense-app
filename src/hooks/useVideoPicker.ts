@@ -107,8 +107,6 @@ export function useVideoPicker() {
         mediaTypes: ['videos'],
         quality: 1,
         videoMaxDuration: 30,
-        videoQuality: 1,
-        cameraType: cameraType === 'front' ? ImagePicker.CameraType.front : ImagePicker.CameraType.back,
       });
 
       if (!result.canceled && result.assets[0]) {
