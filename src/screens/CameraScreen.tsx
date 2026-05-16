@@ -43,8 +43,11 @@ export default function CameraScreen() {
 
   useEffect(() => {
     // Play audio cue once per session
+    console.log(`[CameraScreen] Audio cue check: permission=${permission?.granted}, hasPlayedAudioCue=${hasPlayedAudioCue}`);
     if (permission?.granted && !hasPlayedAudioCue) {
+      console.log('[CameraScreen] Starting audio cue in 1 second...');
       setTimeout(() => {
+        console.log('[CameraScreen] Playing audio cue');
         Speech.speak(
           'Make sure your full body is visible from head to toe, then record your swing.',
           {

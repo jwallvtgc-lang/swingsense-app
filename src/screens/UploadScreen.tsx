@@ -39,20 +39,12 @@ export default function UploadScreen() {
   const { user, profile } = useAuth();
   const [selectedVideo, setSelectedVideo] = useState<string | null>(null);
   const [showFilmingModal, setShowFilmingModal] = useState(false);
-  const [shouldShowInstructions, setShouldShowInstructions] = useState(false);
 
   const scrollBottomPad = useMemo(
     () => bottomTab.height + insets.bottom + SPACING.xl,
     [insets.bottom]
   );
 
-  useEffect(() => {
-    const checkShouldShowInstructions = async () => {
-      const shouldShow = await shouldShowFilmingInstructions();
-      setShouldShowInstructions(shouldShow);
-    };
-    checkShouldShowInstructions();
-  }, []);
 
   const checkQuota = async (): Promise<boolean> => {
     if (!user) {
@@ -139,20 +131,28 @@ export default function UploadScreen() {
     const ok = await checkQuota();
     if (!ok) return;
 
-    if (shouldShowInstructions) {
+    const shouldShow = await shouldShowFilmingInstructions();
+    console.log('[UploadScreen] shouldShowFilmingInstructions:', shouldShow);
+
+    if (shouldShow) {
+      console.log('[UploadScreen] Showing filming modal');
       setShowFilmingModal(true);
     } else {
+      console.log('[UploadScreen] Navigating to Camera directly');
       navigation.navigate('Camera');
     }
   };
 
   const handleStartRecording = async () => {
+    console.log('[UploadScreen] handleStartRecording called');
     setShowFilmingModal(false);
     await incrementFilmingInstructionsCount();
+    console.log('[UploadScreen] Navigating to Camera after modal');
     navigation.navigate('Camera');
   };
 
   const handleCloseModal = () => {
+    console.log('[UploadScreen] handleCloseModal called');
     setShowFilmingModal(false);
   };
 
