@@ -53,7 +53,7 @@ export default function ProcessingScreen() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
   const { user, profile } = useAuth();
-  const { videoUri } = route.params;
+  const { videoUri, frontFacing } = route.params;
 
   const [currentStep, setCurrentStep] = useState(0);
   const [statusMessage, setStatusMessage] = useState('Preparing...');
@@ -101,7 +101,8 @@ export default function ProcessingScreen() {
             animateProgress(1);
           }
         },
-        profile
+        profile,
+        frontFacing
       );
 
       if (pipelineError) {

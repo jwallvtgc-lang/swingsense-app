@@ -35,6 +35,7 @@
     "expo-font": "~14.0.11",
     "expo-image-picker": "~17.0.10",
     "expo-linear-gradient": "~14.1.5",
+    "expo-speech": "^55.0.14",
     "expo-splash-screen": "~31.0.13",
     "expo-status-bar": "~3.0.9",
     "expo-updates": "~29.0.16",

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -20,6 +20,8 @@ import type { MainStackParamList } from '../navigation/types';
 import BottomTabBar from '../components/BottomTabBar';
 import { useMainTabBarNav } from '../navigation/useMainTabBarNav';
 import { bottomTab } from '../../design-system/tokens';
+import FilmingInstructionsModal from '../components/FilmingInstructionsModal';
+import { shouldShowFilmingInstructions, incrementFilmingInstructionsCount } from '../utils/preferences';
 
 type Nav = NativeStackNavigationProp<MainStackParamList, 'Upload'>;
 
@@ -36,11 +38,21 @@ export default function UploadScreen() {
   const navigateMainTab = useMainTabBarNav();
   const { user, profile } = useAuth();
   const [selectedVideo, setSelectedVideo] = useState<string | null>(null);
+  const [showFilmingModal, setShowFilmingModal] = useState(false);
+  const [shouldShowInstructions, setShouldShowInstructions] = useState(false);
 
   const scrollBottomPad = useMemo(
     () => bottomTab.height + insets.bottom + SPACING.xl,
     [insets.bottom]
   );
+
+  useEffect(() => {
+    const checkShouldShowInstructions = async () => {
+      const shouldShow = await shouldShowFilmingInstructions();
+      setShouldShowInstructions(shouldShow);
+    };
+    checkShouldShowInstructions();
+  }, []);
 
   const checkQuota = async (): Promise<boolean> => {
     if (!user) {
@@ -124,31 +136,24 @@ export default function UploadScreen() {
   };
 
   const recordVideo = async () => {
-    try {
-      const ok = await checkQuota();
-      if (!ok) return;
+    const ok = await checkQuota();
+    if (!ok) return;
 
-      const permission = await ImagePicker.requestCameraPermissionsAsync();
-      if (!permission.granted) {
-        Alert.alert('Permission needed', 'Please allow camera access to record.');
-        return;
-      }
-
-      const result = await ImagePicker.launchCameraAsync({
-        mediaTypes: ['videos'],
-        quality: 1,
-        videoMaxDuration: 30,
-        videoQuality: 1,
-      });
-
-      if (!result.canceled && result.assets[0]) {
-        const asset = result.assets[0];
-        setSelectedVideo(asset.uri);
-      }
-    } catch (err) {
-      console.error('[UploadScreen] recordVideo error:', err);
-      Alert.alert('Error', 'Could not open camera. Please try again.');
+    if (shouldShowInstructions) {
+      setShowFilmingModal(true);
+    } else {
+      navigation.navigate('Camera');
     }
+  };
+
+  const handleStartRecording = async () => {
+    setShowFilmingModal(false);
+    await incrementFilmingInstructionsCount();
+    navigation.navigate('Camera');
+  };
+
+  const handleCloseModal = () => {
+    setShowFilmingModal(false);
   };
 
   const startAnalysis = () => {
@@ -267,6 +272,12 @@ export default function UploadScreen() {
         </View>
       </ScrollView>
       <BottomTabBar activeTab="analyze" onTabPress={navigateMainTab} />
+
+      <FilmingInstructionsModal
+        visible={showFilmingModal}
+        onStartRecording={handleStartRecording}
+        onClose={handleCloseModal}
+      />
     </View>
   );
 }

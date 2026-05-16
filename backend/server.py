@@ -1133,6 +1133,7 @@ class AnalyzeRequest(BaseModel):
     user_id: str
     player_profile: dict | None = None
     previous_swing: PreviousSwingPayload | None = None
+    front_facing: bool = False
 
 
 class DrillFollowupRequest(BaseModel):
@@ -1274,6 +1275,13 @@ async def analyze(request: AnalyzeRequest):
         _log(f"[Analyze] total_frames={total_frames_check} using sample_rate={sample_rate}")
         keypoint_data = extract_keypoints(tmp_path, sample_rate=sample_rate)
         _log(f"[Analyze] Extracted {len(keypoint_data['frames'])} frames")
+
+        # Mirror X coordinates for front-facing camera
+        if request.front_facing:
+            _log("[Analyze] Mirroring X coordinates for front-facing camera")
+            for frame in keypoint_data["frames"]:
+                for keypoint in frame["keypoints"]:
+                    keypoint[0] = 1.0 - keypoint[0]  # Mirror X coordinate
         if len(keypoint_data["frames"]) < 30:
             _log(
                 "[Analyze] WARNING: Low frame count — metrics will be unreliable. Video may be too short or wrong format."

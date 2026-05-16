@@ -306,7 +306,8 @@ export async function startAnalysisPipeline(
   userId: string,
   videoUri: string,
   onStatusChange?: (status: string, message: string) => void,
-  profile?: Profile | null
+  profile?: Profile | null,
+  frontFacing?: boolean
 ): Promise<AnalysisPipelineResult> {
   try {
     onStatusChange?.('uploading', 'Creating analysis record...');
@@ -386,6 +387,7 @@ export async function startAnalysisPipeline(
               }
             : { age: 15 },
           ...(previous_swing ? { previous_swing } : {}),
+          ...(frontFacing ? { front_facing: true } : {}),
         }),
         signal: controller.signal,
       });
