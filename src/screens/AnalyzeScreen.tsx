@@ -154,6 +154,9 @@ export default function AnalyzeScreen() {
       await incrementFilmingInstructionsCount();
       console.log('[AI-67] count incremented');
 
+      // Give modal time to close before speech
+      await new Promise(resolve => setTimeout(resolve, 300));
+
       Speech.speak('Make sure your full body is visible from head to toe, then record your swing.', {
         language: 'en-US',
         pitch: 0.8,

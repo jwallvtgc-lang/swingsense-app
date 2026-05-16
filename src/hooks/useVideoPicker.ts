@@ -121,6 +121,7 @@ export function useVideoPicker() {
           mediaTypes: ['videos'],
           quality: 1,
           videoMaxDuration: 8,
+          cameraType: cameraType === 'front' ? ImagePicker.CameraType.front : ImagePicker.CameraType.back,
         });
         console.log('[AI-67] camera result:', result.canceled ? 'canceled' : 'success');
 
