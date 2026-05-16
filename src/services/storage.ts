@@ -35,7 +35,7 @@ export async function uploadSwingVideo(
     });
 
     if (uploadResult.status < 200 || uploadResult.status >= 300) {
-      return { url: '', error: new Error(`Upload failed (${uploadResult.status}): ${uploadResult.body}`) };
+      return { url: '', error: new Error('Upload failed — check your connection and try again.') };
     }
 
     const { data: signedData, error: signError } = await supabase.storage
@@ -54,7 +54,7 @@ export async function uploadSwingVideo(
 
     return { url: signedData.signedUrl, error: null };
   } catch (err) {
-    return { url: '', error: err as Error };
+    return { url: '', error: new Error('Upload failed — check your connection and try again.') };
   }
 }
 
