@@ -2,6 +2,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { displayNameFromUser } from '../utils/displayName';
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import * as Speech from 'expo-speech';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { CompositeNavigationProp } from '@react-navigation/native';
@@ -16,6 +17,7 @@ import BottomTabBar from '../components/BottomTabBar';
 import SectionCard from '../components/SectionCard';
 import TipRow from '../components/TipRow';
 import TipsList from '../components/TipsList';
+import FilmingInstructionsModal from '../components/FilmingInstructionsModal';
 import { supabase } from '../config/supabase';
 import { useVideoPicker } from '../hooks/useVideoPicker';
 import type { MainStackParamList, TabParamList } from '../navigation/types';
@@ -38,6 +40,7 @@ import {
   getLastCompletedAnalysis,
 } from '../services/analysis';
 import type { SwingAnalysis } from '../types';
+import { shouldShowFilmingInstructions, incrementFilmingInstructionsCount } from '../utils/preferences';
 
 type AnalyzeNav = CompositeNavigationProp<
   BottomTabNavigationProp<TabParamList, 'UploadTab'>,
@@ -61,6 +64,7 @@ export default function AnalyzeScreen() {
   const [streak, setStreak] = useState(0);
   const [tipsExpanded, setTipsExpanded] = useState(false);
   const [thumbUri, setThumbUri] = useState<string | null>(null);
+  const [showFilmingModal, setShowFilmingModal] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -130,6 +134,25 @@ export default function AnalyzeScreen() {
     () => spacing.sectionGap + bottomTab.height + insets.bottom,
     [insets.bottom]
   );
+
+  const handleStartRecording = async () => {
+    setShowFilmingModal(false);
+    await incrementFilmingInstructionsCount();
+
+    const uri = await recordVideo();
+    if (uri) {
+      // Play audio cue when camera launches
+      Speech.speak(
+        'Make sure your full body is visible from head to toe, then record your swing.',
+        { language: 'en', pitch: 1.0, rate: 0.8 }
+      );
+      navigation.navigate('Processing', { videoUri: uri });
+    }
+  };
+
+  const handleCloseModal = () => {
+    setShowFilmingModal(false);
+  };
 
   return (
     <View style={styles.wrapper}>
@@ -241,8 +264,20 @@ export default function AnalyzeScreen() {
             title="Record Now"
             subtitle="Film your swing with front or back camera"
             onPress={async () => {
-              const uri = await recordVideo();
-              if (uri) navigation.navigate('Processing', { videoUri: uri });
+              const shouldShow = await shouldShowFilmingInstructions();
+              if (shouldShow) {
+                setShowFilmingModal(true);
+              } else {
+                const uri = await recordVideo();
+                if (uri) {
+                  // Play audio cue
+                  Speech.speak(
+                    'Make sure your full body is visible from head to toe, then record your swing.',
+                    { language: 'en', pitch: 1.0, rate: 0.8 }
+                  );
+                  navigation.navigate('Processing', { videoUri: uri });
+                }
+              }
             }}
           />
         </View>
@@ -269,6 +304,12 @@ export default function AnalyzeScreen() {
         ) : null}
       </ScrollView>
       <BottomTabBar activeTab="analyze" onTabPress={navigateMainTab} />
+
+      <FilmingInstructionsModal
+        visible={showFilmingModal}
+        onStartRecording={handleStartRecording}
+        onClose={handleCloseModal}
+      />
     </View>
   );
 }
