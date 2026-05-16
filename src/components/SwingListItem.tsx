@@ -19,6 +19,7 @@ export type SwingListItemProps = {
   trend: 'better' | 'same' | 'worse';
   insight: string;
   topDelta?: { label: string; direction: 'up' | 'down' | 'flat' } | null;
+  isPersonalBest?: boolean;
   onPress: () => void;
   onDelete: () => void;
 };
@@ -29,6 +30,7 @@ export default function SwingListItem({
   trend,
   insight,
   topDelta,
+  isPersonalBest = false,
   onPress,
   onDelete,
 }: SwingListItemProps) {
@@ -37,6 +39,11 @@ export default function SwingListItem({
       onPress={onPress}
       style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
     >
+      {isPersonalBest && (
+        <Text style={styles.trophyBadge} maxFontSizeMultiplier={1.0}>
+          🏆
+        </Text>
+      )}
       <ScoreRing score={score} size="sm" opacity={0.7} showLabel={false} />
       <View style={styles.middle}>
         <View style={styles.topRow}>
@@ -131,5 +138,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.pillGap,
+  },
+  trophyBadge: {
+    position: 'absolute',
+    top: spacing.pillGap,
+    right: spacing.pillGap,
+    fontSize: fontSizes.body,
+    zIndex: 1,
   },
 });

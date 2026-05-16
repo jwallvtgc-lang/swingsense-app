@@ -280,6 +280,23 @@ export default function HistoryScreen() {
     return map;
   }, [swings]);
 
+  const personalBestId = useMemo(() => {
+    if (swings.length === 0) return null;
+
+    let bestSwing = swings[0];
+    let bestScore = bestSwing.coaching_output?.similarity_scores?.overall ?? bestSwing.similarity_score ?? 0;
+
+    for (const swing of swings) {
+      const score = swing.coaching_output?.similarity_scores?.overall ?? swing.similarity_score ?? 0;
+      if (score > bestScore) {
+        bestScore = score;
+        bestSwing = swing;
+      }
+    }
+
+    return bestSwing.id;
+  }, [swings]);
+
   const handleDelete = useCallback(
     async (analysisId: string) => {
       const userId = user?.id;
@@ -306,12 +323,13 @@ export default function HistoryScreen() {
           trend={trendFromVsLastSwing(item.coaching_output?.vs_last_swing)}
           insight={swingInsight(item)}
           topDelta={topDeltaFromAnalysis(item, previousItem)}
+          isPersonalBest={item.id === personalBestId}
           onPress={() => navigation.navigate('Analysis', { analysisId: item.id })}
           onDelete={() => void handleDelete(item.id)}
         />
       );
     },
-    [navigation, handleDelete, swings, swingIndexMap]
+    [navigation, handleDelete, swings, swingIndexMap, personalBestId]
   );
 
   const renderSectionHeader = useCallback(
