@@ -28,15 +28,15 @@ interface FilmingInstructionsModalProps {
 const INSTRUCTIONS = [
   {
     icon: 'camera-outline' as const,
-    text: 'Film from the side',
+    text: 'Prop your phone against something stable',
   },
   {
     icon: 'body-outline' as const,
-    text: 'Back up until your full body is visible head to toe',
+    text: 'Step back until your full body is visible',
   },
   {
     icon: 'baseball-outline' as const,
-    text: 'Take a full swing',
+    text: 'Take a full swing when ready',
   },
 ];
 

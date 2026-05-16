@@ -65,7 +65,7 @@ export default function AnalyzeScreen() {
   const [tipsExpanded, setTipsExpanded] = useState(false);
   const [thumbUri, setThumbUri] = useState<string | null>(null);
   const [showFilmingModal, setShowFilmingModal] = useState(false);
-  const [cameraType, setCameraType] = useState<'front' | 'back'>('back');
+  const [cameraType, setCameraType] = useState<'front' | 'back'>('front');
 
   useFocusEffect(
     useCallback(() => {
@@ -148,7 +148,7 @@ export default function AnalyzeScreen() {
 
     const uri = await recordVideo(cameraType);
     if (uri) {
-      navigation.navigate('Processing', { videoUri: uri });
+      navigation.navigate('Processing', { videoUri: uri, frontFacing: cameraType === 'front' });
     }
   };
 

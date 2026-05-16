@@ -39,7 +39,7 @@ export default function UploadScreen() {
   const { user, profile } = useAuth();
   const [selectedVideo, setSelectedVideo] = useState<string | null>(null);
   const [showFilmingModal, setShowFilmingModal] = useState(false);
-  const [cameraType, setCameraType] = useState<'front' | 'back'>('back');
+  const [cameraType, setCameraType] = useState<'front' | 'back'>('front');
 
   // Debug logging for modal state changes
   useEffect(() => {
