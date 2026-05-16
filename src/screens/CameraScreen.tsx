@@ -52,9 +52,10 @@ export default function CameraScreen() {
           await Speech.speak(
             'Make sure your full body is visible from head to toe, then record your swing.',
             {
-              language: 'en',
-              pitch: 1.0,
-              rate: 0.8,
+              language: 'en-US',
+              pitch: 0.8,
+              rate: 0.85,
+              voice: 'com.apple.ttsbundle.Alex-compact',
             }
           );
           console.log('[CameraScreen] Audio cue completed');

@@ -142,7 +142,12 @@ export default function AnalyzeScreen() {
     console.log('[AI-67] modal closed');
     await incrementFilmingInstructionsCount();
     console.log('[AI-67] count incremented');
-    Speech.speak('Make sure your full body is visible from head to toe, then record your swing.', { language: 'en', pitch: 1.0, rate: 0.8 });
+    Speech.speak('Make sure your full body is visible from head to toe, then record your swing.', {
+      language: 'en-US',
+      pitch: 0.8,
+      rate: 0.85,
+      voice: 'com.apple.ttsbundle.Alex-compact',
+    });
     console.log('[AI-67] speech triggered');
     try {
       console.log('[AI-67] calling recordVideo with cameraType:', cameraType);
