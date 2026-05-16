@@ -342,7 +342,8 @@ export async function startAnalysisPipeline(
     const { url: videoUrl, error: uploadError } = await uploadSwingVideo(
       userId,
       videoUri,
-      analysisId
+      analysisId,
+      (message) => onStatusChange?.('uploading', message)
     );
 
     if (uploadError) {
