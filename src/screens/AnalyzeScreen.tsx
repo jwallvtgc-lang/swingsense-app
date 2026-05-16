@@ -140,13 +140,14 @@ export default function AnalyzeScreen() {
     setShowFilmingModal(false);
     await incrementFilmingInstructionsCount();
 
+    // Play audio cue before camera launches
+    Speech.speak(
+      'Make sure your full body is visible from head to toe, then record your swing.',
+      { language: 'en', pitch: 1.0, rate: 0.8 }
+    );
+
     const uri = await recordVideo(cameraType);
     if (uri) {
-      // Play audio cue when camera launches
-      Speech.speak(
-        'Make sure your full body is visible from head to toe, then record your swing.',
-        { language: 'en', pitch: 1.0, rate: 0.8 }
-      );
       navigation.navigate('Processing', { videoUri: uri });
     }
   };
@@ -273,13 +274,14 @@ export default function AnalyzeScreen() {
               if (shouldShow) {
                 setShowFilmingModal(true);
               } else {
+                // Play audio cue before camera launches
+                Speech.speak(
+                  'Make sure your full body is visible from head to toe, then record your swing.',
+                  { language: 'en', pitch: 1.0, rate: 0.8 }
+                );
+
                 const uri = await recordVideo(cameraType);
                 if (uri) {
-                  // Play audio cue
-                  Speech.speak(
-                    'Make sure your full body is visible from head to toe, then record your swing.',
-                    { language: 'en', pitch: 1.0, rate: 0.8 }
-                  );
                   navigation.navigate('Processing', { videoUri: uri });
                 }
               }

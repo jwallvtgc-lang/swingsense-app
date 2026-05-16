@@ -7,7 +7,6 @@ import {
   StyleSheet,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, SPACING, FONT_SIZE, FONTS } from '../config/constants';
 import {
   colors,
   fontSizes,
@@ -66,7 +65,7 @@ export default function FilmingInstructionsModal({
                 <Ionicons name="camera-reverse-outline" size={20} color={colors.text.primary} />
               </Pressable>
               <Pressable onPress={onClose} style={styles.closeButton}>
-                <Ionicons name="close" size={24} color={COLORS.textMuted} />
+                <Ionicons name="close" size={24} color={colors.text.muted} />
               </Pressable>
             </View>
           </View>
@@ -82,7 +81,7 @@ export default function FilmingInstructionsModal({
                   <Ionicons
                     name={instruction.icon}
                     size={24}
-                    color={COLORS.accent}
+                    color={colors.text.gold}
                   />
                 </View>
                 <Text style={styles.instructionText}>
@@ -99,7 +98,7 @@ export default function FilmingInstructionsModal({
             ]}
             onPress={onStartRecording}
           >
-            <Ionicons name="videocam" size={20} color={COLORS.black} />
+            <Ionicons name="videocam" size={20} color={colors.text.onGold} />
             <Text style={styles.startButtonText}>Got it, Start Recording</Text>
           </Pressable>
         </View>
