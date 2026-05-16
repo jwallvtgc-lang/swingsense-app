@@ -1,8 +1,9 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
-  FlatList,
-  ListRenderItem,
+  SectionList,
+  SectionListData,
+  SectionListRenderItem,
   StyleSheet,
   Text,
   View,
@@ -34,6 +35,7 @@ import {
   bottomTab,
   colors,
   fontSizes,
+  fontWeights,
   spacing,
   typography,
 } from '../../design-system/tokens';
@@ -104,6 +106,52 @@ function formatSwingDate(iso: string): string {
   } catch {
     return iso;
   }
+}
+
+function groupSwingsByDate(swings: SwingAnalysis[]): SectionListData<SwingAnalysis>[] {
+  const today = new Date();
+  const yesterday = new Date(today);
+  yesterday.setDate(today.getDate() - 1);
+
+  const isToday = (date: Date) =>
+    date.toDateString() === today.toDateString();
+
+  const isYesterday = (date: Date) =>
+    date.toDateString() === yesterday.toDateString();
+
+  const formatSectionTitle = (date: Date): string => {
+    if (isToday(date)) return 'Today';
+    if (isYesterday(date)) return 'Yesterday';
+    return date.toLocaleDateString('en-US', {
+      month: 'long',
+      day: 'numeric'
+    });
+  };
+
+  const groups = new Map<string, SwingAnalysis[]>();
+
+  for (const swing of swings) {
+    try {
+      const swingDate = new Date(swing.created_at);
+      const title = formatSectionTitle(swingDate);
+
+      if (!groups.has(title)) {
+        groups.set(title, []);
+      }
+      groups.get(title)!.push(swing);
+    } catch {
+      // If date parsing fails, group under "Unknown"
+      if (!groups.has('Unknown')) {
+        groups.set('Unknown', []);
+      }
+      groups.get('Unknown')!.push(swing);
+    }
+  }
+
+  return Array.from(groups.entries()).map(([title, data]) => ({
+    title,
+    data,
+  }));
 }
 
 type HistoryNav = CompositeNavigationProp<
@@ -221,6 +269,17 @@ export default function HistoryScreen() {
     };
   }, [swings]);
 
+  const swingSections = useMemo(() => groupSwingsByDate(swings), [swings]);
+
+  // Create a lookup map for efficient global index calculation
+  const swingIndexMap = useMemo(() => {
+    const map = new Map<string, number>();
+    swings.forEach((swing, index) => {
+      map.set(swing.id, index);
+    });
+    return map;
+  }, [swings]);
+
   const handleDelete = useCallback(
     async (analysisId: string) => {
       const userId = user?.id;
@@ -235,9 +294,11 @@ export default function HistoryScreen() {
     [user?.id]
   );
 
-  const renderItem: ListRenderItem<SwingAnalysis> = useCallback(
-    ({ item, index }) => {
-      const previousItem = swings[index + 1] ?? null;
+  const renderItem: SectionListRenderItem<SwingAnalysis> = useCallback(
+    ({ item }) => {
+      const globalIndex = swingIndexMap.get(item.id) ?? 0;
+      const previousItem = swings[globalIndex + 1] ?? null;
+
       return (
         <SwingListItem
           score={listScore(item)}
@@ -250,7 +311,14 @@ export default function HistoryScreen() {
         />
       );
     },
-    [navigation, handleDelete, swings]
+    [navigation, handleDelete, swings, swingIndexMap]
+  );
+
+  const renderSectionHeader = useCallback(
+    ({ section }: { section: SectionListData<SwingAnalysis> }) => (
+      <Text style={styles.dateHeader}>{section.title}</Text>
+    ),
+    []
   );
 
   const keyExtractor = useCallback((item: SwingAnalysis) => item.id, []);
@@ -318,13 +386,14 @@ export default function HistoryScreen() {
                 />
               </View>
             ) : null}
-            <FlatList
-              data={swings}
+            <SectionList
+              sections={swingSections}
               keyExtractor={keyExtractor}
               renderItem={renderItem}
+              renderSectionHeader={renderSectionHeader}
               contentContainerStyle={[styles.listContent, { paddingBottom: listBottomPad }]}
               showsVerticalScrollIndicator={false}
-              style={styles.flatList}
+              style={styles.sectionList}
             />
           </View>
         )}
@@ -385,7 +454,15 @@ const styles = StyleSheet.create({
   progressCardWrap: {
     marginBottom: spacing.cardGap,
   },
-  flatList: {
+  sectionList: {
     flex: 1,
+  },
+  dateHeader: {
+    fontFamily: typography.body,
+    fontSize: fontSizes.body,
+    fontWeight: fontWeights.medium,
+    color: colors.text.primary,
+    paddingTop: spacing.sectionGap,
+    paddingBottom: spacing.cardGap,
   },
 });
