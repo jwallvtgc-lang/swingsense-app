@@ -92,6 +92,7 @@ export function useVideoPicker() {
   }, [checkQuota]);
 
   const recordVideo = useCallback(async (cameraType: 'front' | 'back' = 'front'): Promise<string | null> => {
+    console.log('[AI-67] recordVideo called with cameraType:', cameraType);
     try {
       const ok = await checkQuota();
       if (!ok) return null;

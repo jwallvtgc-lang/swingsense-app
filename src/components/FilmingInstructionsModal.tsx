@@ -70,10 +70,6 @@ export default function FilmingInstructionsModal({
             </View>
           </View>
 
-          <Text style={styles.cameraTypeText}>
-            Recording with {cameraType === 'front' ? 'Front' : 'Back'} Camera
-          </Text>
-
           <View style={styles.instructions}>
             {INSTRUCTIONS.map((instruction, index) => (
               <View key={index} style={styles.instructionItem}>

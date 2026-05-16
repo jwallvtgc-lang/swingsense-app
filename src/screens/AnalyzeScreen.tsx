@@ -137,18 +137,22 @@ export default function AnalyzeScreen() {
   );
 
   const handleStartRecording = async () => {
+    console.log('[AI-67] handleStartRecording called');
     setShowFilmingModal(false);
+    console.log('[AI-67] modal closed');
     await incrementFilmingInstructionsCount();
-
-    // Play audio cue before camera launches
-    Speech.speak(
-      'Make sure your full body is visible from head to toe, then record your swing.',
-      { language: 'en', pitch: 1.0, rate: 0.8 }
-    );
-
-    const uri = await recordVideo(cameraType);
-    if (uri) {
-      navigation.navigate('Processing', { videoUri: uri, frontFacing: cameraType === 'front' });
+    console.log('[AI-67] count incremented');
+    Speech.speak('Make sure your full body is visible from head to toe, then record your swing.', { language: 'en', pitch: 1.0, rate: 0.8 });
+    console.log('[AI-67] speech triggered');
+    try {
+      console.log('[AI-67] calling recordVideo with cameraType:', cameraType);
+      const uri = await recordVideo(cameraType);
+      console.log('[AI-67] recordVideo returned uri:', uri);
+      if (uri) {
+        navigation.navigate('Processing', { videoUri: uri, frontFacing: cameraType === 'front' });
+      }
+    } catch (e) {
+      console.log('[AI-67] recordVideo error:', e);
     }
   };
 
