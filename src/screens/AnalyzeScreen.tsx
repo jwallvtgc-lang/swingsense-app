@@ -40,7 +40,7 @@ import {
   getLastCompletedAnalysis,
 } from '../services/analysis';
 import type { SwingAnalysis } from '../types';
-import { shouldShowFilmingInstructions, incrementFilmingInstructionsCount } from '../utils/preferences';
+import { incrementFilmingInstructionsCount } from '../utils/preferences';
 
 type AnalyzeNav = CompositeNavigationProp<
   BottomTabNavigationProp<TabParamList, 'UploadTab'>,
@@ -269,22 +269,8 @@ export default function AnalyzeScreen() {
             iconBg={colors.bg.actionIconGreen}
             title="Record Now"
             subtitle="Film your swing with front or back camera"
-            onPress={async () => {
-              const shouldShow = await shouldShowFilmingInstructions();
-              if (shouldShow) {
-                setShowFilmingModal(true);
-              } else {
-                // Play audio cue before camera launches
-                Speech.speak(
-                  'Make sure your full body is visible from head to toe, then record your swing.',
-                  { language: 'en', pitch: 1.0, rate: 0.8 }
-                );
-
-                const uri = await recordVideo(cameraType);
-                if (uri) {
-                  navigation.navigate('Processing', { videoUri: uri });
-                }
-              }
+            onPress={() => {
+              setShowFilmingModal(true);
             }}
           />
         </View>
