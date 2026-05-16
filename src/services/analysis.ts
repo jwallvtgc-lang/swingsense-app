@@ -495,7 +495,7 @@ export async function pollAnalysisStatus(
 
 export async function getUserAnalyses(
   userId: string,
-  limit = 20
+  limit = 100
 ): Promise<SwingAnalysis[]> {
   const { data } = await supabase
     .from('swing_analyses')
