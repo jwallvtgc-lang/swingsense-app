@@ -1,5 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { Drill, DrillMechanic } from '../data/drills';
+import { MECHANIC_COLORS } from '../data/drills';
 import {
   colors,
   fontSizes,
@@ -15,14 +16,6 @@ interface DrillCardProps {
   onPress: () => void;
 }
 
-const MECHANIC_COLORS: Record<DrillMechanic, string> = {
-  stance: '#639922',
-  load: '#5B4FE8',
-  power_position: '#EF9F27',
-  slot: '#E24B4A',
-  balance_at_contact: '#1D9E75',
-  full_swing: colors.text.gold,
-};
 
 const MECHANIC_LABELS: Record<DrillMechanic, string> = {
   stance: 'Stance',

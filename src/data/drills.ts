@@ -1,4 +1,15 @@
+import { colors } from '../../design-system/tokens';
+
 export type DrillMechanic = 'stance' | 'load' | 'power_position' | 'slot' | 'balance_at_contact' | 'full_swing';
+
+export const MECHANIC_COLORS: Record<DrillMechanic, string> = {
+  stance: colors.core5.bandHigh,        // green
+  load: colors.core5.bandExcellent,     // purple
+  power_position: colors.core5.bandMid, // amber
+  slot: colors.core5.bandLow,           // red
+  balance_at_contact: colors.text.primary, // white
+  full_swing: colors.core5.bandLegendary,  // gold
+};
 
 export interface Drill {
   id: string;
