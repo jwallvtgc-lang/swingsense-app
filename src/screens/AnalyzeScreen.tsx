@@ -15,6 +15,7 @@ import ActionCard from '../components/ActionCard';
 import StreakPill from '../components/StreakPill';
 import BottomTabBar from '../components/BottomTabBar';
 import FilmingInstructionsModal from '../components/FilmingInstructionsModal';
+import DrillCarousel from '../components/DrillCarousel';
 import { supabase } from '../config/supabase';
 import { useVideoPicker } from '../hooks/useVideoPicker';
 import type { MainStackParamList, TabParamList } from '../navigation/types';
@@ -305,10 +306,7 @@ export default function AnalyzeScreen() {
         </View>
 
         {/* Practice Drills section */}
-        <View style={styles.drillSection}>
-          <Text style={styles.drillSectionHeader}>PRACTICE DRILLS</Text>
-          <Text style={styles.drillPlaceholder}>Drill carousel coming soon</Text>
-        </View>
+        <DrillCarousel />
       </ScrollView>
       <BottomTabBar activeTab="analyze" onTabPress={navigateMainTab} />
 
@@ -455,25 +453,5 @@ const styles = StyleSheet.create({
   },
   actionCardHalf: {
     flex: 1,
-  },
-  drillSection: {
-    alignSelf: 'stretch',
-  },
-  drillSectionHeader: {
-    fontFamily: typography.body,
-    fontSize: fontSizes.caption,
-    color: colors.text.muted,
-    letterSpacing: letterSpacing.bottomTab,
-    textTransform: 'uppercase',
-    marginBottom: spacing.cardGap,
-  },
-  drillPlaceholder: {
-    fontFamily: typography.body,
-    fontSize: fontSizes.body,
-    color: colors.text.muted,
-    textAlign: 'center',
-    padding: spacing.card,
-    backgroundColor: colors.bg.surface,
-    borderRadius: radius.card,
   },
 });
