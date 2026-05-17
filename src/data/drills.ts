@@ -11,6 +11,15 @@ export const MECHANIC_COLORS: Record<DrillMechanic, string> = {
   full_swing: colors.core5.bandLegendary,  // gold
 };
 
+export const MECHANIC_LABELS: Record<DrillMechanic, string> = {
+  stance: 'Stance',
+  load: 'Load',
+  power_position: 'Power Position',
+  slot: 'Slot',
+  balance_at_contact: 'Balance',
+  full_swing: 'Full Swing',
+};
+
 export interface Drill {
   id: string;
   name: string;

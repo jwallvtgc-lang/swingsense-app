@@ -4,6 +4,7 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import DrillCard from './DrillCard';
+import DrillDetailModal from './DrillDetailModal';
 import { drills, type Drill, type DrillMechanic } from '../data/drills';
 import { getLastCompletedAnalysis } from '../services/analysis';
 import { useAuth } from '../contexts/AuthContext';
@@ -36,6 +37,7 @@ export default function DrillCarousel({ title = 'PRACTICE DRILLS' }: DrillCarous
   const navigation = useNavigation<Navigation>();
   const { user } = useAuth();
   const [lastAnalysis, setLastAnalysis] = useState<SwingAnalysis | null>(null);
+  const [selectedDrill, setSelectedDrill] = useState<Drill | null>(null);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -85,8 +87,7 @@ export default function DrillCarousel({ title = 'PRACTICE DRILLS' }: DrillCarous
   }, [recommendedMechanics]);
 
   const handleDrillPress = useCallback((drill: Drill) => {
-    // TODO: Navigate to drill detail screen when implemented
-    console.log('Drill pressed:', drill.name);
+    setSelectedDrill(drill);
   }, []);
 
   if (organizedDrills.length === 0) {
@@ -119,6 +120,12 @@ export default function DrillCarousel({ title = 'PRACTICE DRILLS' }: DrillCarous
           />
         ))}
       </ScrollView>
+
+      <DrillDetailModal
+        drill={selectedDrill}
+        visible={selectedDrill !== null}
+        onClose={() => setSelectedDrill(null)}
+      />
     </View>
   );
 }

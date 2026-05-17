@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { Drill, DrillMechanic } from '../data/drills';
-import { MECHANIC_COLORS } from '../data/drills';
+import { MECHANIC_COLORS, MECHANIC_LABELS } from '../data/drills';
 import {
   colors,
   fontSizes,
@@ -17,14 +17,6 @@ interface DrillCardProps {
 }
 
 
-const MECHANIC_LABELS: Record<DrillMechanic, string> = {
-  stance: 'Stance',
-  load: 'Load',
-  power_position: 'Power Position',
-  slot: 'Slot',
-  balance_at_contact: 'Balance',
-  full_swing: 'Full Swing',
-};
 
 export default function DrillCard({ drill, isRecommended = false, onPress }: DrillCardProps) {
   return (
