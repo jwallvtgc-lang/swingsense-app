@@ -14,9 +14,6 @@ import * as VideoThumbnails from 'expo-video-thumbnails';
 import ActionCard from '../components/ActionCard';
 import StreakPill from '../components/StreakPill';
 import BottomTabBar from '../components/BottomTabBar';
-import SectionCard from '../components/SectionCard';
-import TipRow from '../components/TipRow';
-import TipsList from '../components/TipsList';
 import FilmingInstructionsModal from '../components/FilmingInstructionsModal';
 import { supabase } from '../config/supabase';
 import { useVideoPicker } from '../hooks/useVideoPicker';
@@ -47,12 +44,6 @@ type AnalyzeNav = CompositeNavigationProp<
   NativeStackNavigationProp<MainStackParamList>
 >;
 
-const TIP_LINES = [
-  'Film from the side, 10-15 feet away — player should fill most of the frame height',
-  'Record in regular video mode — not slow motion or cinematic mode',
-  'Hold the camera still and keep the full body visible throughout',
-  '5-30 seconds, one swing per clip, good natural lighting',
-] as const;
 
 export default function AnalyzeScreen() {
   const insets = useSafeAreaInsets();
@@ -62,7 +53,6 @@ export default function AnalyzeScreen() {
   const { pickFromLibrary, recordVideo } = useVideoPicker();
   const [lastAnalysis, setLastAnalysis] = useState<SwingAnalysis | null>(null);
   const [streak, setStreak] = useState(0);
-  const [tipsExpanded, setTipsExpanded] = useState(false);
   const [thumbUri, setThumbUri] = useState<string | null>(null);
   const [showFilmingModal, setShowFilmingModal] = useState(false);
   const [cameraType, setCameraType] = useState<'front' | 'back'>('front');
@@ -227,6 +217,7 @@ export default function AnalyzeScreen() {
           </View>
         ) : null}
 
+        {/* Last swing card - full width */}
         {lastAnalysis ? (
           <Pressable
             style={styles.lastSwingCard}
@@ -272,7 +263,8 @@ export default function AnalyzeScreen() {
           </Text>
         )}
 
-        <View style={styles.actionStack}>
+        {/* Side by side action cards */}
+        <View style={styles.actionRow}>
           <ActionCard
             icon={
               <Ionicons
@@ -282,8 +274,8 @@ export default function AnalyzeScreen() {
               />
             }
             iconBg={colors.bg.actionIconGold}
-            title="Upload from Library"
-            subtitle="Select a swing video from your camera roll"
+            title="Upload Video"
+            style={styles.actionCardHalf}
             onPress={async () => {
               const uri = await pickFromLibrary();
               if (uri) navigation.navigate('Processing', { videoUri: uri });
@@ -299,7 +291,7 @@ export default function AnalyzeScreen() {
             }
             iconBg={colors.bg.actionIconGreen}
             title="Record Now"
-            subtitle="Film your swing with front or back camera"
+            style={styles.actionCardHalf}
             onPress={() => {
               console.log('[AI-67] Record Now button pressed, showFilmingModal:', showFilmingModal, 'isRecording:', isRecording);
               if (!isRecording) {
@@ -312,26 +304,11 @@ export default function AnalyzeScreen() {
           />
         </View>
 
-        {lastAnalysis ? (
-          <Pressable
-            style={styles.tipsCollapsed}
-            onPress={() => setTipsExpanded((v) => !v)}
-          >
-            <Text style={styles.tipsCollapsedLabel}>TIPS FOR BEST RESULTS</Text>
-            <Text style={styles.tipsChevron}>{tipsExpanded ? '▲' : '▼'}</Text>
-          </Pressable>
-        ) : null}
-        {!lastAnalysis || tipsExpanded ? (
-          <View style={lastAnalysis ? styles.tipsExpandedCard : styles.afterActions}>
-            <SectionCard>
-              <TipsList label="TIPS FOR BEST RESULTS">
-                {TIP_LINES.map((line) => (
-                  <TipRow key={line} text={line} />
-                ))}
-              </TipsList>
-            </SectionCard>
-          </View>
-        ) : null}
+        {/* Practice Drills section */}
+        <View style={styles.drillSection}>
+          <Text style={styles.drillSectionHeader}>PRACTICE DRILLS</Text>
+          <Text style={styles.drillPlaceholder}>Drill carousel coming soon</Text>
+        </View>
       </ScrollView>
       <BottomTabBar activeTab="analyze" onTabPress={navigateMainTab} />
 
@@ -402,6 +379,7 @@ const styles = StyleSheet.create({
     padding: spacing.card,
     marginBottom: spacing.sectionGap,
     gap: spacing.cardGap,
+    marginHorizontal: -spacing.cardGap, // Slightly wider
   },
   thumbContainer: {
     width: 64,
@@ -458,31 +436,6 @@ const styles = StyleSheet.create({
     fontSize: fontSizes.ctaLabel,
     color: colors.text.muted,
   },
-  tipsCollapsed: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: colors.bg.surface,
-    borderRadius: radius.card,
-    paddingHorizontal: spacing.card,
-    paddingVertical: spacing.tabInner,
-    marginTop: spacing.cardGap,
-  },
-  tipsCollapsedLabel: {
-    fontFamily: typography.body,
-    fontSize: fontSizes.caption,
-    color: colors.text.muted,
-    letterSpacing: letterSpacing.bottomTab,
-  },
-  tipsChevron: {
-    fontFamily: typography.body,
-    fontSize: fontSizes.caption,
-    color: colors.text.muted,
-  },
-  tipsExpandedCard: {
-    marginTop: spacing.cardGap,
-    alignSelf: 'stretch',
-  },
   instruction: {
     marginTop: spacing.cardGap,
     marginBottom: spacing.sectionGap,
@@ -492,13 +445,34 @@ const styles = StyleSheet.create({
     lineHeight: Math.round(fontSizes.body * 1.4),
     alignSelf: 'stretch',
   },
-  actionStack: {
-    marginTop: 0,
+  actionRow: {
+    flexDirection: 'row',
     alignSelf: 'stretch',
+    alignItems: 'stretch',
     gap: spacing.cardGap,
+    marginBottom: spacing.sectionGap,
   },
-  afterActions: {
-    marginTop: spacing.sectionGap,
+  actionCardHalf: {
+    flex: 1,
+  },
+  drillSection: {
     alignSelf: 'stretch',
+  },
+  drillSectionHeader: {
+    fontFamily: typography.body,
+    fontSize: fontSizes.caption,
+    color: colors.text.muted,
+    letterSpacing: letterSpacing.bottomTab,
+    textTransform: 'uppercase',
+    marginBottom: spacing.cardGap,
+  },
+  drillPlaceholder: {
+    fontFamily: typography.body,
+    fontSize: fontSizes.body,
+    color: colors.text.muted,
+    textAlign: 'center',
+    padding: spacing.card,
+    backgroundColor: colors.bg.surface,
+    borderRadius: radius.card,
   },
 });
