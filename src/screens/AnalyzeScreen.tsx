@@ -451,6 +451,7 @@ const styles = StyleSheet.create({
     alignItems: 'stretch',
     gap: spacing.cardGap,
     marginBottom: spacing.sectionGap,
+    marginHorizontal: -spacing.cardGap, // Match last swing card width
   },
   actionCardHalf: {
     flex: 1,
