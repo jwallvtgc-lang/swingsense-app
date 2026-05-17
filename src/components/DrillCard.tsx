@@ -64,7 +64,8 @@ export default function DrillCard({ drill, isRecommended = false, onPress }: Dri
 
 const styles = StyleSheet.create({
   card: {
-    width: 152,
+    width: 200,
+    minHeight: 210,
     backgroundColor: colors.bg.surface,
     borderRadius: radius.card,
     overflow: 'hidden',
@@ -96,7 +97,7 @@ const styles = StyleSheet.create({
     color: colors.text.gold,
   },
   content: {
-    padding: spacing.cardSm,
+    padding: spacing.card,
     gap: spacing.iconGap,
   },
   drillName: {

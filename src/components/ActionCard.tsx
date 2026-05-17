@@ -61,6 +61,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.card,
     padding: spacing.card,
     minWidth: 0,
+    minHeight: 90,
   },
   cardPressed: {
     opacity: 0.92,

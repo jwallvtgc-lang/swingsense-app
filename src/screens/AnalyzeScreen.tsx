@@ -378,6 +378,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sectionGap,
     gap: spacing.cardGap,
     marginHorizontal: -spacing.cardGap, // Slightly wider
+    minHeight: 100,
   },
   thumbContainer: {
     width: 64,

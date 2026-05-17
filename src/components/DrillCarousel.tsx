@@ -105,7 +105,7 @@ export default function DrillCarousel({ title = 'PRACTICE DRILLS' }: DrillCarous
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        snapToInterval={162} // 152px card + 10px gap
+        snapToInterval={210} // 200px card + 10px gap
         decelerationRate="fast"
         contentContainerStyle={styles.scrollContent}
         style={styles.scrollView}
@@ -126,6 +126,7 @@ export default function DrillCarousel({ title = 'PRACTICE DRILLS' }: DrillCarous
 const styles = StyleSheet.create({
   container: {
     alignSelf: 'stretch',
+    height: 230,
   },
   title: {
     fontFamily: typography.body,
