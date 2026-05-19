@@ -140,3 +140,41 @@ MIN_MOVEMENT_RANGE = 0.06
 6. Push to main — backend auto-deploys, frontend requires EAS build
 7. Do not expand scope — complete exactly what the ticket asks
 8. When in doubt — do less and log an issue
+
+## Product Strategy
+
+### Mission
+Give every serious youth baseball player access to elite swing coaching — regardless of where they live, who they know, or what they can afford.
+
+### Core Positioning
+- Phone-only, no hardware required
+- Youth-first, age-calibrated coaching language
+- Built on Darian's real coaching methodology — not generic AI output
+- Works alongside coaches, not around them
+
+### The Four Users
+- **Player** — records swings, gets feedback, does drills. Needs one clear thing to work on.
+- **Parent** — pays the subscription, tracks progress, tells other baseball parents. Needs to see improvement without understanding biomechanics.
+- **Team Coach** — recommends SwingSense to their roster. Doesn't pay. Is the primary growth channel.
+- **Hitting Instructor** — prescribes SwingSense between sessions. Grows their business through the platform. The human in the loop.
+
+### Go To Market — Three Phases
+- **Phase 1 — Free Beta (June–Aug 2026):** Invited users only. One or two local travel teams through Darian. No subscription. Goal is validation not growth.
+- **Phase 2 — Consumer Launch (Q3–Q4 2026):** App Store public launch. Player + parent product only. Free tier + $9.99/mo Player Pro. Target: 1,000 paying subscribers.
+- **Phase 3 — Coach Channel (Q1 2027+):** Coaches as distribution network. Referral links, roster dashboards, drill assignment, hitting instructor tools. This is when unit economics compound.
+
+### Roadmap Sequencing Logic
+- **Now features** validate the core player experience during the free beta
+- **Near features** build retention and engagement mechanics to convert and keep paying subscribers
+- **Far features** activate the coach and instructor channels that scale the business
+
+### Non-Negotiable Product Principles
+- Never show raw metric numbers to players — translate everything into coaching language
+- Lead with positives in every coaching output
+- One primary issue maximum per analysis
+- Coaching output must sound like Darian — not a data platform
+- Age and experience level calibration is required on every output
+- Drills must be doable alone in a solo practice session
+
+### Darian
+Darian is a former D1 player and current high school coach. He is the coaching methodology advisor, the primary validator of AI output quality, and the first coach in the referral channel. His framework — Core 5 mechanics evaluated in order (Stance, Load, Power Position, Slot, Balance at Contact) — is the foundation of every analysis. When in doubt about a coaching decision, ask what Darian would say.
