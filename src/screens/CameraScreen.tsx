@@ -15,9 +15,12 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
 import {
+  bottomTab,
+  camera,
   colors,
   fontSizes,
   fontWeights,
+  header,
   letterSpacing,
   radius,
   spacing,
@@ -65,7 +68,7 @@ export default function CameraScreen() {
   if (!permission.granted) {
     return (
       <View style={styles.permissionContainer}>
-        <Ionicons name="camera-outline" size={64} color={colors.text.muted} />
+        <Ionicons name="camera-outline" size={camera.recordButtonSize * 0.8} color={colors.text.muted} />
         <Text style={styles.permissionTitle}>Camera Access Required</Text>
         <Text style={styles.permissionText}>
           SwingSense needs camera access to record your swing
@@ -159,7 +162,7 @@ export default function CameraScreen() {
         {/* Header Controls */}
         <View style={styles.header}>
           <Pressable style={styles.headerButton} onPress={goBack}>
-            <Ionicons name="close" size={28} color={colors.text.primary} />
+            <Ionicons name="close" size={header.iconSize} color={colors.text.primary} />
           </Pressable>
         </View>
 
@@ -191,7 +194,7 @@ export default function CameraScreen() {
           {/* X button bottom left (only when not recording) */}
           {!isRecording && (
             <Pressable style={styles.exitButton} onPress={goBack}>
-              <Ionicons name="close" size={24} color={colors.text.primary} />
+              <Ionicons name="close" size={bottomTab.iconSize} color={colors.text.primary} />
             </Pressable>
           )}
 
@@ -272,15 +275,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'flex-start',
     alignItems: 'flex-start',
-    paddingTop: 60,
+    paddingTop: header.safeAreaPadding,
     paddingHorizontal: spacing.screen,
     zIndex: 1,
   },
   headerButton: {
-    width: 48,
-    height: 48,
+    width: camera.controlButtonSize,
+    height: camera.controlButtonSize,
     borderRadius: radius.circle,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    backgroundColor: camera.headerOverlay,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -288,7 +291,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 120,
     alignSelf: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    backgroundColor: camera.timerOverlay,
     paddingHorizontal: spacing.card,
     paddingVertical: spacing.iconGap,
     borderRadius: radius.card,
@@ -312,7 +315,7 @@ const styles = StyleSheet.create({
     fontWeight: fontWeights.medium,
     color: colors.text.primary,
     textAlign: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: camera.overlayBackground,
     paddingHorizontal: spacing.card,
     paddingVertical: spacing.iconGap,
     borderRadius: radius.subCard,
@@ -322,7 +325,7 @@ const styles = StyleSheet.create({
     fontFamily: typography.body,
     color: colors.text.primary,
     textAlign: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: camera.overlayBackground,
     paddingHorizontal: spacing.cardSm,
     paddingVertical: spacing.iconGap,
     borderRadius: radius.badge,
@@ -330,7 +333,7 @@ const styles = StyleSheet.create({
   },
   controls: {
     position: 'absolute',
-    bottom: 80,
+    bottom: bottomTab.height,
     left: 0,
     right: 0,
     flexDirection: 'row',
@@ -339,10 +342,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.screen,
   },
   exitButton: {
-    width: 48,
-    height: 48,
+    width: camera.controlButtonSize,
+    height: camera.controlButtonSize,
     borderRadius: radius.circle,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    backgroundColor: camera.headerOverlay,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -350,35 +353,35 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   recordButton: {
-    width: 80,
-    height: 80,
+    width: camera.recordButtonSize,
+    height: camera.recordButtonSize,
     borderRadius: radius.circle,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: camera.controlBackground,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 4,
     borderColor: colors.text.primary,
   },
   recordButtonActive: {
-    backgroundColor: 'rgba(220, 38, 38, 0.3)',
+    backgroundColor: camera.recordingBackground,
     borderColor: colors.text.red,
   },
   recordButtonDisabled: {
     opacity: 0.6,
   },
   recordDot: {
-    width: 24,
-    height: 24,
+    width: camera.recordDotSize,
+    height: camera.recordDotSize,
     borderRadius: radius.circle,
     backgroundColor: colors.text.red,
   },
   stopSquare: {
-    width: 20,
-    height: 20,
+    width: camera.stopSquareSize,
+    height: camera.stopSquareSize,
     borderRadius: radius.xs,
     backgroundColor: colors.text.primary,
   },
   spacer: {
-    width: 48,
+    width: camera.controlButtonSize,
   },
 });

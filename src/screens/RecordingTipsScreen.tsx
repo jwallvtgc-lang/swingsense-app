@@ -12,9 +12,11 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Speech from 'expo-speech';
 import Svg, { Line, Text as SvgText, Rect, Circle, Defs, Marker, Polygon } from 'react-native-svg';
 import {
+  bottomTab,
   colors,
   fontSizes,
   fontWeights,
+  header,
   letterSpacing,
   radius,
   spacing,
@@ -92,7 +94,7 @@ export default function RecordingTipsScreen() {
       {/* Header */}
       <View style={styles.header}>
         <Pressable style={styles.backButton} onPress={handleGoBack}>
-          <Ionicons name="chevron-back" size={28} color={colors.text.primary} />
+          <Ionicons name="chevron-back" size={header.iconSize} color={colors.text.primary} />
         </Pressable>
       </View>
 
@@ -149,7 +151,7 @@ export default function RecordingTipsScreen() {
             <SvgText
               x="135"
               y="44"
-              fontSize="12"
+              fontSize={fontSizes.caption.toString()}
               fill={colors.text.muted}
               textAnchor="middle"
               fontFamily={typography.body}
@@ -188,7 +190,7 @@ export default function RecordingTipsScreen() {
             <View key={index} style={styles.tipItem}>
               <Ionicons
                 name={tip.icon}
-                size={24}
+                size={bottomTab.iconSize}
                 color={colors.text.gold}
               />
               <Text style={styles.tipText}>
@@ -230,8 +232,8 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.iconGap,
   },
   backButton: {
-    width: 44,
-    height: 44,
+    width: header.buttonSize,
+    height: header.buttonSize,
     borderRadius: radius.badge,
     alignItems: 'center',
     justifyContent: 'center',
@@ -269,30 +271,30 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sectionGap,
   },
   tipsList: {
-    gap: 20,
+    gap: spacing.sectionGap,
     marginBottom: spacing.sectionGap,
   },
   tipItem: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: spacing.cardGap,
-    paddingVertical: 4,
+    paddingVertical: spacing.pillGap,
   },
   tipText: {
     flex: 1,
-    fontSize: 15,
+    fontSize: fontSizes.actionCardTitle,
     fontFamily: typography.body,
     color: colors.text.primary,
     lineHeight: Math.round(15 * 1.5),
-    marginTop: 2,
+    marginTop: spacing.pillGap / 3, // 2px
   },
   coachingLine: {
-    fontSize: 13,
+    fontSize: fontSizes.body,
     fontFamily: typography.body,
     color: colors.text.muted,
     textAlign: 'center',
     lineHeight: Math.round(13 * 1.4),
-    marginBottom: 32,
+    marginBottom: spacing.sectionGap + spacing.cardGap, // 32px
   },
   startButton: {
     backgroundColor: colors.bg.gold,

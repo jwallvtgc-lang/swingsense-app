@@ -250,6 +250,24 @@ export const logoTile = {
   sizeMd: 64,
 }
 
+export const camera = {
+  controlButtonSize: 48, // Camera header and exit button size
+  recordButtonSize: 80, // Large record button diameter
+  recordDotSize: 24, // Inner recording dot size
+  stopSquareSize: 20, // Stop button square size
+  overlayBackground: 'rgba(0, 0, 0, 0.5)', // General overlay background
+  headerOverlay: 'rgba(0, 0, 0, 0.3)', // Header button overlay
+  timerOverlay: 'rgba(0, 0, 0, 0.7)', // Timer background overlay
+  controlBackground: 'rgba(255, 255, 255, 0.2)', // Camera control button background
+  recordingBackground: 'rgba(220, 38, 38, 0.3)', // Recording state background
+}
+
+export const header = {
+  iconSize: 28, // Standard header icon size
+  buttonSize: 48, // Header button container size
+  safeAreaPadding: 60, // Top safe area padding
+}
+
 /** Similarity score → display color (aligned with `colors.core5` bands). */
 export function getScoreColor(score: number): string {
   if (score >= 90) return colors.core5.bandLegendary // gold
