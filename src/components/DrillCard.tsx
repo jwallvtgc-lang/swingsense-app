@@ -15,14 +15,6 @@ interface DrillCardProps {
   onPress: () => void;
 }
 
-// Mechanic color mapping based on AI-70 spec
-const MECHANIC_COLORS: Record<DrillMechanic, string> = {
-  stance: '#4A90D9', // blue
-  load: '#F5A623', // orange
-  power_position: '#639922', // green
-  slot: '#9B59B6', // purple
-  balance_at_contact: '#1ABC9C', // teal
-};
 
 const MECHANIC_LABELS: Record<DrillMechanic, string> = {
   stance: 'Stance',
@@ -40,7 +32,7 @@ export default function DrillCard({ drill, isRecommended = false, onPress }: Dri
     >
       {/* Row 1: Mechanic badge (left) + "For you" pill (right, slot 1 only) */}
       <View style={styles.row1}>
-        <View style={[styles.mechanicBadge, { backgroundColor: MECHANIC_COLORS[drill.mechanic] }]}>
+        <View style={[styles.mechanicBadge, { backgroundColor: colors.mechanic[drill.mechanic] }]}>
           <Text style={styles.mechanicText}>{MECHANIC_LABELS[drill.mechanic]}</Text>
         </View>
         {isRecommended && (
@@ -116,7 +108,7 @@ const styles = StyleSheet.create({
   },
   drillTitle: {
     fontFamily: typography.body,
-    fontSize: 16, // Spec requirement: bold 16px
+    fontSize: fontSizes.drillTitle, // Spec requirement: bold 16px
     fontWeight: fontWeights.bold,
     color: colors.text.primary,
     lineHeight: Math.round(16 * 1.2), // Tight line height for 2 lines max

@@ -20,14 +20,6 @@ import {
   typography,
 } from '../../design-system/tokens';
 
-// Mechanic color mapping based on AI-70 spec
-const MECHANIC_COLORS: Record<DrillMechanic, string> = {
-  stance: '#4A90D9', // blue
-  load: '#F5A623', // orange
-  power_position: '#639922', // green
-  slot: '#9B59B6', // purple
-  balance_at_contact: '#1ABC9C', // teal
-};
 
 const MECHANIC_LABELS: Record<DrillMechanic, string> = {
   stance: 'Stance',
@@ -61,7 +53,7 @@ export default function DrillDetailModal({
         <View style={styles.modal}>
           <View style={styles.header}>
             <View style={styles.headerLeft}>
-              <View style={[styles.mechanicBadge, { backgroundColor: MECHANIC_COLORS[drill.mechanic] }]}>
+              <View style={[styles.mechanicBadge, { backgroundColor: colors.mechanic[drill.mechanic] }]}>
                 <Text style={styles.mechanicText}>{MECHANIC_LABELS[drill.mechanic]}</Text>
               </View>
               <Text style={styles.level}>{drill.experience_level}</Text>

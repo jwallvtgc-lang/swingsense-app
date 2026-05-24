@@ -87,6 +87,15 @@ export const colors = {
     bandExcellent: '#5B4FE8', // purple — 80–89
     bandLegendary: '#C9A84C', // gold — 90+
   },
+
+  /** Drill carousel — mechanic identity colors */
+  mechanic: {
+    stance: '#4A90D9', // blue
+    load: '#F5A623', // orange
+    power_position: '#639922', // green
+    slot: '#9B59B6', // purple
+    balance_at_contact: '#1ABC9C', // teal
+  },
 }
 
 export const typography = {
@@ -110,6 +119,7 @@ export const fontSizes = {
   ctaLabel: 18, // PrimaryButton
   /** Auth — Continue with Apple / Google / Email method buttons */
   oauthMethodLabel: 17,
+  drillTitle: 16, // DrillCard title (bold)
   actionCardTitle: 15, // ActionCard title
   sectionTitle: 14, // SectionCard header
   body: 13, // General body text
