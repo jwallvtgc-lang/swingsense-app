@@ -27,6 +27,8 @@ export type MainStackParamList = {
   EditProfile: undefined;
   PrivacyPolicy: undefined;
   TermsOfService: undefined;
+  DrillDetail: { drillId: string };
+  DrillLibrary: undefined;
 };
 
 export type TabParamList = {

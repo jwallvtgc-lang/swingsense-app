@@ -22,6 +22,8 @@ import ProfileScreen from '../screens/ProfileScreen';
 import EditProfileScreen from '../screens/EditProfileScreen';
 import PrivacyPolicyScreen from '../screens/PrivacyPolicyScreen';
 import TermsOfServiceScreen from '../screens/TermsOfServiceScreen';
+import DrillDetailScreen from '../screens/DrillDetailScreen';
+import DrillLibraryScreen from '../screens/DrillLibraryScreen';
 
 import type { AuthStackParamList, MainStackParamList, TabParamList } from './types';
 
@@ -94,6 +96,8 @@ function MainNavigator() {
       <Stack.Screen name="EditProfile" component={EditProfileScreen} />
       <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />
       <Stack.Screen name="TermsOfService" component={TermsOfServiceScreen} />
+      <Stack.Screen name="DrillDetail" component={DrillDetailScreen} />
+      <Stack.Screen name="DrillLibrary" component={DrillLibraryScreen} />
     </Stack.Navigator>
   );
 }
