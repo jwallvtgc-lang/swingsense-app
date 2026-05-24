@@ -457,11 +457,10 @@ export default function AnalysisScreen() {
     if (!analysis) return [];
 
     // Filter out the current analysis and get the most recent 3 before it
-    const otherAnalyses = allAnalyses.filter(a => a.id !== analysis.id);
-    return otherAnalyses
+    return allAnalyses
+      .filter(a => a.id !== analysis.id)
       .slice(0, 3) // Take the 3 most recent (already sorted newest first)
-      .map(a => heroOverallScore(a))
-      .reverse(); // Reverse to show oldest to newest in sparkline
+      .map(a => heroOverallScore(a));
   }, [analysis, allAnalyses]);
 
   const handleDrillFeedback = async (

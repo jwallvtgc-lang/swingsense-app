@@ -4,6 +4,7 @@ import {
   colors,
   fontSizes,
   fontWeights,
+  getScoreColor,
   letterSpacing,
   radius,
   spacing,
@@ -16,16 +17,8 @@ export type ScoreCardProps = {
   recentScores: number[];
 };
 
-function getScoreBandColor(score: number): string {
-  if (score >= 90) return colors.core5.bandLegendary; // gold — 90-100
-  if (score >= 80) return colors.core5.bandExcellent; // purple — 80-89
-  if (score >= 65) return colors.core5.bandHigh; // green — 65-79
-  if (score >= 50) return colors.core5.bandMid; // amber — 50-64
-  return colors.core5.bandLow; // red — 0-49
-}
-
 export default function ScoreCard({ score, delta, recentScores }: ScoreCardProps) {
-  const scoreBandColor = getScoreBandColor(score);
+  const scoreBandColor = getScoreColor(score);
 
   const trendText = (() => {
     if (delta === null) return 'your first swing — baseline set';
@@ -61,7 +54,7 @@ export default function ScoreCard({ score, delta, recentScores }: ScoreCardProps
       {/* Mini sparkline */}
       {recentScores.length > 0 && (
         <View style={styles.sparklineContainer}>
-          {recentScores.slice(-3).map((sparkScore, index) => {
+          {recentScores.map((sparkScore, index) => {
             const height = Math.max(4, Math.round((sparkScore / 100) * 16)); // Scale 0-100 to 4-16px height
             return (
               <View
@@ -70,7 +63,7 @@ export default function ScoreCard({ score, delta, recentScores }: ScoreCardProps
                   styles.sparklineBar,
                   {
                     height,
-                    backgroundColor: colors.core5.bandMid, // amber color for sparkline bars
+                    backgroundColor: colors.core5.bandMid,
                   },
                 ]}
               />
@@ -84,9 +77,9 @@ export default function ScoreCard({ score, delta, recentScores }: ScoreCardProps
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: colors.bg.surface, // Same as SectionCard: #1a1a1a background
-    borderRadius: radius.subCard, // 12px border radius
-    padding: spacing.cardSm, // 12px padding
+    backgroundColor: colors.bg.surface,
+    borderRadius: radius.subCard,
+    padding: spacing.cardSm,
     flexDirection: 'row',
     alignItems: 'center',
     alignSelf: 'stretch',
@@ -101,27 +94,27 @@ const styles = StyleSheet.create({
   },
   scoreNumber: {
     fontFamily: typography.display,
-    fontSize: fontSizes.caption, // 11px
+    fontSize: fontSizes.caption,
     letterSpacing: letterSpacing.tight,
     fontWeight: fontWeights.medium,
   },
   trendContainer: {
     flex: 1,
-    marginLeft: spacing.iconGap, // 8px gap from circle
+    marginLeft: spacing.iconGap,
   },
   trendText: {
     fontFamily: typography.body,
-    fontSize: fontSizes.caption, // 11px
+    fontSize: fontSizes.caption,
     fontWeight: fontWeights.regular,
   },
   sparklineContainer: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    gap: 2, // 2px gap between bars
-    marginLeft: spacing.iconGap, // 8px gap from trend text
+    gap: 2,
+    marginLeft: spacing.iconGap,
   },
   sparklineBar: {
-    width: 4, // 4px wide bars as specified
+    width: 4,
     borderRadius: 1,
   },
 });
