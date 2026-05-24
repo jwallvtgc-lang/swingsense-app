@@ -15,6 +15,7 @@ export type RootBranchParamList = {
 export type MainStackParamList = {
   MainTabs: { screen?: keyof TabParamList } | undefined;
   Upload: undefined;
+  RecordingTips: undefined;
   Camera: undefined;
   Processing: { videoUri: string; frontFacing?: boolean };
   Results: { analysisId: string };

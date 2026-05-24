@@ -14,7 +14,6 @@ import * as VideoThumbnails from 'expo-video-thumbnails';
 import ActionCard from '../components/ActionCard';
 import StreakPill from '../components/StreakPill';
 import BottomTabBar from '../components/BottomTabBar';
-import FilmingInstructionsModal from '../components/FilmingInstructionsModal';
 import DrillCarousel from '../components/DrillCarousel';
 import { supabase } from '../config/supabase';
 import { useVideoPicker } from '../hooks/useVideoPicker';
@@ -51,13 +50,10 @@ export default function AnalyzeScreen() {
   const navigation = useNavigation<AnalyzeNav>();
   const navigateMainTab = useMainTabBarNav();
   const { user, profile } = useAuth();
-  const { pickFromLibrary, recordVideo } = useVideoPicker();
+  const { pickFromLibrary } = useVideoPicker();
   const [lastAnalysis, setLastAnalysis] = useState<SwingAnalysis | null>(null);
   const [streak, setStreak] = useState(0);
   const [thumbUri, setThumbUri] = useState<string | null>(null);
-  const [showFilmingModal, setShowFilmingModal] = useState(false);
-  const [cameraType, setCameraType] = useState<'front' | 'back'>('front');
-  const [isRecording, setIsRecording] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -129,57 +125,13 @@ export default function AnalyzeScreen() {
   );
 
   const handleStartRecording = async () => {
-    console.log('[AI-67] handleStartRecording called, isRecording:', isRecording);
-
-    // Prevent multiple calls
-    if (isRecording) {
-      console.log('[AI-67] already recording, ignoring call');
-      return;
-    }
-
-    setIsRecording(true);
-    setShowFilmingModal(false);
-    console.log('[AI-67] modal closed, isRecording set to true');
-
     try {
       await incrementFilmingInstructionsCount();
-      console.log('[AI-67] count incremented');
-
-      // Give modal time to close before speech
-      await new Promise(resolve => setTimeout(resolve, 300));
-
-      Speech.speak('Make sure your full body is visible from head to toe, then record your swing.', {
-        language: 'en-US',
-        pitch: 0.8,
-        rate: 0.85,
-        voice: 'com.apple.ttsbundle.Alex-compact',
-      });
-      console.log('[AI-67] speech triggered');
-
-      console.log('[AI-67] calling recordVideo with cameraType:', cameraType);
-      const uri = await recordVideo(cameraType);
-      console.log('[AI-67] recordVideo returned uri:', uri);
-
-      if (uri) {
-        console.log('[AI-67] navigating to Processing');
-        navigation.navigate('Processing', { videoUri: uri, frontFacing: cameraType === 'front' });
-      } else {
-        console.log('[AI-67] no uri returned, recording failed or canceled');
-      }
-    } catch (e) {
-      console.log('[AI-67] handleStartRecording error:', e);
-    } finally {
-      setIsRecording(false);
-      console.log('[AI-67] isRecording reset to false');
+      navigation.navigate('RecordingTips');
+    } catch (error) {
+      console.error('[AnalyzeScreen] Error incrementing instructions count:', error);
+      navigation.navigate('RecordingTips');
     }
-  };
-
-  const handleCloseModal = () => {
-    setShowFilmingModal(false);
-  };
-
-  const handleCameraTypeChange = (type: 'front' | 'back') => {
-    setCameraType(type);
   };
 
   return (
@@ -293,15 +245,7 @@ export default function AnalyzeScreen() {
             iconBg={colors.bg.actionIconGreen}
             title="Record Now"
             style={styles.actionCardHalf}
-            onPress={() => {
-              console.log('[AI-67] Record Now button pressed, showFilmingModal:', showFilmingModal, 'isRecording:', isRecording);
-              if (!isRecording) {
-                setShowFilmingModal(true);
-                console.log('[AI-67] showFilmingModal set to true');
-              } else {
-                console.log('[AI-67] Record Now ignored - already recording');
-              }
-            }}
+            onPress={handleStartRecording}
           />
         </View>
 
@@ -309,14 +253,6 @@ export default function AnalyzeScreen() {
         <DrillCarousel />
       </ScrollView>
       <BottomTabBar activeTab="analyze" onTabPress={navigateMainTab} />
-
-      <FilmingInstructionsModal
-        visible={showFilmingModal}
-        cameraType={cameraType}
-        onCameraTypeChange={handleCameraTypeChange}
-        onStartRecording={handleStartRecording}
-        onClose={handleCloseModal}
-      />
     </View>
   );
 }

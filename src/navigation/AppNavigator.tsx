@@ -12,6 +12,7 @@ import OnboardingScreen from '../screens/OnboardingScreen';
 import SplashScreen from '../screens/SplashScreen';
 import AnalyzeScreen from '../screens/AnalyzeScreen';
 import UploadScreen from '../screens/UploadScreen';
+import RecordingTipsScreen from '../screens/RecordingTipsScreen';
 import CameraScreen from '../screens/CameraScreen';
 import ProcessingScreen from '../screens/ProcessingScreen';
 import AnalysisScreen from '../screens/AnalysisScreen';
@@ -80,6 +81,7 @@ function MainNavigator() {
     >
       <Stack.Screen name="MainTabs" component={MainTabs} />
       <Stack.Screen name="Upload" component={UploadScreen} />
+      <Stack.Screen name="RecordingTips" component={RecordingTipsScreen} />
       <Stack.Screen
         name="Camera"
         component={CameraScreen}

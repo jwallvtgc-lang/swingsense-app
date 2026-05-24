@@ -9,12 +9,10 @@ import {
   Dimensions,
 } from 'react-native';
 import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
-import * as Speech from 'expo-speech';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
-import { COLORS, FONTS } from '../config/constants';
 import {
   colors,
   fontSizes,
@@ -25,6 +23,7 @@ import {
   typography,
 } from '../../design-system/tokens';
 import type { MainStackParamList } from '../navigation/types';
+import InAppVideoReview from '../components/InAppVideoReview';
 
 type Nav = NativeStackNavigationProp<MainStackParamList, 'Camera'>;
 type Route = RouteProp<MainStackParamList, 'Camera'>;
@@ -38,37 +37,24 @@ export default function CameraScreen() {
 
   const [facing, setFacing] = useState<CameraType>('back');
   const [isRecording, setIsRecording] = useState(false);
+  const [recordedVideoUri, setRecordedVideoUri] = useState<string | null>(null);
+  const [recordingDuration, setRecordingDuration] = useState(0);
   const [permission, requestPermission] = useCameraPermissions();
-  const [hasPlayedAudioCue, setHasPlayedAudioCue] = useState(false);
 
+  // Timer effect for recording duration
   useEffect(() => {
-    // Play audio cue once per session
-    console.log(`[CameraScreen] Audio cue check: permission=${permission?.granted}, hasPlayedAudioCue=${hasPlayedAudioCue}`);
-    if (permission?.granted && !hasPlayedAudioCue) {
-      console.log('[CameraScreen] Starting audio cue in 2 seconds...');
-      const timeoutId = setTimeout(async () => {
-        try {
-          console.log('[CameraScreen] Playing audio cue');
-          await Speech.speak(
-            'Make sure your full body is visible from head to toe, then record your swing.',
-            {
-              language: 'en-US',
-              pitch: 0.8,
-              rate: 0.85,
-              voice: 'com.apple.ttsbundle.Alex-compact',
-            }
-          );
-          console.log('[CameraScreen] Audio cue completed');
-          setHasPlayedAudioCue(true);
-        } catch (error) {
-          console.error('[CameraScreen] Audio cue failed:', error);
-          setHasPlayedAudioCue(true); // Set to true anyway to avoid infinite retries
-        }
-      }, 2000);
-
-      return () => clearTimeout(timeoutId);
+    let interval: NodeJS.Timeout;
+    if (isRecording) {
+      interval = setInterval(() => {
+        setRecordingDuration(prev => prev + 1);
+      }, 1000);
+    } else {
+      setRecordingDuration(0);
     }
-  }, [permission?.granted, hasPlayedAudioCue]);
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isRecording]);
 
   if (!permission) {
     return <View style={styles.container} />;
@@ -77,7 +63,7 @@ export default function CameraScreen() {
   if (!permission.granted) {
     return (
       <View style={styles.permissionContainer}>
-        <Ionicons name="camera-outline" size={64} color={COLORS.textMuted} />
+        <Ionicons name="camera-outline" size={64} color={colors.text.muted} />
         <Text style={styles.permissionTitle}>Camera Access Required</Text>
         <Text style={styles.permissionText}>
           SwingSense needs camera access to record your swing
@@ -103,11 +89,7 @@ export default function CameraScreen() {
       });
 
       if (video) {
-        // Navigate to processing with video URI and front-facing flag
-        navigation.replace('Processing', {
-          videoUri: video.uri,
-          frontFacing: facing === 'front',
-        });
+        setRecordedVideoUri(video.uri);
       }
     } catch (error) {
       console.error('Recording failed:', error);
@@ -130,6 +112,38 @@ export default function CameraScreen() {
     navigation.goBack();
   };
 
+  const handleRetake = () => {
+    setRecordedVideoUri(null);
+    // Don't replay audio cues on retake
+  };
+
+  const handleUseVideo = () => {
+    if (recordedVideoUri) {
+      navigation.replace('Processing', {
+        videoUri: recordedVideoUri,
+        frontFacing: facing === 'front',
+      });
+    }
+  };
+
+  const formatTimer = (seconds: number): string => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  // Show video review if we have a recorded video
+  if (recordedVideoUri) {
+    return (
+      <InAppVideoReview
+        videoUri={recordedVideoUri}
+        onRetake={handleRetake}
+        onUseVideo={handleUseVideo}
+        frontFacing={facing === 'front'}
+      />
+    );
+  }
+
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
@@ -142,35 +156,43 @@ export default function CameraScreen() {
         {/* Header Controls */}
         <View style={styles.header}>
           <Pressable style={styles.headerButton} onPress={goBack}>
-            <Ionicons name="close" size={28} color={COLORS.white} />
-          </Pressable>
-
-          <Pressable style={styles.headerButton} onPress={toggleCameraFacing}>
-            <Ionicons name="camera-reverse-outline" size={28} color={COLORS.white} />
+            <Ionicons name="close" size={28} color={colors.text.primary} />
           </Pressable>
         </View>
 
-        {/* Camera Type Indicator */}
-        <View style={styles.cameraTypeIndicator}>
-          <Text style={styles.cameraTypeText}>
-            {facing === 'front' ? 'Front Camera' : 'Back Camera'}
-          </Text>
-        </View>
-
-        {/* Recording Instructions */}
-        <View style={styles.instructionsOverlay}>
-          <Text style={styles.instructionsText}>
-            Position yourself so your full body is visible
-          </Text>
-          {facing === 'front' && (
-            <Text style={styles.frontCameraNote}>
-              Front camera view is mirrored
+        {/* Recording Timer (only show while recording) */}
+        {isRecording && (
+          <View style={styles.timerContainer}>
+            <Text style={styles.timerText}>
+              {formatTimer(recordingDuration)}
             </Text>
-          )}
-        </View>
+          </View>
+        )}
+
+        {/* Recording Instructions (only show when not recording) */}
+        {!isRecording && (
+          <View style={styles.instructionsOverlay}>
+            <Text style={styles.instructionsText}>
+              Position yourself so your full body is visible
+            </Text>
+            {facing === 'front' && (
+              <Text style={styles.frontCameraNote}>
+                Front camera view is mirrored
+              </Text>
+            )}
+          </View>
+        )}
 
         {/* Bottom Controls */}
         <View style={styles.controls}>
+          {/* X button bottom left (only when not recording) */}
+          {!isRecording && (
+            <Pressable style={styles.exitButton} onPress={goBack}>
+              <Ionicons name="close" size={24} color={colors.text.primary} />
+            </Pressable>
+          )}
+
+          {/* Record/Stop button center */}
           <View style={styles.recordingControls}>
             <Pressable
               style={[
@@ -178,27 +200,17 @@ export default function CameraScreen() {
                 isRecording && styles.recordButtonActive,
               ]}
               onPress={isRecording ? stopRecording : startRecording}
-              disabled={isRecording && false} // Allow stopping
             >
-              <View style={[
-                styles.recordButtonInner,
-                isRecording && styles.recordButtonInnerActive,
-              ]}>
-                <Ionicons
-                  name={isRecording ? "stop" : "videocam"}
-                  size={32}
-                  color={isRecording ? COLORS.white : COLORS.accent}
-                />
-              </View>
+              {isRecording ? (
+                <View style={styles.stopSquare} />
+              ) : (
+                <View style={styles.recordDot} />
+              )}
             </Pressable>
           </View>
 
-          {isRecording && (
-            <View style={styles.recordingIndicator}>
-              <View style={styles.recordingDot} />
-              <Text style={styles.recordingText}>Recording...</Text>
-            </View>
-          )}
+          {/* Spacer for balance */}
+          {!isRecording && <View style={styles.spacer} />}
         </View>
       </CameraView>
     </View>
@@ -251,7 +263,7 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-start',
     alignItems: 'flex-start',
     paddingTop: 60,
     paddingHorizontal: spacing.screen,
@@ -265,19 +277,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  cameraTypeIndicator: {
+  timerContainer: {
     position: 'absolute',
     top: 120,
-    left: spacing.screen,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    paddingHorizontal: spacing.cardSm,
+    alignSelf: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    paddingHorizontal: spacing.card,
     paddingVertical: spacing.iconGap,
-    borderRadius: radius.subCard,
+    borderRadius: radius.card,
   },
-  cameraTypeText: {
-    fontSize: fontSizes.caption,
-    fontFamily: typography.body,
+  timerText: {
+    fontSize: fontSizes.body,
+    fontFamily: typography.display,
     color: colors.text.primary,
+    textAlign: 'center',
   },
   instructionsOverlay: {
     position: 'absolute',
@@ -310,10 +323,21 @@ const styles = StyleSheet.create({
   },
   controls: {
     position: 'absolute',
-    bottom: 60,
+    bottom: 80,
     left: 0,
     right: 0,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.screen,
+  },
+  exitButton: {
+    width: 48,
+    height: 48,
+    borderRadius: radius.circle,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   recordingControls: {
     alignItems: 'center',
@@ -322,47 +346,29 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: radius.circle,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 4,
     borderColor: colors.text.primary,
   },
   recordButtonActive: {
-    backgroundColor: 'rgba(220, 38, 38, 0.8)',
+    backgroundColor: 'rgba(220, 38, 38, 0.3)',
     borderColor: colors.text.red,
   },
-  recordButtonInner: {
-    width: 60,
-    height: 60,
+  recordDot: {
+    width: 24,
+    height: 24,
     borderRadius: radius.circle,
-    backgroundColor: colors.text.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  recordButtonInnerActive: {
     backgroundColor: colors.text.red,
-    borderRadius: radius.badge,
   },
-  recordingIndicator: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: spacing.card,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    paddingHorizontal: spacing.cardSm,
-    paddingVertical: spacing.iconGap,
-    borderRadius: radius.subCard,
-  },
-  recordingDot: {
-    width: 8,
-    height: 8,
+  stopSquare: {
+    width: 20,
+    height: 20,
     borderRadius: radius.xs,
-    backgroundColor: colors.text.red,
-    marginRight: spacing.iconGap,
+    backgroundColor: colors.text.primary,
   },
-  recordingText: {
-    fontSize: fontSizes.body,
-    fontFamily: typography.body,
-    color: colors.text.primary,
+  spacer: {
+    width: 48,
   },
 });
