@@ -8,8 +8,8 @@ import {
   StyleSheet,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import type { Drill } from '../data/drills';
-import { MECHANIC_COLORS, MECHANIC_LABELS } from '../data/drills';
+import type { DrillCard } from '../types/drill';
+import type { DrillMechanic } from '../types/drill';
 import {
   colors,
   fontSizes,
@@ -20,8 +20,25 @@ import {
   typography,
 } from '../../design-system/tokens';
 
+// Mechanic color mapping based on AI-70 spec
+const MECHANIC_COLORS: Record<DrillMechanic, string> = {
+  stance: '#4A90D9', // blue
+  load: '#F5A623', // orange
+  power_position: '#639922', // green
+  slot: '#9B59B6', // purple
+  balance_at_contact: '#1ABC9C', // teal
+};
+
+const MECHANIC_LABELS: Record<DrillMechanic, string> = {
+  stance: 'Stance',
+  load: 'Load',
+  power_position: 'Power Position',
+  slot: 'Slot',
+  balance_at_contact: 'Balance at Contact',
+};
+
 interface DrillDetailModalProps {
-  drill: Drill | null;
+  drill: DrillCard | null;
   visible: boolean;
   onClose: () => void;
 }
@@ -47,19 +64,24 @@ export default function DrillDetailModal({
               <View style={[styles.mechanicBadge, { backgroundColor: MECHANIC_COLORS[drill.mechanic] }]}>
                 <Text style={styles.mechanicText}>{MECHANIC_LABELS[drill.mechanic]}</Text>
               </View>
-              <Text style={styles.level}>{drill.level}</Text>
+              <Text style={styles.level}>{drill.experience_level}</Text>
             </View>
             <Pressable onPress={onClose} style={styles.closeButton}>
               <Ionicons name="close" size={24} color={colors.text.muted} />
             </Pressable>
           </View>
 
-          <Text style={styles.title}>{drill.name}</Text>
+          <Text style={styles.title}>{drill.title}</Text>
 
           <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Why It Helps</Text>
               <Text style={styles.sectionText}>{drill.whyItHelps}</Text>
+            </View>
+
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Setup</Text>
+              <Text style={styles.sectionText}>{drill.setup}</Text>
             </View>
 
             <View style={styles.section}>
@@ -75,10 +97,10 @@ export default function DrillDetailModal({
             </View>
 
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Success Cue</Text>
+              <Text style={styles.sectionTitle}>Reps</Text>
               <View style={styles.successCue}>
                 <Ionicons name="checkmark-circle" size={20} color={colors.text.green} />
-                <Text style={styles.successText}>{drill.successCue}</Text>
+                <Text style={styles.successText}>{drill.reps}</Text>
               </View>
             </View>
           </ScrollView>

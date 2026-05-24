@@ -5,7 +5,8 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import DrillCard from './DrillCard';
 import DrillDetailModal from './DrillDetailModal';
-import { drills, type Drill, type DrillMechanic } from '../data/drills';
+import { DRILLS, getDrillForMechanic, getRandomDrillsExcluding } from '../data/drillsData';
+import type { DrillCard as DrillCardType, DrillMechanic } from '../types/drill';
 import { getLastCompletedAnalysis } from '../services/analysis';
 import { useAuth } from '../contexts/AuthContext';
 import type { SwingAnalysis } from '../types';
@@ -14,6 +15,7 @@ import {
   colors,
   fontSizes,
   fontWeights,
+  letterSpacing,
   spacing,
   typography,
 } from '../../design-system/tokens';
@@ -24,20 +26,39 @@ interface DrillCarouselProps {
   title?: string;
 }
 
-// Map analysis score fields to drill mechanics
-const SCORE_TO_MECHANIC: Record<string, DrillMechanic> = {
-  stance_score: 'stance',
-  load_score: 'load',
-  power_position_score: 'power_position',
-  slot_score: 'slot',
-  balance_at_contact_score: 'balance_at_contact',
+// Map primary_mechanical_issue titles to drill mechanics
+const ISSUE_TO_MECHANIC: Record<string, DrillMechanic> = {
+  // Common issue patterns that might come from coaching output
+  stance: 'stance',
+  load: 'load',
+  'power position': 'power_position',
+  slot: 'slot',
+  balance: 'balance_at_contact',
+  'balance at contact': 'balance_at_contact',
+  // Add more mappings as needed based on actual coaching output
 };
+
+function mapIssueToMechanic(issueTitle: string | undefined): DrillMechanic | null {
+  if (!issueTitle) return null;
+
+  const lowerTitle = issueTitle.toLowerCase();
+
+  // Try exact matches first
+  for (const [key, mechanic] of Object.entries(ISSUE_TO_MECHANIC)) {
+    if (lowerTitle.includes(key)) {
+      return mechanic;
+    }
+  }
+
+  // Fallback to 'stance' if no match (most basic mechanic)
+  return 'stance';
+}
 
 export default function DrillCarousel({ title = 'PRACTICE DRILLS' }: DrillCarouselProps) {
   const navigation = useNavigation<Navigation>();
   const { user } = useAuth();
   const [lastAnalysis, setLastAnalysis] = useState<SwingAnalysis | null>(null);
-  const [selectedDrill, setSelectedDrill] = useState<Drill | null>(null);
+  const [selectedDrill, setSelectedDrill] = useState<DrillCardType | null>(null);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -50,54 +71,37 @@ export default function DrillCarousel({ title = 'PRACTICE DRILLS' }: DrillCarous
     fetchAnalysis();
   }, [user?.id]);
 
-  const recommendedMechanics = useMemo(() => {
-    if (!lastAnalysis) return [];
+  const carouselDrills = useMemo(() => {
+    // Get the primary mechanical issue from last analysis
+    const primaryIssue = lastAnalysis?.coaching_output?.primary_mechanical_issue;
+    const targetMechanic = mapIssueToMechanic(primaryIssue?.title);
 
-    const scores: Array<{ mechanic: DrillMechanic; score: number }> = [];
+    const drills: DrillCardType[] = [];
 
-    // Check core 5 scores and identify weak areas (scores below 75)
-    Object.entries(SCORE_TO_MECHANIC).forEach(([scoreField, mechanic]) => {
-      const score = lastAnalysis[scoreField as keyof SwingAnalysis] as number | null;
-      if (score !== null && score < 75) {
-        scores.push({ mechanic, score });
-      }
-    });
+    if (targetMechanic) {
+      // Slot 1: Get recommended drill for the primary issue
+      const recommendedDrill = getDrillForMechanic(
+        targetMechanic,
+        // Use user's experience level from profile, or default to beginner
+        (user as any)?.experience_level || 'beginner'
+      );
+      drills.push(recommendedDrill);
 
-    // Sort by lowest scores first (worst mechanics need most help)
-    return scores
-      .sort((a, b) => a.score - b.score)
-      .map(item => item.mechanic)
-      .slice(0, 3); // Top 3 weakest mechanics
-  }, [lastAnalysis]);
+      // Slots 2-5: Get random drills from other mechanics
+      const otherDrills = getRandomDrillsExcluding(targetMechanic, 4);
+      drills.push(...otherDrills);
+    } else {
+      // No analysis yet - show 5 random drills
+      const shuffled = [...DRILLS].sort(() => Math.random() - 0.5);
+      drills.push(...shuffled.slice(0, 5));
+    }
 
-  const organizedDrills = useMemo(() => {
-    const recommended: Drill[] = [];
-    const other: Drill[] = [];
+    return drills;
+  }, [lastAnalysis, user]);
 
-    drills.forEach(drill => {
-      if (recommendedMechanics.includes(drill.mechanic)) {
-        recommended.push(drill);
-      } else {
-        other.push(drill);
-      }
-    });
-
-    // Put recommended drills first, then others
-    return [...recommended, ...other];
-  }, [recommendedMechanics]);
-
-  const handleDrillPress = useCallback((drill: Drill) => {
+  const handleDrillPress = useCallback((drill: DrillCardType) => {
     setSelectedDrill(drill);
   }, []);
-
-  if (organizedDrills.length === 0) {
-    return (
-      <View style={styles.container}>
-        <Text style={styles.title}>{title}</Text>
-        <Text style={styles.emptyText}>Loading drills...</Text>
-      </View>
-    );
-  }
 
   return (
     <View style={styles.container}>
@@ -106,16 +110,16 @@ export default function DrillCarousel({ title = 'PRACTICE DRILLS' }: DrillCarous
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        snapToInterval={210} // 200px card + 10px gap
+        snapToInterval={280} // Card width 260 + 20 gap
         decelerationRate="fast"
         contentContainerStyle={styles.scrollContent}
         style={styles.scrollView}
       >
-        {organizedDrills.map((drill) => (
+        {carouselDrills.map((drill, index) => (
           <DrillCard
             key={drill.id}
             drill={drill}
-            isRecommended={recommendedMechanics.includes(drill.mechanic)}
+            isRecommended={index === 0} // First drill is recommended if from analysis
             onPress={() => handleDrillPress(drill)}
           />
         ))}
@@ -133,29 +137,21 @@ export default function DrillCarousel({ title = 'PRACTICE DRILLS' }: DrillCarous
 const styles = StyleSheet.create({
   container: {
     alignSelf: 'stretch',
-    height: 230,
   },
   title: {
     fontFamily: typography.body,
-    fontSize: fontSizes.caption,
+    fontSize: fontSizes.label, // 10px
     fontWeight: fontWeights.medium,
     color: colors.text.muted,
-    letterSpacing: 1.5,
+    letterSpacing: letterSpacing.label, // 3px
     textTransform: 'uppercase',
-    marginBottom: spacing.cardGap,
+    marginBottom: spacing.cardGap, // 12px
   },
   scrollView: {
     flexGrow: 0,
   },
   scrollContent: {
-    paddingLeft: spacing.screen,
-    paddingRight: spacing.cardGap, // Extra padding at end
-  },
-  emptyText: {
-    fontFamily: typography.body,
-    fontSize: fontSizes.body,
-    color: colors.text.secondary,
-    textAlign: 'center',
-    paddingVertical: spacing.sectionGap,
+    paddingHorizontal: 0,
+    paddingRight: 20, // Show ~20px of next card peeking
   },
 });
