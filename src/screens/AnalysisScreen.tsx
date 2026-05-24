@@ -21,15 +21,16 @@ import DecisionFactors from '../components/DecisionFactors';
 import DrillStep from '../components/DrillStep';
 import FeedbackRow from '../components/FeedbackRow';
 import PrimaryButton from '../components/PrimaryButton';
+import ScoreCard from '../components/ScoreCard';
 import ScoreRing from '../components/ScoreRing';
 import SectionCard from '../components/SectionCard';
-import SmallScoreBadge from '../components/SmallScoreBadge';
 import TabSwitcher from '../components/TabSwitcher';
 import { FEEDBACK_EMAIL } from '../config/constants';
 import { supabase } from '../config/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import type { MainStackParamList } from '../navigation/types';
 import {
+  getAllCompletedAnalyses,
   getPreviousCompletedAnalysis,
   pollAnalysisStatus,
   submitDrillFeedback,
@@ -278,6 +279,7 @@ export default function AnalysisScreen() {
   const [activeTab, setActiveTab] = useState(TAB_RESULTS);
   const [analysis, setAnalysis] = useState<SwingAnalysis | null>(null);
   const [previousAnalysis, setPreviousAnalysis] = useState<SwingAnalysis | null>(null);
+  const [allAnalyses, setAllAnalyses] = useState<SwingAnalysis[]>([]);
   const [loading, setLoading] = useState(true);
   const [feedback, setFeedback] = useState<'up' | 'down' | null>(null);
   const [feedbackNote, setFeedbackNote] = useState('');
@@ -341,6 +343,7 @@ export default function AnalysisScreen() {
     setLoading(true);
     setAnalysis(null);
     setPreviousAnalysis(null);
+    setAllAnalyses([]);
 
     const load = async () => {
       // Single row from `swing_analyses` by id (see `src/services/analysis.ts`).
@@ -349,10 +352,17 @@ export default function AnalysisScreen() {
       setAnalysis(data);
       setLoading(false);
       if (data?.user_id) {
-        const prev = await getPreviousCompletedAnalysis(data.user_id, data.created_at);
-        if (!cancelled) setPreviousAnalysis(prev);
+        const [prev, all] = await Promise.all([
+          getPreviousCompletedAnalysis(data.user_id, data.created_at),
+          getAllCompletedAnalyses(data.user_id),
+        ]);
+        if (!cancelled) {
+          setPreviousAnalysis(prev);
+          setAllAnalyses(all);
+        }
       } else {
         setPreviousAnalysis(null);
+        setAllAnalyses([]);
       }
     };
     load();
@@ -433,20 +443,26 @@ export default function AnalysisScreen() {
     return '';
   }, [coachSummary, analysis]);
 
-  // Calculate delta text for small score badge
-  const scoreDeltaText = useMemo(() => {
-    if (!analysis || !previousAnalysis) return undefined;
+  // Calculate delta for ScoreCard
+  const scoreDelta = useMemo(() => {
+    if (!analysis || !previousAnalysis) return null;
 
     const currentScore = heroOverallScore(analysis);
     const previousScore = heroOverallScore(previousAnalysis);
-    const delta = currentScore - previousScore;
-
-    if (delta === 0) return undefined;
-
-    const direction = delta > 0 ? 'up' : 'down';
-    const amount = Math.abs(delta);
-    return `${direction} ${amount} from last time`;
+    return currentScore - previousScore;
   }, [analysis, previousAnalysis]);
+
+  // Calculate recent scores for ScoreCard sparkline (last 3 scores, excluding current)
+  const recentScores = useMemo(() => {
+    if (!analysis) return [];
+
+    // Filter out the current analysis and get the most recent 3 before it
+    const otherAnalyses = allAnalyses.filter(a => a.id !== analysis.id);
+    return otherAnalyses
+      .slice(0, 3) // Take the 3 most recent (already sorted newest first)
+      .map(a => heroOverallScore(a))
+      .reverse(); // Reverse to show oldest to newest in sparkline
+  }, [analysis, allAnalyses]);
 
   const handleDrillFeedback = async (
     feedback: 'helped' | 'still_struggling' | 'confused'
@@ -529,7 +545,7 @@ export default function AnalysisScreen() {
 
         {activeTab === TAB_RESULTS ? (
           <View style={styles.tabPanels}>
-            {/* 1. Video thumbnail - moved to top */}
+            {/* 1. Video thumbnail */}
             {videoUrl ? (
               <Pressable
                 style={styles.videoThumbnailContainer}
@@ -559,26 +575,8 @@ export default function AnalysisScreen() {
               </Pressable>
             ) : null}
 
-            {/* 2. Quick Context - unchanged position */}
-            {(keyTitle.length > 0 || keyDescription.length > 0) && (
-              <SectionCard title="Quick Context">
-                {keyTitle.length > 0 ? (
-                  <Text style={styles.contextIssueTitle} maxFontSizeMultiplier={1.35}>
-                    {keyTitle}
-                  </Text>
-                ) : null}
-                {keyDescription.length > 0 ? (
-                  <Text
-                    style={[styles.bodyText, keyTitle.length > 0 && styles.contextIssueBody]}
-                    maxFontSizeMultiplier={1.35}
-                  >
-                    {keyDescription}
-                  </Text>
-                ) : null}
-              </SectionCard>
-            )}
 
-            {/* 3. What's working - new positive observation card */}
+            {/* 2. What's working - positive observation card */}
             {positiveObservation.length > 0 && (
               <SectionCard title="WHAT'S WORKING" titleColor={colors.text.green}>
                 <Text style={styles.positiveObservation} maxFontSizeMultiplier={1.35}>
@@ -587,7 +585,14 @@ export default function AnalysisScreen() {
               </SectionCard>
             )}
 
-            {/* 4. Mechanic breakdown - moved after what's working */}
+            {/* 3. ScoreCard - new compact score display */}
+            <ScoreCard
+              score={heroScore}
+              delta={scoreDelta}
+              recentScores={recentScores}
+            />
+
+            {/* 4. Mechanic breakdown - after ScoreCard */}
             <View style={styles.decisionFactorsWrap}>
               <DecisionFactors
                 stanceScore={analysis?.stance_score ?? null}
@@ -599,7 +604,7 @@ export default function AnalysisScreen() {
               />
             </View>
 
-            {/* 5. Comparison - moved after mechanic breakdown */}
+            {/* 5. Comparison - after mechanic breakdown */}
             {showCompareSection && previousAnalysis ? (
               <SectionCard
                 title="Compared to your last swing"
@@ -653,13 +658,6 @@ export default function AnalysisScreen() {
               </SectionCard>
             ) : null}
 
-            {/* 6. Small score badge - moved to bottom */}
-            <View style={styles.smallScoreBadgeContainer}>
-              <SmallScoreBadge
-                score={heroScore}
-                deltaText={scoreDeltaText}
-              />
-            </View>
 
             <View style={styles.afterTabContent}>
               <FeedbackRow
@@ -1014,10 +1012,6 @@ const styles = StyleSheet.create({
     color: colors.text.green,
     lineHeight: Math.round(fontSizes.body * 1.45),
   },
-  smallScoreBadgeContainer: {
-    alignItems: 'center',
-    marginTop: spacing.cardGap,
-  },
   heroScore: {
     marginTop: spacing.sectionGap,
     alignItems: 'center',
@@ -1082,15 +1076,6 @@ const styles = StyleSheet.create({
     fontSize: fontSizes.body,
     color: colors.text.secondary,
     lineHeight: Math.round(fontSizes.body * 1.45), // 1.45/1.35 line height — readability tuned for this context
-  },
-  contextIssueTitle: {
-    fontFamily: typography.body,
-    fontSize: fontSizes.actionCardTitle,
-    color: colors.text.primary,
-    lineHeight: Math.round(fontSizes.actionCardTitle * 1.35), // 1.45/1.35 line height — readability tuned for this context
-  },
-  contextIssueBody: {
-    marginTop: spacing.pillGap,
   },
   drillList: {
     gap: spacing.drillGap,
