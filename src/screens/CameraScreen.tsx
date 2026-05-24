@@ -7,6 +7,7 @@ import {
   Alert,
   StatusBar,
   Dimensions,
+  ActivityIndicator,
 } from 'react-native';
 import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
 import { Ionicons } from '@expo/vector-icons';
@@ -39,6 +40,7 @@ export default function CameraScreen() {
   const [isRecording, setIsRecording] = useState(false);
   const [recordedVideoUri, setRecordedVideoUri] = useState<string | null>(null);
   const [recordingDuration, setRecordingDuration] = useState(0);
+  const [isReady, setIsReady] = useState(false);
   const [permission, requestPermission] = useCameraPermissions();
 
   // Timer effect for recording duration
@@ -152,6 +154,7 @@ export default function CameraScreen() {
         ref={cameraRef}
         style={styles.camera}
         facing={facing}
+        onCameraReady={() => setIsReady(true)}
       >
         {/* Header Controls */}
         <View style={styles.header}>
@@ -198,11 +201,15 @@ export default function CameraScreen() {
               style={[
                 styles.recordButton,
                 isRecording && styles.recordButtonActive,
+                !isReady && styles.recordButtonDisabled,
               ]}
               onPress={isRecording ? stopRecording : startRecording}
+              disabled={!isReady}
             >
               {isRecording ? (
                 <View style={styles.stopSquare} />
+              ) : !isReady ? (
+                <ActivityIndicator size="small" color={colors.text.primary} />
               ) : (
                 <View style={styles.recordDot} />
               )}
@@ -355,6 +362,9 @@ const styles = StyleSheet.create({
   recordButtonActive: {
     backgroundColor: 'rgba(220, 38, 38, 0.3)',
     borderColor: colors.text.red,
+  },
+  recordButtonDisabled: {
+    opacity: 0.6,
   },
   recordDot: {
     width: 24,
