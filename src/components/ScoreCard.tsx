@@ -7,7 +7,9 @@ import {
   getScoreColor,
   letterSpacing,
   radius,
+  scoreCard,
   spacing,
+  sparkline,
   typography,
 } from '../../design-system/tokens';
 
@@ -55,7 +57,7 @@ export default function ScoreCard({ score, delta, recentScores }: ScoreCardProps
       {recentScores.length > 0 && (
         <View style={styles.sparklineContainer}>
           {recentScores.map((sparkScore, index) => {
-            const height = Math.max(4, Math.round((sparkScore / 100) * 16)); // Scale 0-100 to 4-16px height
+            const height = Math.max(sparkline.minHeight, Math.round((sparkScore / 100) * sparkline.maxHeight)); // Scale 0-100 to min-max height
             return (
               <View
                 key={index}
@@ -85,8 +87,8 @@ const styles = StyleSheet.create({
     alignSelf: 'stretch',
   },
   scoreCircle: {
-    width: 28,
-    height: 28,
+    width: scoreCard.circleSize,
+    height: scoreCard.circleSize,
     borderRadius: radius.circle,
     borderWidth: 1,
     alignItems: 'center',
@@ -110,11 +112,11 @@ const styles = StyleSheet.create({
   sparklineContainer: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    gap: 2,
+    gap: sparkline.barGap,
     marginLeft: spacing.iconGap,
   },
   sparklineBar: {
-    width: 4,
-    borderRadius: 1,
+    width: sparkline.barWidth,
+    borderRadius: sparkline.barRadius,
   },
 });

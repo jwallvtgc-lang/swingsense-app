@@ -268,6 +268,18 @@ export const header = {
   safeAreaPadding: 60, // Top safe area padding
 }
 
+export const scoreCard = {
+  circleSize: 28, // Score circle diameter
+}
+
+export const sparkline = {
+  barWidth: 4, // Sparkline bar width
+  barGap: 2, // Gap between sparkline bars
+  barRadius: 1, // Sparkline bar border radius
+  minHeight: 4, // Minimum bar height
+  maxHeight: 16, // Maximum bar height
+}
+
 /** Similarity score → display color (aligned with `colors.core5` bands). */
 export function getScoreColor(score: number): string {
   if (score >= 90) return colors.core5.bandLegendary // gold
