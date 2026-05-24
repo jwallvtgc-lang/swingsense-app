@@ -23,6 +23,7 @@ import FeedbackRow from '../components/FeedbackRow';
 import PrimaryButton from '../components/PrimaryButton';
 import ScoreRing from '../components/ScoreRing';
 import SectionCard from '../components/SectionCard';
+import SmallScoreBadge from '../components/SmallScoreBadge';
 import TabSwitcher from '../components/TabSwitcher';
 import { FEEDBACK_EMAIL } from '../config/constants';
 import { supabase } from '../config/supabase';
@@ -406,6 +407,47 @@ export default function AnalysisScreen() {
   const keyDescription = co?.primary_mechanical_issue?.description?.trim() ?? '';
   const actionPlanDrill = useMemo(() => parseActionPlanDrill(co), [co]);
 
+  // Extract positive observation from overall_summary for "What's working" section
+  const positiveObservation = useMemo(() => {
+    const sentences = coachSummary.split(/\.(?:\s|$)/);
+    const firstSentence = sentences[0]?.trim();
+    if (firstSentence && firstSentence.length > 0) {
+      return firstSentence.endsWith('.') ? firstSentence : firstSentence + '.';
+    }
+
+    // Fallback: find highest-scoring core 5 mechanic
+    if (analysis) {
+      const mechanicScores = CORE5_COMPARE.map(({ key, label }) => ({
+        score: analysis[key],
+        name: label,
+      }))
+        .filter((m): m is { score: number; name: string } => m.score != null)
+        .sort((a, b) => b.score - a.score);
+
+      if (mechanicScores.length > 0) {
+        const bestMechanic = mechanicScores[0];
+        return `${bestMechanic.name} is one of the stronger parts of your swing this session.`;
+      }
+    }
+
+    return '';
+  }, [coachSummary, analysis]);
+
+  // Calculate delta text for small score badge
+  const scoreDeltaText = useMemo(() => {
+    if (!analysis || !previousAnalysis) return undefined;
+
+    const currentScore = heroOverallScore(analysis);
+    const previousScore = heroOverallScore(previousAnalysis);
+    const delta = currentScore - previousScore;
+
+    if (delta === 0) return undefined;
+
+    const direction = delta > 0 ? 'up' : 'down';
+    const amount = Math.abs(delta);
+    return `${direction} ${amount} from last time`;
+  }, [analysis, previousAnalysis]);
+
   const handleDrillFeedback = async (
     feedback: 'helped' | 'still_struggling' | 'confused'
   ) => {
@@ -476,25 +518,6 @@ export default function AnalysisScreen() {
           </Text>
         </View>
 
-        <View style={styles.heroScore}>
-          <ScoreRing
-            score={heroScore}
-            size="lg"
-            showLabel={false}
-            accentColor={getCore5BandColor(heroScore)}
-          />
-        </View>
-
-        <View style={styles.decisionFactorsWrap}>
-          <DecisionFactors
-            stanceScore={analysis?.stance_score ?? null}
-            loadScore={analysis?.load_score ?? null}
-            powerPositionScore={analysis?.power_position_score ?? null}
-            slotScore={analysis?.slot_score ?? null}
-            balanceAtContactScore={analysis?.balance_at_contact_score ?? null}
-            primaryIssue={co?.primary_mechanical_issue?.title}
-          />
-        </View>
 
         <View style={styles.afterSubGrid}>
           <TabSwitcher
@@ -506,19 +529,37 @@ export default function AnalysisScreen() {
 
         {activeTab === TAB_RESULTS ? (
           <View style={styles.tabPanels}>
+            {/* 1. Video thumbnail - moved to top */}
             {videoUrl ? (
-              <View style={styles.videoContainer}>
+              <Pressable
+                style={styles.videoThumbnailContainer}
+                onPress={() => {
+                  // Make video thumbnail tappable - could expand to fullscreen or play
+                  videoRef.current?.playAsync().catch(() => {
+                    // Ignore play errors - video might not be fully loaded
+                  });
+                }}
+              >
                 <Video
                   ref={videoRef}
                   source={{ uri: videoUrl }}
-                  style={styles.video}
+                  style={styles.videoThumbnail}
                   resizeMode={ResizeMode.CONTAIN}
-                  useNativeControls={true}
+                  useNativeControls={false}
                   isLooping={false}
                   shouldPlay={false}
                 />
-              </View>
+                <View style={styles.videoPlayOverlay}>
+                  <Ionicons
+                    name="play"
+                    size={24}
+                    color={colors.text.primary}
+                  />
+                </View>
+              </Pressable>
             ) : null}
+
+            {/* 2. Quick Context - unchanged position */}
             {(keyTitle.length > 0 || keyDescription.length > 0) && (
               <SectionCard title="Quick Context">
                 {keyTitle.length > 0 ? (
@@ -536,6 +577,29 @@ export default function AnalysisScreen() {
                 ) : null}
               </SectionCard>
             )}
+
+            {/* 3. What's working - new positive observation card */}
+            {positiveObservation.length > 0 && (
+              <SectionCard title="WHAT'S WORKING" titleColor={colors.text.green}>
+                <Text style={styles.positiveObservation} maxFontSizeMultiplier={1.35}>
+                  {positiveObservation}
+                </Text>
+              </SectionCard>
+            )}
+
+            {/* 4. Mechanic breakdown - moved after what's working */}
+            <View style={styles.decisionFactorsWrap}>
+              <DecisionFactors
+                stanceScore={analysis?.stance_score ?? null}
+                loadScore={analysis?.load_score ?? null}
+                powerPositionScore={analysis?.power_position_score ?? null}
+                slotScore={analysis?.slot_score ?? null}
+                balanceAtContactScore={analysis?.balance_at_contact_score ?? null}
+                primaryIssue={co?.primary_mechanical_issue?.title}
+              />
+            </View>
+
+            {/* 5. Comparison - moved after mechanic breakdown */}
             {showCompareSection && previousAnalysis ? (
               <SectionCard
                 title="Compared to your last swing"
@@ -588,6 +652,14 @@ export default function AnalysisScreen() {
                 ) : null}
               </SectionCard>
             ) : null}
+
+            {/* 6. Small score badge - moved to bottom */}
+            <View style={styles.smallScoreBadgeContainer}>
+              <SmallScoreBadge
+                score={heroScore}
+                deltaText={scoreDeltaText}
+              />
+            </View>
 
             <View style={styles.afterTabContent}>
               <FeedbackRow
@@ -755,7 +827,7 @@ export default function AnalysisScreen() {
                           fontWeight: fontWeights.medium,
                         }}
                       >
-                        Still struggling
+                        Need more reps
                       </Text>
                     </Pressable>
                     <Pressable
@@ -779,7 +851,7 @@ export default function AnalysisScreen() {
                           fontWeight: fontWeights.medium,
                         }}
                       >
-                        Confused
+                        Try another drill
                       </Text>
                     </Pressable>
                   </View>
@@ -915,6 +987,36 @@ const styles = StyleSheet.create({
   video: {
     width: '100%',
     height: '100%',
+  },
+  videoThumbnailContainer: {
+    position: 'relative',
+    borderRadius: radius.card,
+    overflow: 'hidden',
+    backgroundColor: colors.bg.surface,
+    aspectRatio: 16 / 9,
+    width: '100%',
+    maxHeight: 200,
+    alignSelf: 'stretch',
+  },
+  videoThumbnail: {
+    width: '100%',
+    height: '100%',
+  },
+  videoPlayOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.3)',
+  },
+  positiveObservation: {
+    fontFamily: typography.body,
+    fontSize: fontSizes.body,
+    color: colors.text.green,
+    lineHeight: Math.round(fontSizes.body * 1.45),
+  },
+  smallScoreBadgeContainer: {
+    alignItems: 'center',
+    marginTop: spacing.cardGap,
   },
   heroScore: {
     marginTop: spacing.sectionGap,

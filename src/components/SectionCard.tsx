@@ -16,9 +16,10 @@ export type SectionCardProps = {
   icon?: ReactNode;
   headerRight?: ReactNode;
   children: ReactNode;
+  titleColor?: string;
 };
 
-export default function SectionCard({ title, icon, headerRight, children }: SectionCardProps) {
+export default function SectionCard({ title, icon, headerRight, children, titleColor }: SectionCardProps) {
   const hasTitle = title != null && title.length > 0;
   const showHeader = hasTitle || icon != null || headerRight != null;
 
@@ -29,7 +30,11 @@ export default function SectionCard({ title, icon, headerRight, children }: Sect
           {icon != null ? (
             <View style={styles.iconSlot}>{icon}</View>
           ) : null}
-          {hasTitle ? <Text style={styles.title}>{title}</Text> : null}
+          {hasTitle ? (
+            <Text style={[styles.title, titleColor && { color: titleColor }]}>
+              {title}
+            </Text>
+          ) : null}
           {headerRight != null ? <View style={styles.headerRight}>{headerRight}</View> : null}
         </View>
       ) : null}
