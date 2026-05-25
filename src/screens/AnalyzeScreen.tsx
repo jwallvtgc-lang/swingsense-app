@@ -349,7 +349,7 @@ const styles = StyleSheet.create({
   },
   actionCardHalf: {
     flex: 1,
-    height: 120,
-    paddingVertical: 16,
+    height: 140,
+    paddingVertical: 20,
   },
 });

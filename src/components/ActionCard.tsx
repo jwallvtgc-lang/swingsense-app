@@ -1,8 +1,5 @@
 import type { ReactNode } from 'react';
-import { useEffect, useRef } from 'react';
 import {
-  Animated,
-  Easing,
   Platform,
   Pressable,
   StyleSheet,
@@ -45,54 +42,12 @@ export default function ActionCard({
   style,
   compact = false,
 }: ActionCardProps) {
-  const scale = useRef(new Animated.Value(1)).current;
-  const glow = useRef(new Animated.Value(premiumActionCard.glowPulseMin)).current;
   const palette = premiumActionCardVariants[variant];
 
-  useEffect(() => {
-    const pulse = Animated.loop(
-      Animated.sequence([
-        Animated.timing(glow, {
-          toValue: premiumActionCard.glowPulseMax,
-          duration: premiumActionCard.glowCycleMs / 2,
-          easing: Easing.inOut(Easing.ease),
-          useNativeDriver: false,
-        }),
-        Animated.timing(glow, {
-          toValue: premiumActionCard.glowPulseMin,
-          duration: premiumActionCard.glowCycleMs / 2,
-          easing: Easing.inOut(Easing.ease),
-          useNativeDriver: false,
-        }),
-      ])
-    );
-    pulse.start();
-    return () => pulse.stop();
-  }, [glow]);
-
-  const animateScale = (toValue: number) => {
-    Animated.timing(scale, {
-      toValue,
-      duration: premiumActionCard.pressMs,
-      easing: Easing.out(Easing.cubic),
-      useNativeDriver: true,
-    }).start();
-  };
-
-  const glowShadowOpacity = glow.interpolate({
-    inputRange: [premiumActionCard.glowPulseMin, premiumActionCard.glowPulseMax],
-    outputRange: [
-      premiumActionCard.glowShadowOpacityMin,
-      premiumActionCard.glowShadowOpacityMax,
-    ],
-  });
-
   return (
-    <Animated.View style={[styles.scaleWrap, { transform: [{ scale }] }, style]}>
+    <View style={[styles.scaleWrap, style]}>
       <Pressable
         onPress={onPress}
-        onPressIn={() => animateScale(premiumActionCard.pressScale)}
-        onPressOut={() => animateScale(1)}
         style={({ pressed }) => [
           styles.card,
           compact && styles.cardCompact,
@@ -102,7 +57,7 @@ export default function ActionCard({
       >
         <View style={[styles.body, compact && styles.bodyCompact]}>
           <View style={[styles.iconColumn, compact && styles.iconColumnCompact]}>
-            <Animated.View
+            <View
               style={[
                 styles.iconWrap,
                 compact && styles.iconWrapCompact,
@@ -110,12 +65,12 @@ export default function ActionCard({
                   backgroundColor: palette.iconBg,
                   borderColor: palette.borderColor,
                   shadowColor: palette.glowColor,
-                  shadowOpacity: glowShadowOpacity,
+                  shadowOpacity: 0,
                 },
               ]}
             >
               {icon}
-            </Animated.View>
+            </View>
           </View>
 
           <View style={styles.textRow}>
@@ -135,7 +90,7 @@ export default function ActionCard({
           </View>
         </View>
       </Pressable>
-    </Animated.View>
+    </View>
   );
 }
 
