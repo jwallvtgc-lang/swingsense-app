@@ -123,7 +123,7 @@ export default function ActionCard({
               <Text style={[styles.title, compact && styles.titleCompact]} numberOfLines={2} maxFontSizeMultiplier={1.2}>
                 {title}
               </Text>
-              <Text style={[styles.subtitle, compact && styles.subtitleCompact]} numberOfLines={compact ? 1 : 2} maxFontSizeMultiplier={1.2}>
+              <Text style={[styles.subtitle, compact && styles.subtitleCompact]} maxFontSizeMultiplier={1.2}>
                 {subtitle}
               </Text>
             </View>
