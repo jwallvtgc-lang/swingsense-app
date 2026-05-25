@@ -1443,24 +1443,26 @@ async def progress_coach(request: ProgressCoachRequest):
     # Build swing trend summary for Claude
     swing_summaries = []
     for i, swing in enumerate(request.swings):
-        scores = swing.get("similarity_breakdown", {}) or {}
         date = (swing.get("created_at", "") or "")[:10]
-        overall = scores.get("overall", 0)
+        stance = swing.get("stance_score", 0) or 0
+        load = swing.get("load_score", 0) or 0
+        power_pos = swing.get("power_position_score", 0) or 0
+        slot = swing.get("slot_score", 0) or 0
+        balance = swing.get("balance_at_contact_score", 0) or 0
+        # Calculate simple average for overall since we don't have overall core5 score
+        overall = round((stance + load + power_pos + slot + balance) / 5) if any([stance, load, power_pos, slot, balance]) else 0
         swing_summaries.append(
             f"Swing {i + 1} ({date}): overall={overall}, "
-            f"hip_rotation={scores.get('hip_rotation', 0)}, "
-            f"weight_transfer={scores.get('weight_transfer', 0)}, "
-            f"bat_path={scores.get('bat_path', 0)}, "
-            f"contact={scores.get('contact_point', 0)}, "
-            f"head_stability={scores.get('head_stability', 0)}"
+            f"stance={stance}, load={load}, power_position={power_pos}, "
+            f"slot={slot}, balance_at_contact={balance}"
         )
 
     # Compute trends
     def trend(metric: str):
         vals = [
-            (s.get("similarity_breakdown") or {}).get(metric, 0)
+            s.get(metric, 0) or 0
             for s in request.swings
-            if s.get("similarity_breakdown")
+            if s.get(metric) is not None
         ]
         vals = [v for v in vals if v > 0]
         if len(vals) < 2:
@@ -1470,11 +1472,11 @@ async def progress_coach(request: ProgressCoachRequest):
         return round(change), round(avg)
 
     metrics = [
-        "hip_rotation",
-        "weight_transfer",
-        "bat_path",
-        "contact_point",
-        "head_stability",
+        "stance_score",
+        "load_score",
+        "power_position_score",
+        "slot_score",
+        "balance_at_contact_score",
     ]
     trend_lines = []
     most_improved = None
@@ -1482,11 +1484,20 @@ async def progress_coach(request: ProgressCoachRequest):
     most_stuck = None
     most_stuck_avg = 100
 
+    # Map core 5 field names to player-friendly mechanic names
+    core5_labels = {
+        "stance_score": "Stance",
+        "load_score": "Load",
+        "power_position_score": "Power Position",
+        "slot_score": "Slot",
+        "balance_at_contact_score": "Balance at Contact"
+    }
+
     for m in metrics:
         change, avg = trend(m)
         if change is None:
             continue
-        label = m.replace("_", " ")
+        label = core5_labels[m]
         if change >= 3:
             trend_lines.append(f"{label}: improving (+{change} points)")
             if change > most_improved_change:
@@ -1502,21 +1513,28 @@ async def progress_coach(request: ProgressCoachRequest):
 
     system_prompt = """You are an elite baseball hitting coach giving a player their weekly progress update. Use Darian's coaching voice — warm, direct, specific, dugout coach energy.
 
+You evaluate based on Darian's CORE 5 MECHANICS in order:
+1. Stance — setup, posture, athletic position, balance point
+2. Load — hip load back to power position, hands back with bat tip
+3. Power Position — lower half loaded, hamstrings engaged, weight on toes, hips slightly leading hands
+4. Slot — back knee and back elbow pressing forward, knob working toward contact
+5. Balance at Contact — finishing through the ball, not pulling off
+
 RULES:
 - 2-3 sentences maximum — this is a card not an essay
 - Lead with something genuinely positive if the data supports it
-- Name the one metric that improved most specifically
-- Name the one thing to focus on next
+- Name the one core mechanic that improved most specifically (use exact names: Stance, Load, Power Position, Slot, Balance at Contact)
+- Name the one core mechanic to focus on next
 - End with one forward-looking sentence that connects to real hitting
-- Use Darian's vocabulary: balance point, stay connected, hips first, let it travel, power position
-- Never use: kinetic chain, biomechanical, posterior weight shift, analysis indicates
+- Use Darian's vocabulary: balance point, stay connected, hips first, let it travel, power position, rubber band, attack from the top
+- Never use: kinetic chain, biomechanical, posterior weight shift, analysis indicates, hip rotation, bat path
 - Sound like a coach texting after practice not writing a report
 
 Respond in JSON only:
 {
   "summary": "string — 2-3 sentence progress summary in Darian voice",
-  "most_improved": "string or null — metric name in plain English",
-  "focus_next": "string — one thing to work on this week in plain English",
+  "most_improved": "string or null — core mechanic name (Stance, Load, Power Position, Slot, or Balance at Contact)",
+  "focus_next": "string — one core mechanic to work on this week (Stance, Load, Power Position, Slot, or Balance at Contact)",
   "swings_analyzed": number,
   "best_overall": number
 }"""

@@ -271,7 +271,11 @@ export async function fetchProgressCoach(params: {
         user_id: params.userId,
         swings: params.swings.map((s) => ({
           created_at: s.created_at,
-          similarity_breakdown: s.similarity_breakdown,
+          stance_score: s.stance_score,
+          load_score: s.load_score,
+          power_position_score: s.power_position_score,
+          slot_score: s.slot_score,
+          balance_at_contact_score: s.balance_at_contact_score,
         })),
         player_profile: params.playerProfile,
       }),
