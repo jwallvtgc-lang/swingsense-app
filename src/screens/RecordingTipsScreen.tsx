@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   View,
   Text,
@@ -9,7 +9,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
-import * as Speech from 'expo-speech';
 import {
   bottomTab,
   colors,
@@ -22,7 +21,6 @@ import {
   typography,
 } from '../../design-system/tokens';
 import type { MainStackParamList } from '../navigation/types';
-import { SPEECH_CONFIG } from '../utils/speechConfig';
 
 type Nav = NativeStackNavigationProp<MainStackParamList>;
 
@@ -44,44 +42,9 @@ const RECORDING_TIPS = [
 export default function RecordingTipsScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<Nav>();
-  const [isStarting, setIsStarting] = useState(false);
 
-  const handleStartRecording = async () => {
-    if (isStarting) return;
-
-    setIsStarting(true);
-
-    try {
-      // Fire voice cues sequence
-      await Speech.speak(
-        'Step back until your full body is visible in the frame.',
-        SPEECH_CONFIG
-      );
-
-      // Wait for first cue to finish, then continue sequence
-      await new Promise(resolve => setTimeout(resolve, 2000));
-
-      await Speech.speak(
-        'Film from the side, about 10 feet away.',
-        SPEECH_CONFIG
-      );
-
-      await new Promise(resolve => setTimeout(resolve, 2000));
-
-      await Speech.speak(
-        'Take your full swing when you are ready.',
-        SPEECH_CONFIG
-      );
-
-      // Navigate to camera screen after voice cues
-      navigation.navigate('Camera');
-    } catch (error) {
-      console.error('[RecordingTipsScreen] Voice cue error:', error);
-      // Still navigate even if speech fails
-      navigation.navigate('Camera');
-    } finally {
-      setIsStarting(false);
-    }
+  const handleStartRecording = () => {
+    navigation.navigate('Camera');
   };
 
   const handleGoBack = () => {
@@ -123,15 +86,11 @@ export default function RecordingTipsScreen() {
 
         <View style={styles.footer}>
           <Pressable
-            style={[
-              styles.startButton,
-              isStarting && styles.startButtonDisabled,
-            ]}
+            style={styles.startButton}
             onPress={handleStartRecording}
-            disabled={isStarting}
           >
             <Text style={styles.startButtonText}>
-              {isStarting ? 'Starting...' : 'Start Recording →'}
+              Start Recording →
             </Text>
           </Pressable>
         </View>
@@ -205,9 +164,6 @@ const styles = StyleSheet.create({
     padding: spacing.card,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  startButtonDisabled: {
-    opacity: 0.6,
   },
   startButtonText: {
     fontSize: fontSizes.ctaLabel,

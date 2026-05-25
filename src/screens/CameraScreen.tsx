@@ -14,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
+import * as Speech from 'expo-speech';
 import {
   bottomTab,
   camera,
@@ -28,6 +29,7 @@ import {
 } from '../../design-system/tokens';
 import type { MainStackParamList } from '../navigation/types';
 import InAppVideoReview from '../components/InAppVideoReview';
+import { SPEECH_CONFIG } from '../utils/speechConfig';
 
 type Nav = NativeStackNavigationProp<MainStackParamList, 'Camera'>;
 type Route = RouteProp<MainStackParamList, 'Camera'>;
@@ -44,7 +46,10 @@ export default function CameraScreen() {
   const [recordedVideoUri, setRecordedVideoUri] = useState<string | null>(null);
   const [recordingDuration, setRecordingDuration] = useState(0);
   const [isReady, setIsReady] = useState(false);
+  const [countdown, setCountdown] = useState<number | null>(null);
   const [permission, requestPermission] = useCameraPermissions();
+  const cuesHaveFired = useRef(false);
+  const countdownTimer = useRef<NodeJS.Timeout | null>(null);
 
   // Timer effect for recording duration
   useEffect(() => {
@@ -60,6 +65,15 @@ export default function CameraScreen() {
       if (interval) clearInterval(interval);
     };
   }, [isRecording]);
+
+  // Cleanup countdown timer on unmount
+  useEffect(() => {
+    return () => {
+      if (countdownTimer.current) {
+        clearInterval(countdownTimer.current);
+      }
+    };
+  }, []);
 
   if (!permission) {
     return <View style={styles.container} />;
@@ -81,6 +95,44 @@ export default function CameraScreen() {
   }
 
   // Camera flip functionality removed - locked to front camera
+
+  const startCountdown = () => {
+    setCountdown(3);
+    countdownTimer.current = setInterval(() => {
+      setCountdown(prev => {
+        if (prev === null || prev <= 1) {
+          clearInterval(countdownTimer.current!);
+          setCountdown(null);
+          startRecording();
+          return null;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
+
+  const fireVoiceCues = async () => {
+    await Speech.speak("Step back until your full body is visible in the frame.", SPEECH_CONFIG);
+    await new Promise(r => setTimeout(r, 2000));
+    await Speech.speak("Take your full swing when you are ready.", SPEECH_CONFIG);
+    await new Promise(r => setTimeout(r, 500));
+    startCountdown();
+  };
+
+  const handleManualRecord = () => {
+    if (countdownTimer.current) clearInterval(countdownTimer.current);
+    setCountdown(null);
+    startRecording();
+  };
+
+  const onCameraReady = () => {
+    setIsReady(true);
+
+    if (cuesHaveFired.current) return;
+    cuesHaveFired.current = true;
+
+    setTimeout(fireVoiceCues, 1000);
+  };
 
   const startRecording = async () => {
     if (!cameraRef.current || isRecording) return;
@@ -111,6 +163,9 @@ export default function CameraScreen() {
   const goBack = () => {
     if (isRecording) {
       stopRecording();
+    }
+    if (countdownTimer.current) {
+      clearInterval(countdownTimer.current);
     }
     navigation.goBack();
   };
@@ -156,7 +211,7 @@ export default function CameraScreen() {
         style={styles.camera}
         facing={facing}
         videoQuality="720p"
-        onCameraReady={() => setIsReady(true)}
+        onCameraReady={onCameraReady}
       >
         {/* Header Controls */}
         <View style={styles.header}>
@@ -177,12 +232,15 @@ export default function CameraScreen() {
         {/* Recording Instructions (only show when not recording) */}
         {!isRecording && (
           <View style={styles.instructionsOverlay}>
-            <Text style={styles.instructionsText}>
-              Position yourself so your full body is visible
-            </Text>
-            <Text style={styles.frontCameraNote}>
-              Front camera view is mirrored
-            </Text>
+            {countdown !== null ? (
+              <Text style={styles.countdownText}>
+                {countdown}
+              </Text>
+            ) : (
+              <Text style={styles.instructionsText}>
+                Step back until your full body is in frame
+              </Text>
+            )}
           </View>
         )}
 
@@ -203,7 +261,7 @@ export default function CameraScreen() {
                 isRecording && styles.recordButtonActive,
                 !isReady && styles.recordButtonDisabled,
               ]}
-              onPress={isRecording ? stopRecording : startRecording}
+              onPress={isRecording ? stopRecording : handleManualRecord}
               disabled={!isReady}
             >
               {isRecording ? (
@@ -317,16 +375,12 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.iconGap,
     borderRadius: radius.subCard,
   },
-  frontCameraNote: {
-    fontSize: fontSizes.caption,
-    fontFamily: typography.body,
+  countdownText: {
+    fontSize: fontSizes.heroScore,
+    fontFamily: typography.display,
     color: colors.text.primary,
     textAlign: 'center',
-    backgroundColor: camera.overlayBackground,
-    paddingHorizontal: spacing.cardSm,
-    paddingVertical: spacing.iconGap,
-    borderRadius: radius.badge,
-    marginTop: spacing.iconGap,
+    letterSpacing: letterSpacing.tight,
   },
   controls: {
     position: 'absolute',
