@@ -146,7 +146,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border.premiumActionCard,
     padding: spacing.card,
-    minHeight: 110,
+    minHeight: 130,
     ...Platform.select({
       ios: {
         shadowColor: colors.shadow.default,
