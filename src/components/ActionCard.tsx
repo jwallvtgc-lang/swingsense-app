@@ -114,10 +114,10 @@ export default function ActionCard({
           </Animated.View>
 
           <View style={styles.textBlock}>
-            <Text style={styles.title} numberOfLines={1} maxFontSizeMultiplier={1.2}>
+            <Text style={styles.title} numberOfLines={2} maxFontSizeMultiplier={1.2}>
               {title}
             </Text>
-            <Text style={styles.subtitle} numberOfLines={1} maxFontSizeMultiplier={1.2}>
+            <Text style={styles.subtitle} numberOfLines={2} maxFontSizeMultiplier={1.2}>
               {subtitle}
             </Text>
           </View>
@@ -126,6 +126,7 @@ export default function ActionCard({
             name="chevron-forward"
             size={22}
             color={premiumActionCard.chevronColor}
+            style={styles.chevron}
           />
         </View>
       </Pressable>
@@ -144,9 +145,8 @@ const styles = StyleSheet.create({
     borderRadius: radius.premiumActionCard,
     borderWidth: 1,
     borderColor: colors.border.premiumActionCard,
-    paddingHorizontal: 12,
-    paddingVertical: 0,
-    minHeight: 80,
+    padding: 16,
+    minHeight: 110,
     ...Platform.select({
       ios: {
         shadowColor: colors.shadow.default,
@@ -177,14 +177,14 @@ const styles = StyleSheet.create({
   },
   body: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    position: 'relative',
   },
   iconWrap: {
-    width: 40,
-    height: 40,
-    marginRight: 10,
+    width: 48,
+    height: 48,
+    marginBottom: 12,
     borderRadius: premiumActionCard.iconRadius,
     borderWidth: 1,
     alignItems: 'center',
@@ -203,14 +203,13 @@ const styles = StyleSheet.create({
   textBlock: {
     flex: 1,
     minWidth: 0,
-    gap: premiumActionCard.titleSubtitleGap,
   },
   title: {
     fontFamily: typography.body,
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '600',
     color: colors.text.primary,
-    lineHeight: Math.round(15 * 1.2),
+    lineHeight: Math.round(16 * 1.2),
   },
   subtitle: {
     fontFamily: typography.body,
@@ -218,6 +217,11 @@ const styles = StyleSheet.create({
     fontWeight: fontWeights.regular,
     color: colors.text.homeMuted,
     lineHeight: Math.round(12 * 1.35),
-    marginTop: premiumActionCard.titleSubtitleGap,
+    marginTop: 4,
+  },
+  chevron: {
+    position: 'absolute',
+    right: 12,
+    bottom: 12,
   },
 });
