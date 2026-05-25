@@ -211,8 +211,7 @@ export default function AnalyzeScreen() {
             }
             title="Upload Swing"
             subtitle="Analyze from camera roll"
-            style={styles.actionCardHalf}
-            compact={true}
+            style={styles.actionCard}
             onPress={async () => {
               const uri = await pickFromLibrary();
               if (uri) navigation.navigate('Processing', { videoUri: uri });
@@ -229,8 +228,7 @@ export default function AnalyzeScreen() {
             }
             title="Record Swing"
             subtitle="Record in real time"
-            style={styles.actionCardHalf}
-            compact={true}
+            style={styles.actionCard}
             onPress={handleStartRecording}
           />
         </View>
@@ -347,9 +345,8 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sectionGap,
     marginHorizontal: -spacing.cardGap, // Match last swing card width
   },
-  actionCardHalf: {
+  actionCard: {
     flex: 1,
-    height: 140,
-    paddingVertical: 20,
+    height: 120,
   },
 });

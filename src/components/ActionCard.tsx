@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import {
+  Animated,
   Platform,
   Pressable,
   StyleSheet,
@@ -8,6 +9,7 @@ import {
 } from 'react-native';
 import type { ViewStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useEffect, useRef } from 'react';
 
 import {
   actionCard,
@@ -43,54 +45,91 @@ export default function ActionCard({
   compact = false,
 }: ActionCardProps) {
   const palette = premiumActionCardVariants[variant];
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+  const glowAnim = useRef(new Animated.Value(0.6)).current;
+
+  // Glow pulse animation
+  useEffect(() => {
+    const createGlowAnimation = () =>
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(glowAnim, {
+            toValue: 1.0,
+            duration: 1500,
+            useNativeDriver: false,
+          }),
+          Animated.timing(glowAnim, {
+            toValue: 0.6,
+            duration: 1500,
+            useNativeDriver: false,
+          }),
+        ])
+      );
+
+    const animation = createGlowAnimation();
+    animation.start();
+
+    return () => animation.stop();
+  }, [glowAnim]);
+
+  const handlePressIn = () => {
+    Animated.spring(scaleAnim, {
+      toValue: 0.96,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const handlePressOut = () => {
+    Animated.spring(scaleAnim, {
+      toValue: 1.0,
+      useNativeDriver: true,
+    }).start();
+  };
 
   return (
-    <View style={[styles.scaleWrap, style]}>
+    <Animated.View style={[styles.scaleWrap, style, { transform: [{ scale: scaleAnim }] }]}>
       <Pressable
         onPress={onPress}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
         style={({ pressed }) => [
           styles.card,
-          compact && styles.cardCompact,
           pressed && styles.cardPressed,
         ]}
         accessibilityRole="button"
       >
-        <View style={[styles.body, compact && styles.bodyCompact]}>
-          <View style={[styles.iconColumn, compact && styles.iconColumnCompact]}>
-            <View
-              style={[
-                styles.iconWrap,
-                compact && styles.iconWrapCompact,
-                {
-                  backgroundColor: palette.iconBg,
-                  borderColor: palette.borderColor,
-                  shadowColor: palette.glowColor,
-                  shadowOpacity: 0,
-                },
-              ]}
-            >
-              {icon}
-            </View>
+        <View style={styles.body}>
+          <Animated.View
+            style={[
+              styles.iconWrap,
+              {
+                backgroundColor: palette.iconBg,
+                borderColor: palette.borderColor,
+                shadowColor: palette.glowColor,
+                shadowOpacity: glowAnim,
+              },
+            ]}
+          >
+            {icon}
+          </Animated.View>
+
+          <View style={styles.textBlock}>
+            <Text style={styles.title} numberOfLines={1} maxFontSizeMultiplier={1.2}>
+              {title}
+            </Text>
+            <Text style={styles.subtitle} numberOfLines={1} maxFontSizeMultiplier={1.2}>
+              {subtitle}
+            </Text>
           </View>
 
-          <View style={styles.textRow}>
-            <View style={[styles.textBlock, compact && styles.textBlockCompact]}>
-              <Text style={[styles.title, compact && styles.titleCompact]} numberOfLines={2} maxFontSizeMultiplier={1.2}>
-                {title}
-              </Text>
-              <Text style={[styles.subtitle, compact && styles.subtitleCompact]} maxFontSizeMultiplier={1.2}>
-                {subtitle}
-              </Text>
-            </View>
-            <Ionicons
-              name="chevron-forward"
-              size={compact ? actionCard.iconInner * 0.64 : premiumActionCard.chevronSize}
-              color={premiumActionCard.chevronColor}
-            />
-          </View>
+          <Ionicons
+            name="chevron-forward"
+            size={22}
+            color={premiumActionCard.chevronColor}
+          />
         </View>
       </Pressable>
-    </View>
+    </Animated.View>
   );
 }
 
@@ -107,7 +146,7 @@ const styles = StyleSheet.create({
     borderColor: colors.border.premiumActionCard,
     paddingHorizontal: premiumActionCard.padH,
     paddingVertical: premiumActionCard.padV,
-    minHeight: premiumActionCard.minHeight,
+    minHeight: 120, // Set to 120 as requested
     ...Platform.select({
       ios: {
         shadowColor: colors.shadow.default,
@@ -138,17 +177,13 @@ const styles = StyleSheet.create({
   },
   body: {
     flex: 1,
-    minHeight: premiumActionCard.bodyMinHeight,
+    flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'center',
   },
-  iconColumn: {
-    marginTop: premiumActionCard.iconColumnMarginTop,
-    marginBottom: premiumActionCard.iconTitleGap,
-    alignSelf: 'flex-start',
-  },
   iconWrap: {
-    width: premiumActionCard.iconSlot,
-    height: premiumActionCard.iconSlot,
+    width: 48,
+    height: 48,
     borderRadius: premiumActionCard.iconRadius,
     borderWidth: 1,
     alignItems: 'center',
@@ -164,64 +199,25 @@ const styles = StyleSheet.create({
       default: {},
     }),
   },
-  textRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'stretch',
-    gap: premiumActionCard.textRowGap,
-  },
   textBlock: {
     flex: 1,
     minWidth: 0,
-    maxWidth: premiumActionCard.textBlockMaxWidth,
-    gap: premiumActionCard.titleSubtitleGap,
-    marginTop: premiumActionCard.textBlockMarginTop,
+    paddingLeft: spacing.cardSm,
+    gap: spacing.deltaPillInnerGap / 2,
   },
   title: {
     fontFamily: typography.body,
-    fontWeight: premiumActionCard.titleFontWeight,
-    fontSize: fontSizes.premiumActionCardTitle,
+    fontSize: fontSizes.actionCardTitle + 1, // 16px (15 + 1)
+    fontWeight: fontWeights.bold,
     color: colors.text.primary,
-    lineHeight: Math.round(
-      fontSizes.premiumActionCardTitle * premiumActionCard.titleLineHeightRatio
-    ),
+    lineHeight: Math.round((fontSizes.actionCardTitle + 1) * 1.2),
   },
   subtitle: {
     fontFamily: typography.body,
+    fontSize: fontSizes.body,
     fontWeight: fontWeights.regular,
-    fontSize: fontSizes.premiumActionCardSubtitle,
     color: colors.text.homeMuted,
-    lineHeight: Math.round(
-      fontSizes.premiumActionCardSubtitle * premiumActionCard.subtitleLineHeightRatio
-    ),
-  },
-  // Compact variant styles
-  cardCompact: {
-    minHeight: premiumActionCard.minHeight * 0.58, // ~80px from 138px
-    paddingVertical: spacing.cardSm,
-    paddingHorizontal: spacing.card,
-  },
-  bodyCompact: {
-    minHeight: premiumActionCard.bodyMinHeight * 0.58, // ~56px from 96px
-  },
-  iconColumnCompact: {
-    marginTop: 0,
-    marginBottom: spacing.pillGap,
-  },
-  iconWrapCompact: {
-    width: premiumActionCard.iconSlot * 0.67, // ~36px from 54px
-    height: premiumActionCard.iconSlot * 0.67,
-  },
-  textBlockCompact: {
-    gap: spacing.deltaPillInnerGap / 2, // 2px - half of deltaPillInnerGap (4px)
-    marginTop: 0,
-  },
-  titleCompact: {
-    fontSize: fontSizes.actionCardTitle,
-    lineHeight: Math.round(fontSizes.actionCardTitle * 1.2),
-  },
-  subtitleCompact: {
-    fontSize: fontSizes.drillInstruction,
-    lineHeight: Math.round(fontSizes.drillInstruction * 1.35),
+    lineHeight: Math.round(fontSizes.body * 1.35),
+    marginTop: spacing.deltaPillInnerGap / 2,
   },
 });
