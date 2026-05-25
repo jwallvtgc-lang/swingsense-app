@@ -456,6 +456,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.pill,
     paddingHorizontal: spacing.cardSm,
     paddingVertical: spacing.pillGap,
+    paddingRight: 16,
   },
   compactButtonText: {
     fontFamily: typography.body,
