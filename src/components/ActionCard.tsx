@@ -114,10 +114,10 @@ export default function ActionCard({
           </Animated.View>
 
           <View style={styles.textBlock}>
-            <Text style={styles.title} numberOfLines={1} maxFontSizeMultiplier={1.2}>
+            <Text style={styles.title} maxFontSizeMultiplier={1.2}>
               {title}
             </Text>
-            <Text style={styles.subtitle} numberOfLines={1} maxFontSizeMultiplier={1.2}>
+            <Text style={styles.subtitle} maxFontSizeMultiplier={1.2}>
               {subtitle}
             </Text>
           </View>
@@ -182,8 +182,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   iconWrap: {
-    width: premiumActionCard.iconSlot,
-    height: premiumActionCard.iconSlot,
+    width: 44,
+    height: 44,
     borderRadius: premiumActionCard.iconRadius,
     borderWidth: 1,
     alignItems: 'center',
@@ -202,7 +202,7 @@ const styles = StyleSheet.create({
   textBlock: {
     flex: 1,
     minWidth: 0,
-    paddingLeft: spacing.cardSm,
+    marginLeft: 10,
     gap: premiumActionCard.titleSubtitleGap,
   },
   title: {

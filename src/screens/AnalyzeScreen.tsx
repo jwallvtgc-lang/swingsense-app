@@ -205,7 +205,7 @@ export default function AnalyzeScreen() {
             icon={
               <Ionicons
                 name="images-outline"
-                size={28}
+                size={22}
                 color={colors.text.gold}
               />
             }
@@ -222,7 +222,7 @@ export default function AnalyzeScreen() {
             icon={
               <Ionicons
                 name="videocam-outline"
-                size={28}
+                size={22}
                 color={colors.brand.emerald}
               />
             }
