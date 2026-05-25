@@ -367,18 +367,10 @@ export default function HistoryScreen() {
                   <Text style={styles.metadataText}>🔥 {headerStreak} day streak</Text>
                 </>
               )}
-              {headerLongestStreak > 0 && (
-                <>
-                  <Text style={styles.metadataDot}> • </Text>
-                  <Text style={styles.metadataText}>
-                    Best: {headerLongestStreak} day{headerLongestStreak === 1 ? '' : 's'}
-                  </Text>
-                </>
-              )}
             </Text>
             <Pressable
               style={styles.compactButton}
-              onPress={() => navigation.navigate('UploadTab')}
+              onPress={() => navigation.navigate('RecordingTips')}
             >
               <Text style={styles.compactButtonText}>+ Record Swing</Text>
             </Pressable>
