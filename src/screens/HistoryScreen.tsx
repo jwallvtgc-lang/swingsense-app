@@ -357,8 +357,25 @@ export default function HistoryScreen() {
         ]}
       >
         <View style={styles.headerSection}>
-          <View style={styles.titleRow}>
-            <ScreenHeader title="SWING HISTORY" />
+          <ScreenHeader title="SWING HISTORY" />
+          <View style={styles.metadataRow}>
+            <Text style={styles.compactMetadataLine}>
+              <Text style={styles.metadataText}>{analysesLabel}</Text>
+              {headerStreak > 0 && (
+                <>
+                  <Text style={styles.metadataDot}> • </Text>
+                  <Text style={styles.metadataText}>🔥 {headerStreak} day streak</Text>
+                </>
+              )}
+              {headerLongestStreak > 0 && (
+                <>
+                  <Text style={styles.metadataDot}> • </Text>
+                  <Text style={styles.metadataText}>
+                    Best: {headerLongestStreak} day{headerLongestStreak === 1 ? '' : 's'}
+                  </Text>
+                </>
+              )}
+            </Text>
             <Pressable
               style={styles.compactButton}
               onPress={() => navigation.navigate('UploadTab')}
@@ -366,23 +383,6 @@ export default function HistoryScreen() {
               <Text style={styles.compactButtonText}>+ Record Swing</Text>
             </Pressable>
           </View>
-          <Text style={styles.compactMetadataLine}>
-            <Text style={styles.metadataText}>{analysesLabel}</Text>
-            {headerStreak > 0 && (
-              <>
-                <Text style={styles.metadataDot}> • </Text>
-                <Text style={styles.metadataText}>🔥 {headerStreak} day streak</Text>
-              </>
-            )}
-            {headerLongestStreak > 0 && (
-              <>
-                <Text style={styles.metadataDot}> • </Text>
-                <Text style={styles.metadataText}>
-                  Best: {headerLongestStreak} day{headerLongestStreak === 1 ? '' : 's'}
-                </Text>
-              </>
-            )}
-          </Text>
         </View>
         {loading ? (
           <View style={styles.loadingWrap}>
@@ -446,10 +446,11 @@ const styles = StyleSheet.create({
     alignSelf: 'stretch',
     marginBottom: spacing.sectionGap,
   },
-  titleRow: {
+  metadataRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    marginTop: spacing.cardGap,
   },
   compactButton: {
     backgroundColor: colors.bg.gold,
@@ -465,8 +466,7 @@ const styles = StyleSheet.create({
     color: colors.text.onGold,
   },
   compactMetadataLine: {
-    alignSelf: 'stretch',
-    marginTop: spacing.cardGap,
+    flex: 1,
     fontFamily: typography.body,
     fontSize: fontSizes.body,
     fontWeight: fontWeights.medium,
