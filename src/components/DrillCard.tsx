@@ -2,6 +2,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { DrillCard as DrillCardType, DrillMechanic } from '../types/drill';
 import {
   colors,
+  drillCardLink,
   fontSizes,
   fontWeights,
   radius,
@@ -32,9 +33,7 @@ export default function DrillCard({ drill, isRecommended = false, onPress }: Dri
     >
       {/* Row 1: Mechanic badge (left) + "For you" pill (right, slot 1 only) */}
       <View style={styles.row1}>
-        <View style={[styles.mechanicBadge, { backgroundColor: colors.mechanic[drill.mechanic] }]}>
-          <Text style={styles.mechanicText}>{MECHANIC_LABELS[drill.mechanic]}</Text>
-        </View>
+        <Text style={styles.mechanicText}>{MECHANIC_LABELS[drill.mechanic]}</Text>
         {isRecommended && (
           <View style={styles.forYouPill}>
             <Text style={styles.forYouText}>For you</Text>
@@ -74,23 +73,20 @@ const styles = StyleSheet.create({
     marginRight: 20, // 20px gap between cards
   },
   cardPressed: {
-    opacity: 0.8,
+    opacity: drillCardLink.pressOpacity,
   },
   row1: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  mechanicBadge: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: radius.badge,
-  },
   mechanicText: {
     fontFamily: typography.body,
-    fontSize: fontSizes.micro, // 9px
+    fontSize: fontSizes.caption, // 11px
     fontWeight: fontWeights.medium,
-    color: colors.text.primary,
+    color: colors.text.muted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   forYouPill: {
     backgroundColor: colors.bg.goldDim,
@@ -139,8 +135,8 @@ const styles = StyleSheet.create({
   },
   startDrillText: {
     fontFamily: typography.body,
-    fontSize: fontSizes.micro, // 9px
-    fontWeight: fontWeights.medium,
-    color: colors.text.gold,
+    fontSize: drillCardLink.fontSize,
+    fontWeight: drillCardLink.fontWeight,
+    color: drillCardLink.color,
   },
 });
