@@ -9,6 +9,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -18,6 +19,7 @@ import EmptyState from '../components/EmptyState';
 import { ProgressCoachCard } from '../components/ProgressCoachCard';
 import ScreenHeader from '../components/ScreenHeader';
 import SwingListItem from '../components/SwingListItem';
+import { ThisWeekMetricsCard } from '../components/ThisWeekMetricsCard';
 import { useAuth } from '../contexts/AuthContext';
 import { useMainTabBarNav } from '../navigation/useMainTabBarNav';
 import type { MainStackParamList, TabParamList } from '../navigation/types';
@@ -30,6 +32,7 @@ import {
   getUserAnalyses,
 } from '../services/analysis';
 import type { SwingAnalysis } from '../types';
+import { getISOWeek } from '../utils/weekHelpers';
 import {
   bottomTab,
   colors,
@@ -182,6 +185,40 @@ export default function HistoryScreen() {
   const progressUserIdRef = useRef<string | undefined>(undefined);
   const progressFetchedRef = useRef(false);
 
+  const checkProgressDismissal = useCallback(async (userId: string) => {
+    const now = new Date();
+    const { year, week } = getISOWeek(now);
+    const key = `progress_coach_dismissed_${userId}_${year}_${week}`;
+
+    try {
+      const dismissed = await AsyncStorage.getItem(key);
+      return dismissed === 'true';
+    } catch (error) {
+      console.warn('[HistoryScreen] checkProgressDismissal:', error);
+      return false;
+    }
+  }, []);
+
+  const saveProgressDismissal = useCallback(async (userId: string) => {
+    const now = new Date();
+    const { year, week } = getISOWeek(now);
+    const key = `progress_coach_dismissed_${userId}_${year}_${week}`;
+
+    try {
+      await AsyncStorage.setItem(key, 'true');
+    } catch (error) {
+      console.warn('[HistoryScreen] saveProgressDismissal:', error);
+    }
+  }, []);
+
+  const handleProgressDismiss = useCallback(async () => {
+    const userId = user?.id;
+    if (!userId) return;
+
+    setProgressDismissed(true);
+    await saveProgressDismissal(userId);
+  }, [user?.id, saveProgressDismissal]);
+
   useFocusEffect(
     useCallback(() => {
       let cancelled = false;
@@ -202,9 +239,12 @@ export default function HistoryScreen() {
 
         if (progressUserIdRef.current !== userId) {
           progressUserIdRef.current = userId;
-          if (!cancelled) setProgressDismissed(false);
           progressFetchedRef.current = false;
         }
+
+        // Check if progress coach is dismissed for current week
+        const isWeeklyDismissed = await checkProgressDismissal(userId);
+        if (!cancelled) setProgressDismissed(isWeeklyDismissed);
 
         if (!cancelled) setLoading(true);
         const list = await getUserAnalyses(userId);
@@ -249,7 +289,7 @@ export default function HistoryScreen() {
       return () => {
         cancelled = true;
       };
-    }, [user?.id, profile?.first_name, profile?.age, profile?.experience_level])
+    }, [user?.id, profile?.first_name, profile?.age, profile?.experience_level, checkProgressDismissal])
   );
 
   const listBottomPad = useMemo(
@@ -397,16 +437,20 @@ export default function HistoryScreen() {
                 style={styles.progressSpinner}
               />
             ) : null}
-            {progressData && !progressDismissed ? (
+            {swings.length >= 3 && !progressLoading ? (
               <View style={styles.progressCardWrap}>
-                <ProgressCoachCard
-                  summary={progressData.summary}
-                  mostImproved={progressData.most_improved}
-                  focusNext={progressData.focus_next}
-                  swingsAnalyzed={progressData.swings_analyzed}
-                  bestOverall={progressData.best_overall}
-                  onDismiss={() => setProgressDismissed(true)}
-                />
+                {progressData && !progressDismissed ? (
+                  <ProgressCoachCard
+                    summary={progressData.summary}
+                    mostImproved={progressData.most_improved}
+                    focusNext={progressData.focus_next}
+                    swingsAnalyzed={progressData.swings_analyzed}
+                    bestOverall={progressData.best_overall}
+                    onDismiss={handleProgressDismiss}
+                  />
+                ) : (
+                  <ThisWeekMetricsCard swings={swings} />
+                )}
               </View>
             ) : null}
             <SectionList
