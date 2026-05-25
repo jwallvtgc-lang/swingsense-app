@@ -290,12 +290,12 @@ const styles = StyleSheet.create({
   },
   scoreBadge: {
     position: 'absolute',
-    bottom: 3,
-    right: 3,
+    bottom: spacing.pillGap / 2,
+    right: spacing.pillGap / 2,
     backgroundColor: colors.bg.gold,
     borderRadius: radius.xs,
-    paddingHorizontal: 4,
-    paddingVertical: 1,
+    paddingHorizontal: spacing.deltaPillInnerGap,
+    paddingVertical: spacing.deltaPillInnerGap / 4,
   },
   scoreBadgeText: {
     fontFamily: typography.display,
@@ -347,6 +347,6 @@ const styles = StyleSheet.create({
   },
   actionCard: {
     flex: 1,
-    height: 120,
+    height: premiumActionCard.minHeight,
   },
 });

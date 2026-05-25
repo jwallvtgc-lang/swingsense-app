@@ -146,7 +146,7 @@ const styles = StyleSheet.create({
     borderColor: colors.border.premiumActionCard,
     paddingHorizontal: premiumActionCard.padH,
     paddingVertical: premiumActionCard.padV,
-    minHeight: 120, // Set to 120 as requested
+    minHeight: premiumActionCard.minHeight,
     ...Platform.select({
       ios: {
         shadowColor: colors.shadow.default,
@@ -182,8 +182,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   iconWrap: {
-    width: 48,
-    height: 48,
+    width: premiumActionCard.iconSlot,
+    height: premiumActionCard.iconSlot,
     borderRadius: premiumActionCard.iconRadius,
     borderWidth: 1,
     alignItems: 'center',
@@ -203,21 +203,21 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 0,
     paddingLeft: spacing.cardSm,
-    gap: spacing.deltaPillInnerGap / 2,
+    gap: premiumActionCard.titleSubtitleGap,
   },
   title: {
     fontFamily: typography.body,
-    fontSize: fontSizes.actionCardTitle + 1, // 16px (15 + 1)
-    fontWeight: fontWeights.bold,
+    fontSize: fontSizes.premiumActionCardTitle,
+    fontWeight: premiumActionCard.titleFontWeight,
     color: colors.text.primary,
-    lineHeight: Math.round((fontSizes.actionCardTitle + 1) * 1.2),
+    lineHeight: Math.round(fontSizes.premiumActionCardTitle * premiumActionCard.titleLineHeightRatio),
   },
   subtitle: {
     fontFamily: typography.body,
-    fontSize: fontSizes.body,
+    fontSize: fontSizes.premiumActionCardSubtitle,
     fontWeight: fontWeights.regular,
     color: colors.text.homeMuted,
-    lineHeight: Math.round(fontSizes.body * 1.35),
-    marginTop: spacing.deltaPillInnerGap / 2,
+    lineHeight: Math.round(fontSizes.premiumActionCardSubtitle * premiumActionCard.subtitleLineHeightRatio),
+    marginTop: premiumActionCard.titleSubtitleGap,
   },
 });
