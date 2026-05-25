@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { displayNameFromUser } from '../utils/displayName';
+import { greetingWithName } from '../utils/timeGreeting';
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import * as Speech from 'expo-speech';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -12,7 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as VideoThumbnails from 'expo-video-thumbnails';
 
 import ActionCard from '../components/ActionCard';
-import StreakPill from '../components/StreakPill';
+import AnalyzeHeader from '../components/AnalyzeHeader';
 import BottomTabBar from '../components/BottomTabBar';
 import DrillCarousel from '../components/DrillCarousel';
 import { supabase } from '../config/supabase';
@@ -20,13 +21,13 @@ import { useVideoPicker } from '../hooks/useVideoPicker';
 import type { MainStackParamList, TabParamList } from '../navigation/types';
 import { useMainTabBarNav } from '../navigation/useMainTabBarNav';
 import {
-  actionCard,
   bottomTab,
   colors,
-  displayTitleProps,
+  drillCardLink,
   fontSizes,
   fontWeights,
   letterSpacing,
+  premiumActionCard,
   radius,
   spacing,
   typography,
@@ -43,7 +44,6 @@ type AnalyzeNav = CompositeNavigationProp<
   BottomTabNavigationProp<TabParamList, 'UploadTab'>,
   NativeStackNavigationProp<MainStackParamList>
 >;
-
 
 export default function AnalyzeScreen() {
   const insets = useSafeAreaInsets();
@@ -111,12 +111,10 @@ export default function AnalyzeScreen() {
     }, [user?.id])
   );
 
-  const greeting = useMemo(() => {
-    const fromProfile = profile?.first_name?.trim();
-    const name = fromProfile
-      ? fromProfile
-      : displayNameFromUser(undefined, user);
-    return `Hey, ${name}`;
+  const dynamicGreeting = useMemo(() => {
+    const fullName = displayNameFromUser(profile?.first_name, user);
+    const firstName = fullName.split(' ')[0] || fullName; // Get first name only
+    return greetingWithName(firstName);
   }, [profile?.first_name, user]);
 
   const contentBottomPad = useMemo(
@@ -147,67 +145,51 @@ export default function AnalyzeScreen() {
         ]}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.greeting}>{greeting}</Text>
-        {lastAnalysis ? (
-          <Text style={styles.wordmark}>
-            <Text style={styles.wordmarkSwing} {...displayTitleProps}>
-              Swing
-            </Text>
-            <Text style={styles.wordmarkSense} {...displayTitleProps}>
-              Sense
-            </Text>
-          </Text>
-        ) : (
-          <Text style={styles.headline}>
-            ANALYZE YOUR{'\n'}
-            <Text style={styles.headlineAccent}>SWING</Text>
-          </Text>
-        )}
-
-        {streak > 0 ? (
-          <View style={styles.streakPillWrap}>
-            <StreakPill streak={streak} />
-          </View>
-        ) : null}
+        <AnalyzeHeader greeting={dynamicGreeting} streak={streak} />
 
         {/* Last swing card - full width */}
         {lastAnalysis ? (
           <Pressable
-            style={styles.lastSwingCard}
+            style={({ pressed }) => [
+              styles.lastSwingCard,
+              pressed && styles.lastSwingCardPressed,
+            ]}
             onPress={() =>
               navigation.navigate('Analysis', { analysisId: lastAnalysis.id })
             }
           >
-            <View style={styles.thumbContainer}>
-              {thumbUri ? (
-                <Image
-                  source={{ uri: thumbUri }}
-                  style={styles.thumbVideo}
-                  resizeMode="cover"
-                />
-              ) : (
-                <View style={styles.thumbPlaceholder} />
-              )}
-              <View style={styles.scoreBadge}>
-                <Text style={styles.scoreBadgeText}>
-                  {Math.round(lastAnalysis.similarity_score ?? 0)}
+            <View style={styles.lastSwingRow}>
+              <View style={styles.thumbContainer}>
+                {thumbUri ? (
+                  <Image
+                    source={{ uri: thumbUri }}
+                    style={styles.thumbVideo}
+                    resizeMode="cover"
+                  />
+                ) : (
+                  <View style={styles.thumbPlaceholder} />
+                )}
+                <View style={styles.scoreBadge}>
+                  <Text style={styles.scoreBadgeText}>
+                    {Math.round(lastAnalysis.similarity_score ?? 0)}
+                  </Text>
+                </View>
+              </View>
+              <View style={styles.swingInfo}>
+                <Text style={styles.swingLabel}>
+                  Last swing ·{' '}
+                  {new Date(lastAnalysis.created_at).toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                  })}
+                </Text>
+                <Text style={styles.swingIssue} numberOfLines={2}>
+                  {lastAnalysis.coaching_output?.primary_mechanical_issue?.title ??
+                    'Tap to review'}
                 </Text>
               </View>
             </View>
-            <View style={styles.swingInfo}>
-              <Text style={styles.swingLabel}>
-                Last swing ·{' '}
-                {new Date(lastAnalysis.created_at).toLocaleDateString('en-US', {
-                  month: 'short',
-                  day: 'numeric',
-                })}
-              </Text>
-              <Text style={styles.swingIssue} numberOfLines={2}>
-                {lastAnalysis.coaching_output?.primary_mechanical_issue?.title ??
-                  'Tap to review'}
-              </Text>
-            </View>
-            <Text style={styles.cardChevron}>›</Text>
+            <Text style={styles.viewAnalysisLink}>View analysis →</Text>
           </Pressable>
         ) : (
           <Text style={styles.instruction}>
@@ -219,15 +201,16 @@ export default function AnalyzeScreen() {
         {/* Side by side action cards */}
         <View style={styles.actionRow}>
           <ActionCard
+            variant="gold"
             icon={
               <Ionicons
                 name="images-outline"
-                size={actionCard.iconInner}
+                size={premiumActionCard.iconInner}
                 color={colors.text.gold}
               />
             }
-            iconBg={colors.bg.actionIconGold}
-            title="Upload Video"
+            title="Upload Swing"
+            subtitle="Analyze from camera roll"
             style={styles.actionCardHalf}
             onPress={async () => {
               const uri = await pickFromLibrary();
@@ -235,15 +218,16 @@ export default function AnalyzeScreen() {
             }}
           />
           <ActionCard
+            variant="emerald"
             icon={
               <Ionicons
                 name="videocam-outline"
-                size={actionCard.iconInner}
-                color={colors.text.green}
+                size={premiumActionCard.iconInner}
+                color={colors.brand.emerald}
               />
             }
-            iconBg={colors.bg.actionIconGreen}
-            title="Record Now"
+            title="Record Swing"
+            subtitle="Record in real time"
             style={styles.actionCardHalf}
             onPress={handleStartRecording}
           />
@@ -269,52 +253,22 @@ const styles = StyleSheet.create({
   content: {
     paddingHorizontal: spacing.screen,
   },
-  greeting: {
-    fontFamily: typography.body,
-    fontSize: fontSizes.body,
-    color: colors.text.muted,
-    letterSpacing: letterSpacing.tight,
-    textTransform: 'uppercase',
-    marginBottom: 0,
-  },
-  headline: {
-    fontFamily: typography.display,
-    fontSize: fontSizes.headline,
-    color: colors.text.primary,
-    lineHeight: Math.round(fontSizes.headline * 0.95),
-    marginBottom: spacing.cardGap,
-  },
-  headlineAccent: {
-    color: colors.text.gold,
-  },
-  wordmark: {
-    marginBottom: spacing.cardGap,
-  },
-  wordmarkSwing: {
-    fontFamily: 'Righteous_400Regular',
-    fontSize: fontSizes.wordmark,
-    color: colors.text.primary,
-    letterSpacing: letterSpacing.wordmarkTight,
-  },
-  wordmarkSense: {
-    fontFamily: 'Righteous_400Regular',
-    fontSize: fontSizes.wordmark,
-    color: colors.text.gold,
-    letterSpacing: letterSpacing.wordmarkTight,
-  },
-  streakPillWrap: {
-    marginBottom: spacing.sectionGap,
-  },
   lastSwingCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    position: 'relative',
     backgroundColor: colors.bg.surface,
     borderRadius: radius.card,
     padding: spacing.card,
     marginBottom: spacing.sectionGap,
-    gap: spacing.cardGap,
     marginHorizontal: -spacing.cardGap, // Slightly wider
     minHeight: 100,
+  },
+  lastSwingCardPressed: {
+    opacity: drillCardLink.pressOpacity,
+  },
+  lastSwingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.cardGap,
   },
   thumbContainer: {
     width: 64,
@@ -366,13 +320,16 @@ const styles = StyleSheet.create({
     color: colors.text.primary,
     fontWeight: fontWeights.medium,
   },
-  cardChevron: {
+  viewAnalysisLink: {
+    position: 'absolute',
+    right: spacing.card,
+    bottom: spacing.card,
     fontFamily: typography.body,
-    fontSize: fontSizes.ctaLabel,
-    color: colors.text.muted,
+    fontSize: drillCardLink.fontSize,
+    fontWeight: drillCardLink.fontWeight,
+    color: drillCardLink.color,
   },
   instruction: {
-    marginTop: spacing.cardGap,
     marginBottom: spacing.sectionGap,
     fontFamily: typography.body,
     fontSize: fontSizes.body,
