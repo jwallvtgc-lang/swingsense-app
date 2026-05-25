@@ -458,6 +458,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.cardSm,
     paddingVertical: spacing.pillGap,
     paddingRight: 16,
+    marginRight: 16,
   },
   compactButtonText: {
     fontFamily: typography.body,
@@ -471,6 +472,7 @@ const styles = StyleSheet.create({
     fontSize: fontSizes.body,
     fontWeight: fontWeights.medium,
     lineHeight: Math.round(fontSizes.body * 1.35),
+    marginRight: 8,
   },
   metadataText: {
     color: colors.text.muted,
