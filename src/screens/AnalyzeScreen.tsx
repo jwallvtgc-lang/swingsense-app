@@ -205,13 +205,14 @@ export default function AnalyzeScreen() {
             icon={
               <Ionicons
                 name="images-outline"
-                size={premiumActionCard.iconInner}
+                size={28}
                 color={colors.text.gold}
               />
             }
             title="Upload Swing"
             subtitle="Analyze from camera roll"
             style={styles.actionCardHalf}
+            compact={true}
             onPress={async () => {
               const uri = await pickFromLibrary();
               if (uri) navigation.navigate('Processing', { videoUri: uri });
@@ -222,13 +223,14 @@ export default function AnalyzeScreen() {
             icon={
               <Ionicons
                 name="videocam-outline"
-                size={premiumActionCard.iconInner}
+                size={28}
                 color={colors.brand.emerald}
               />
             }
             title="Record Swing"
             subtitle="Record in real time"
             style={styles.actionCardHalf}
+            compact={true}
             onPress={handleStartRecording}
           />
         </View>
@@ -347,5 +349,6 @@ const styles = StyleSheet.create({
   },
   actionCardHalf: {
     flex: 1,
+    height: 100,
   },
 });
