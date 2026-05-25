@@ -1440,8 +1440,9 @@ async def progress_coach(request: ProgressCoachRequest):
     age = profile.get("age", 15)
     experience = profile.get("experience_level", "")
 
-    # Build swing trend summary for Claude
+    # Build swing trend summary for Claude and calculate best_overall
     swing_summaries = []
+    overall_scores = []
     for i, swing in enumerate(request.swings):
         date = (swing.get("created_at", "") or "")[:10]
         stance = swing.get("stance_score", 0) or 0
@@ -1449,13 +1450,17 @@ async def progress_coach(request: ProgressCoachRequest):
         power_pos = swing.get("power_position_score", 0) or 0
         slot = swing.get("slot_score", 0) or 0
         balance = swing.get("balance_at_contact_score", 0) or 0
-        # Calculate simple average for overall since we don't have overall core5 score
-        overall = round((stance + load + power_pos + slot + balance) / 5) if any([stance, load, power_pos, slot, balance]) else 0
+        overall = swing.get("overall_score", 0) or 0
+        if overall > 0:
+            overall_scores.append(overall)
         swing_summaries.append(
             f"Swing {i + 1} ({date}): overall={overall}, "
             f"stance={stance}, load={load}, power_position={power_pos}, "
             f"slot={slot}, balance_at_contact={balance}"
         )
+
+    # Calculate best overall score
+    best_overall = max(overall_scores) if overall_scores else 0
 
     # Compute trends
     def trend(metric: str):
@@ -1535,8 +1540,7 @@ Respond in JSON only:
   "summary": "string — 2-3 sentence progress summary in Darian voice",
   "most_improved": "string or null — core mechanic name (Stance, Load, Power Position, Slot, or Balance at Contact)",
   "focus_next": "string — one core mechanic to work on this week (Stance, Load, Power Position, Slot, or Balance at Contact)",
-  "swings_analyzed": number,
-  "best_overall": number
+  "swings_analyzed": number
 }"""
 
     user_message = f"""Player: {name}, Age: {age}, Experience: {experience}
@@ -1562,14 +1566,19 @@ Write a short encouraging progress update in Darian's voice."""
 
     result_text = response.content[0].text
     try:
-        return json.loads(result_text)
+        claude_response = json.loads(result_text)
     except json.JSONDecodeError:
         start = result_text.find("{")
         end = result_text.rfind("}") + 1
         if start >= 0 and end > start:
-            return json.loads(result_text[start:end])
-        _log("[ProgressCoach] Failed to parse Claude response as JSON")
-        raise HTTPException(status_code=500, detail="Failed to parse response")
+            claude_response = json.loads(result_text[start:end])
+        else:
+            _log("[ProgressCoach] Failed to parse Claude response as JSON")
+            raise HTTPException(status_code=500, detail="Failed to parse response")
+
+    # Add our computed best_overall to the response
+    claude_response["best_overall"] = best_overall
+    return claude_response
 
 
 @app.on_event("startup")

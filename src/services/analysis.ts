@@ -276,6 +276,7 @@ export async function fetchProgressCoach(params: {
           power_position_score: s.power_position_score,
           slot_score: s.slot_score,
           balance_at_contact_score: s.balance_at_contact_score,
+          overall_score: s.coaching_output?.similarity_scores?.overall ?? s.similarity_score ?? 0,
         })),
         player_profile: params.playerProfile,
       }),
