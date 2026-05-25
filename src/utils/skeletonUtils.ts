@@ -88,16 +88,87 @@ export const MECHANIC_DISPLAY_NAMES: Record<string, string> = {
 };
 
 /**
+ * Maps human-readable title to slug for joint highlighting
+ */
+export function titleToMechanicSlug(title: string | undefined): string | undefined {
+  if (!title) return undefined;
+
+  const lowerTitle = title.toLowerCase();
+
+  if (lowerTitle.includes('stance')) return 'stance';
+  if (lowerTitle.includes('load')) return 'load';
+  if (lowerTitle.includes('power')) return 'power_position';
+  if (lowerTitle.includes('slot')) return 'slot';
+  if (lowerTitle.includes('balance')) return 'balance_at_contact';
+
+  return undefined;
+}
+
+// Mechanic phase windows for slow motion pause timing
+export const MECHANIC_PHASE_WINDOWS: Record<string, { start: number; end: number }> = {
+  stance: { start: 0, end: 0.22 },
+  load: { start: 0.22, end: 0.44 },
+  power_position: { start: 0.44, end: 0.62 },
+  slot: { start: 0.62, end: 0.75 },
+  balance_at_contact: { start: 0.75, end: 1.0 },
+};
+
+// Plain mechanic names for UI display
+export const MECHANIC_PLAIN_NAMES: Record<string, string> = {
+  stance: 'stance',
+  load: 'load',
+  power_position: 'power position',
+  slot: 'slot',
+  balance_at_contact: 'balance at contact',
+};
+
+/**
+ * Computes actual rendered video rect accounting for CONTAIN letterboxing
+ */
+export function getVideoRect(
+  containerW: number,
+  containerH: number,
+  naturalW: number,
+  naturalH: number
+): { x: number; y: number; width: number; height: number } {
+  const containerAspect = containerW / containerH;
+  const videoAspect = naturalW / naturalH;
+
+  if (videoAspect > containerAspect) {
+    // Video is wider than container - letterbox top/bottom
+    const renderedWidth = containerW;
+    const renderedHeight = containerW / videoAspect;
+    const yOffset = (containerH - renderedHeight) / 2;
+    return {
+      x: 0,
+      y: yOffset,
+      width: renderedWidth,
+      height: renderedHeight,
+    };
+  } else {
+    // Video is taller than container - letterbox left/right
+    const renderedHeight = containerH;
+    const renderedWidth = containerH * videoAspect;
+    const xOffset = (containerW - renderedWidth) / 2;
+    return {
+      x: xOffset,
+      y: 0,
+      width: renderedWidth,
+      height: renderedHeight,
+    };
+  }
+}
+
+/**
  * Convert normalized keypoint coordinates (0-1) to pixel coordinates
  */
 export function mapKeypointToPixel(
   keypoint: { x: number; y: number; confidence: number },
-  videoWidth: number,
-  videoHeight: number
+  videoRect: { x: number; y: number; width: number; height: number }
 ): { x: number; y: number } {
   return {
-    x: keypoint.x * videoWidth,
-    y: keypoint.y * videoHeight,
+    x: videoRect.x + (keypoint.x * videoRect.width),
+    y: videoRect.y + (keypoint.y * videoRect.height),
   };
 }
 

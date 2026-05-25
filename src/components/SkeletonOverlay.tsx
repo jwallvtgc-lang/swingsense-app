@@ -8,6 +8,7 @@ import {
   mapKeypointToPixel,
   getFrameForTime,
   isValidFrame,
+  getVideoRect,
 } from '../utils/skeletonUtils';
 import {
   colors,
@@ -25,8 +26,10 @@ interface SkeletonOverlayProps {
     keypoints: Record<string, { x: number; y: number; confidence: number }>;
   }>;
   primaryIssue?: string | null;
-  videoWidth: number;
-  videoHeight: number;
+  containerWidth: number;
+  containerHeight: number;
+  naturalWidth: number;
+  naturalHeight: number;
   currentTime: number; // in milliseconds
   fps: number;
 }
@@ -42,8 +45,10 @@ const SKELETON_COLORS = {
 export default function SkeletonOverlay({
   frames,
   primaryIssue,
-  videoWidth,
-  videoHeight,
+  containerWidth,
+  containerHeight,
+  naturalWidth,
+  naturalHeight,
   currentTime,
   fps,
 }: SkeletonOverlayProps) {
@@ -56,19 +61,21 @@ export default function SkeletonOverlay({
     };
   }, [primaryIssue]);
 
-  // Memoize current frame and pixel coordinates
-  const { currentFrame, pixelKeypoints } = useMemo(() => {
+  // Memoize video rect and current frame with pixel coordinates
+  const { currentFrame, pixelKeypoints, videoRect } = useMemo(() => {
     const frame = getFrameForTime(frames, currentTime, fps);
 
     if (!isValidFrame(frame)) {
-      return { currentFrame: null, pixelKeypoints: {} };
+      return { currentFrame: null, pixelKeypoints: {}, videoRect: null };
     }
+
+    const videoRect = getVideoRect(containerWidth, containerHeight, naturalWidth, naturalHeight);
 
     const pixels: Record<string, { x: number; y: number; confidence: number }> = {};
     if (frame?.keypoints) {
       for (const [jointName, keypoint] of Object.entries(frame.keypoints)) {
         if (keypoint.confidence > 0.3) {
-          const pixel = mapKeypointToPixel(keypoint, videoWidth, videoHeight);
+          const pixel = mapKeypointToPixel(keypoint, videoRect);
           pixels[jointName] = {
             ...pixel,
             confidence: keypoint.confidence,
@@ -77,8 +84,8 @@ export default function SkeletonOverlay({
       }
     }
 
-    return { currentFrame: frame, pixelKeypoints: pixels };
-  }, [frames, currentTime, fps, videoWidth, videoHeight]);
+    return { currentFrame: frame, pixelKeypoints: pixels, videoRect };
+  }, [frames, currentTime, fps, containerWidth, containerHeight, naturalWidth, naturalHeight]);
 
   // Don't render if frame is invalid
   if (!currentFrame) {
@@ -86,9 +93,9 @@ export default function SkeletonOverlay({
   }
 
   return (
-    <View style={[styles.container, { width: videoWidth, height: videoHeight }]} pointerEvents="none">
+    <View style={[styles.container, { width: containerWidth, height: containerHeight }]} pointerEvents="none">
       {/* SVG skeleton */}
-      <Svg width={videoWidth} height={videoHeight} style={StyleSheet.absoluteFill}>
+      <Svg width={containerWidth} height={containerHeight} viewBox={`0 0 ${containerWidth} ${containerHeight}`} style={StyleSheet.absoluteFill}>
         {/* Draw connections */}
         {SKELETON_CONNECTIONS.map(([joint1, joint2], index) => {
           const kp1 = pixelKeypoints[joint1];
