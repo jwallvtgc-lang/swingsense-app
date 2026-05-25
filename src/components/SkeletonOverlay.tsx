@@ -40,33 +40,24 @@ export default function SkeletonOverlay({
   ] as const;
 
   // Memoize current frame with pixel coordinates
-  const { currentFrame, pixelKeypoints, noseKeypoint } = useMemo(() => {
+  const { currentFrame, pixelKeypoints } = useMemo(() => {
     const frame = getFrameForTime(frames, currentTime, fps);
 
     if (!isValidFrame(frame)) {
-      return { currentFrame: null, pixelKeypoints: {}, noseKeypoint: null };
+      return { currentFrame: null, pixelKeypoints: {} };
     }
 
     const pixels: Record<string, { x: number; y: number; confidence: number }> = {};
-    let nose: { x: number; y: number; confidence: number } | null = null;
 
     if (frame?.keypoints) {
       for (const [jointName, keypoint] of Object.entries(frame.keypoints)) {
-        if (keypoint.confidence > 0.2) {
-          // Handle nose separately for head circle
-          if (jointName === MOVENET_LANDMARKS.NOSE) {
-            nose = {
-              x: (1 - keypoint.x) * containerWidth, // Mirror x coordinate
-              y: keypoint.y * containerHeight,
-              confidence: keypoint.confidence,
-            };
-          }
-          // Exclude facial keypoints from regular dots
-          else if (jointName !== MOVENET_LANDMARKS.NOSE &&
-                   jointName !== MOVENET_LANDMARKS.LEFT_EYE &&
-                   jointName !== MOVENET_LANDMARKS.RIGHT_EYE &&
-                   jointName !== MOVENET_LANDMARKS.LEFT_EAR &&
-                   jointName !== MOVENET_LANDMARKS.RIGHT_EAR) {
+        if (keypoint.confidence > 0.15) {
+          // Include nose as regular joint, exclude other facial keypoints
+          if (jointName === MOVENET_LANDMARKS.NOSE ||
+              (jointName !== MOVENET_LANDMARKS.LEFT_EYE &&
+               jointName !== MOVENET_LANDMARKS.RIGHT_EYE &&
+               jointName !== MOVENET_LANDMARKS.LEFT_EAR &&
+               jointName !== MOVENET_LANDMARKS.RIGHT_EAR)) {
             pixels[jointName] = {
               x: (1 - keypoint.x) * containerWidth, // Mirror x coordinate
               y: keypoint.y * containerHeight,
@@ -77,7 +68,7 @@ export default function SkeletonOverlay({
       }
     }
 
-    return { currentFrame: frame, pixelKeypoints: pixels, noseKeypoint: nose };
+    return { currentFrame: frame, pixelKeypoints: pixels };
   }, [frames, currentTime, fps, containerWidth, containerHeight]);
 
   // Don't render if frame is invalid
@@ -128,7 +119,7 @@ export default function SkeletonOverlay({
           );
         })}
 
-        {/* Draw joints (excluding facial keypoints) */}
+        {/* Draw joints (including nose as regular joint) */}
         {Object.entries(pixelKeypoints).map(([jointName, keypoint]) => {
           return (
             <Circle
@@ -141,19 +132,6 @@ export default function SkeletonOverlay({
             />
           );
         })}
-
-        {/* Draw head circle using nose position */}
-        {noseKeypoint && (
-          <Circle
-            key="head-circle"
-            cx={noseKeypoint.x}
-            cy={noseKeypoint.y}
-            r="12"
-            fill="none"
-            stroke={SKELETON_WHITE}
-            strokeWidth="1.5"
-          />
-        )}
       </Svg>
     </View>
   );

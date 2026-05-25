@@ -218,8 +218,8 @@ export function isValidFrame(
   if (!frame || !frame.keypoints) return false;
 
   const validKeypoints = Object.values(frame.keypoints).filter(
-    kp => kp.confidence > 0.3
+    kp => kp.confidence > 0.15
   );
 
-  return validKeypoints.length >= 8; // At least 8 keypoints with good confidence
+  return validKeypoints.length >= 5; // At least 5 keypoints with good confidence
 }

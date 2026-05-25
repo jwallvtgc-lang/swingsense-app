@@ -11,19 +11,17 @@ import {
   spacing,
   typography,
 } from '../../design-system/tokens';
-import { MECHANIC_PHASE_WINDOWS, MECHANIC_PLAIN_NAMES } from '../utils/skeletonUtils';
+import { getVideoRect } from '../utils/skeletonUtils';
 import type { KeypointData } from '../types';
 
 interface SwingVideoPlayerProps {
   videoUrl: string;
   keypoints?: KeypointData | null;
-  primaryIssue?: string | null;
 }
 
 export default function SwingVideoPlayer({
   videoUrl,
   keypoints,
-  primaryIssue,
 }: SwingVideoPlayerProps) {
   const videoRef = useRef<Video>(null);
   const [showSkeleton, setShowSkeleton] = useState(false);
@@ -31,14 +29,11 @@ export default function SwingVideoPlayer({
   const [currentTime, setCurrentTime] = useState(0);
   const [videoDimensions, setVideoDimensions] = useState({ width: 0, height: 0 });
   const [naturalSize, setNaturalSize] = useState({ width: 0, height: 0 });
-  const [playbackRate, setPlaybackRate] = useState(1.0);
-  const [videoDuration, setVideoDuration] = useState(0);
 
   const onPlaybackStatusUpdate = useCallback((status: AVPlaybackStatus) => {
     if (status.isLoaded) {
       const newIsPlaying = status.isPlaying;
       const newCurrentTime = status.positionMillis || 0;
-      const newDuration = status.durationMillis || 0;
 
       // BUG 2 FIX: Handle video finishing to enable replay
       if (status.didJustFinish) {
@@ -50,7 +45,6 @@ export default function SwingVideoPlayer({
       // Only update state if values actually changed to prevent unnecessary re-renders
       setIsPlaying(prev => prev !== newIsPlaying ? newIsPlaying : prev);
       setCurrentTime(prev => Math.abs(prev - newCurrentTime) > 100 ? newCurrentTime : prev); // 100ms threshold
-      setVideoDuration(prev => prev !== newDuration ? newDuration : prev);
     }
   }, []);
 
@@ -73,6 +67,21 @@ export default function SwingVideoPlayer({
     }
 
     setVideoDimensions({ width: displayWidth, height: displayHeight });
+    console.log('[SwingVideoPlayer] naturalSize:', naturalSize.width, naturalSize.height);
+    console.log('[SwingVideoPlayer] videoDimensions:', displayWidth.toFixed(1), displayHeight.toFixed(1));
+    const rect = getVideoRect(
+      displayWidth,
+      displayHeight,
+      naturalSize.width,
+      naturalSize.height
+    );
+    console.log(
+      '[SwingVideoPlayer] videoRect:',
+      rect.x.toFixed(1),
+      rect.y.toFixed(1),
+      rect.width.toFixed(1),
+      rect.height.toFixed(1)
+    );
   }, []);
 
   const togglePlayback = async () => {
@@ -87,39 +96,24 @@ export default function SwingVideoPlayer({
     }
   };
 
-  const toggleSkeleton = useCallback(async () => {
-    const newShowSkeleton = !showSkeleton;
-    setShowSkeleton(newShowSkeleton);
-
-    // BUG 4 FIX: Handle slow motion and pause at problem moment
-    if (newShowSkeleton && primaryIssue && MECHANIC_PHASE_WINDOWS[primaryIssue] && videoDuration > 0) {
-      // Set playback rate to slow motion
-      setPlaybackRate(0.5);
-
-      // Calculate target time at midpoint of mechanic phase window
-      const phase = MECHANIC_PHASE_WINDOWS[primaryIssue];
-      const midpoint = (phase.start + phase.end) / 2;
-      const targetMs = videoDuration * midpoint;
-
-      // Seek to target time and pause
-      try {
-        await videoRef.current?.setPositionAsync(targetMs);
-        await videoRef.current?.pauseAsync();
-      } catch (error) {
-        // Ignore seek/pause errors
-      }
-    } else {
-      // Set playback rate back to normal
-      setPlaybackRate(1.0);
-    }
-  }, [showSkeleton, primaryIssue, videoDuration]);
+  const toggleSkeleton = useCallback(() => {
+    setShowSkeleton(prev => !prev);
+  }, []);
 
   const hasKeypoints = keypoints?.frames && keypoints.frames.length > 0;
 
-  const showPausePill = showSkeleton && !isPlaying && primaryIssue && MECHANIC_PLAIN_NAMES[primaryIssue];
+  const isPortraitVideo =
+    naturalSize.height > naturalSize.width && naturalSize.width > 0;
+  const innerVideoWidth = isPortraitVideo
+    ? videoDimensions.height * (naturalSize.width / naturalSize.height)
+    : videoDimensions.width;
+  const innerVideoHeight = videoDimensions.height;
 
   return (
-    <View style={styles.container}>
+    <View style={[
+      styles.container,
+      videoDimensions.width > 0 && { width: videoDimensions.width }
+    ]}>
       {/* Video Player Container */}
       <View style={[
         styles.videoContainer,
@@ -128,35 +122,45 @@ export default function SwingVideoPlayer({
           height: videoDimensions.height,
         }
       ]}>
-        <Video
-          ref={videoRef}
-          source={{ uri: videoUrl }}
-          style={styles.video}
-          resizeMode={ResizeMode.CONTAIN}
-          useNativeControls={false}
-          isLooping={false}
-          shouldPlay={false}
-          rate={playbackRate}
-          onPlaybackStatusUpdate={onPlaybackStatusUpdate}
-          onReadyForDisplay={onReadyForDisplay}
-        />
-
-        {/* Skeleton Overlay */}
-        {showSkeleton && hasKeypoints && videoDimensions.width > 0 && naturalSize.width > 0 && (
-          <SkeletonOverlay
-            frames={keypoints.frames}
-            primaryIssue={primaryIssue}
-            containerWidth={videoDimensions.width}
-            containerHeight={videoDimensions.height}
-            naturalWidth={naturalSize.width}
-            naturalHeight={naturalSize.height}
-            currentTime={currentTime}
-            fps={keypoints.fps}
+        <View
+          style={[
+            styles.videoInner,
+            videoDimensions.width > 0 && {
+              width: innerVideoWidth,
+              height: innerVideoHeight,
+            },
+            isPortraitVideo && styles.videoInnerPortrait,
+          ]}
+        >
+          <Video
+            ref={videoRef}
+            source={{ uri: videoUrl }}
+            style={styles.video}
+            resizeMode={ResizeMode.CONTAIN}
+            useNativeControls={false}
+            isLooping={false}
+            shouldPlay={false}
+            rate={1.0}
+            onPlaybackStatusUpdate={onPlaybackStatusUpdate}
+            onReadyForDisplay={onReadyForDisplay}
           />
-        )}
+
+          {showSkeleton &&
+            hasKeypoints &&
+            videoDimensions.width > 0 &&
+            naturalSize.width > 0 && (
+              <SkeletonOverlay
+                frames={keypoints.frames}
+                containerWidth={innerVideoWidth}
+                containerHeight={innerVideoHeight}
+                currentTime={currentTime}
+                fps={keypoints.fps}
+              />
+            )}
+        </View>
 
         {/* Play/Pause Overlay */}
-        {!isPlaying && !showPausePill && (
+        {!isPlaying && (
           <Pressable style={styles.playOverlay} onPress={togglePlayback}>
             <View style={styles.playButton}>
               <Ionicons
@@ -169,38 +173,17 @@ export default function SwingVideoPlayer({
         )}
       </View>
 
-      {/* Amber pill for problem moment pause */}
-      {showPausePill && (
-        <View style={styles.pausePill}>
-          <Text style={styles.pausePillText}>
-            Paused at {MECHANIC_PLAIN_NAMES[primaryIssue!]} moment — tap play for slow motion
-          </Text>
-        </View>
-      )}
-
       {/* Controls */}
       <View style={styles.controls}>
-        {/* Skeleton Toggle Button */}
         {hasKeypoints && (
-          <Pressable
-            style={[
-              styles.skeletonButton,
-              showSkeleton && styles.skeletonButtonActive,
-            ]}
-            onPress={toggleSkeleton}
-          >
+          <Pressable style={styles.skeletonButton} onPress={toggleSkeleton}>
             <Ionicons
               name="body-outline"
               size={16}
-              color={showSkeleton ? colors.text.onGold : colors.text.secondary}
+              color={colors.text.secondary}
             />
-            <Text
-              style={[
-                styles.skeletonButtonText,
-                showSkeleton && styles.skeletonButtonTextActive,
-              ]}
-            >
-              Show skeleton
+            <Text style={styles.skeletonButtonText}>
+              {showSkeleton ? 'Hide skeleton' : 'Show skeleton'}
             </Text>
           </Pressable>
         )}
@@ -213,6 +196,8 @@ const styles = StyleSheet.create({
   container: {
     alignSelf: 'stretch',
     gap: spacing.cardGap,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   videoContainer: {
     position: 'relative',
@@ -221,6 +206,15 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bg.surface,
     aspectRatio: 16 / 9,
     maxHeight: 200,
+    alignSelf: 'center',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  videoInner: {
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  videoInnerPortrait: {
     alignSelf: 'center',
   },
   video: {
@@ -247,7 +241,6 @@ const styles = StyleSheet.create({
   },
   controls: {
     flexDirection: 'row',
-    justifyContent: 'flex-start',
     alignItems: 'center',
     paddingHorizontal: spacing.iconGap,
   },
@@ -262,32 +255,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border.subtle,
   },
-  skeletonButtonActive: {
-    backgroundColor: colors.bg.gold,
-    borderColor: colors.bg.gold,
-  },
   skeletonButtonText: {
     fontFamily: typography.body,
     fontSize: fontSizes.caption,
     fontWeight: fontWeights.medium,
     color: colors.text.secondary,
-  },
-  skeletonButtonTextActive: {
-    color: colors.text.onGold,
-  },
-  pausePill: {
-    alignSelf: 'center',
-    backgroundColor: colors.core5.bandMid, // Amber color for problem indicator
-    borderRadius: radius.pill,
-    paddingVertical: spacing.iconGap / 2,
-    paddingHorizontal: spacing.cardSm,
-    marginTop: spacing.iconGap,
-  },
-  pausePillText: {
-    fontFamily: typography.body,
-    fontSize: fontSizes.caption,
-    fontWeight: fontWeights.medium,
-    color: colors.text.primary,
-    textAlign: 'center',
   },
 });
