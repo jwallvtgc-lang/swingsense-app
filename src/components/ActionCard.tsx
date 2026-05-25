@@ -114,10 +114,10 @@ export default function ActionCard({
           </Animated.View>
 
           <View style={styles.textBlock}>
-            <Text style={styles.title} maxFontSizeMultiplier={1.2}>
+            <Text style={styles.title} numberOfLines={1} maxFontSizeMultiplier={1.2}>
               {title}
             </Text>
-            <Text style={styles.subtitle} maxFontSizeMultiplier={1.2}>
+            <Text style={styles.subtitle} numberOfLines={1} maxFontSizeMultiplier={1.2}>
               {subtitle}
             </Text>
           </View>
@@ -144,9 +144,9 @@ const styles = StyleSheet.create({
     borderRadius: radius.premiumActionCard,
     borderWidth: 1,
     borderColor: colors.border.premiumActionCard,
-    paddingHorizontal: premiumActionCard.padH,
-    paddingVertical: premiumActionCard.padV,
-    minHeight: premiumActionCard.minHeight,
+    paddingHorizontal: 12,
+    paddingVertical: 0,
+    minHeight: 80,
     ...Platform.select({
       ios: {
         shadowColor: colors.shadow.default,
@@ -182,8 +182,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   iconWrap: {
-    width: 44,
-    height: 44,
+    width: 40,
+    height: 40,
+    marginRight: 10,
     borderRadius: premiumActionCard.iconRadius,
     borderWidth: 1,
     alignItems: 'center',
@@ -202,22 +203,21 @@ const styles = StyleSheet.create({
   textBlock: {
     flex: 1,
     minWidth: 0,
-    marginLeft: 10,
     gap: premiumActionCard.titleSubtitleGap,
   },
   title: {
     fontFamily: typography.body,
-    fontSize: fontSizes.premiumActionCardTitle,
-    fontWeight: premiumActionCard.titleFontWeight,
+    fontSize: 15,
+    fontWeight: '600',
     color: colors.text.primary,
-    lineHeight: Math.round(fontSizes.premiumActionCardTitle * premiumActionCard.titleLineHeightRatio),
+    lineHeight: Math.round(15 * 1.2),
   },
   subtitle: {
     fontFamily: typography.body,
-    fontSize: fontSizes.premiumActionCardSubtitle,
+    fontSize: 12,
     fontWeight: fontWeights.regular,
     color: colors.text.homeMuted,
-    lineHeight: Math.round(fontSizes.premiumActionCardSubtitle * premiumActionCard.subtitleLineHeightRatio),
+    lineHeight: Math.round(12 * 1.35),
     marginTop: premiumActionCard.titleSubtitleGap,
   },
 });
