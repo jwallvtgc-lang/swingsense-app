@@ -110,10 +110,7 @@ export default function SwingVideoPlayer({
   const innerVideoHeight = videoDimensions.height;
 
   return (
-    <View style={[
-      styles.container,
-      videoDimensions.width > 0 && { width: videoDimensions.width }
-    ]}>
+    <View style={styles.container}>
       {/* Video Player Container */}
       <View style={[
         styles.videoContainer,
@@ -194,7 +191,7 @@ export default function SwingVideoPlayer({
 
 const styles = StyleSheet.create({
   container: {
-    alignSelf: 'stretch',
+    width: '100%',
     gap: spacing.cardGap,
     justifyContent: 'center',
     alignItems: 'center',
