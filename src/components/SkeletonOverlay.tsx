@@ -1,23 +1,12 @@
 import React, { useMemo } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import Svg, { Line, Circle } from 'react-native-svg';
 import {
   SKELETON_CONNECTIONS,
-  MECHANIC_JOINTS,
-  MECHANIC_DISPLAY_NAMES,
-  mapKeypointToPixel,
+  MOVENET_LANDMARKS,
   getFrameForTime,
   isValidFrame,
-  getVideoRect,
 } from '../utils/skeletonUtils';
-import {
-  colors,
-  fontSizes,
-  fontWeights,
-  radius,
-  spacing,
-  typography,
-} from '../../design-system/tokens';
 
 interface SkeletonOverlayProps {
   frames: Array<{
@@ -25,67 +14,71 @@ interface SkeletonOverlayProps {
     timestamp_ms: number;
     keypoints: Record<string, { x: number; y: number; confidence: number }>;
   }>;
-  primaryIssue?: string | null;
   containerWidth: number;
   containerHeight: number;
-  naturalWidth: number;
-  naturalHeight: number;
   currentTime: number; // in milliseconds
   fps: number;
 }
 
-// Functional skeleton colors (not design tokens per CLAUDE.md)
-const SKELETON_COLORS = {
-  neutral: '#444',
-  connection: '#555',
-  red: '#E24B4A',
-  amber: '#F5A623',
-};
+// All skeleton elements are white
+const SKELETON_WHITE = '#FFFFFF';
 
 export default function SkeletonOverlay({
   frames,
-  primaryIssue,
   containerWidth,
   containerHeight,
-  naturalWidth,
-  naturalHeight,
   currentTime,
   fps,
 }: SkeletonOverlayProps) {
-  // Memoize joint highlighting sets
-  const { redJoints, amberJoints } = useMemo(() => {
-    const mechanicJoints = primaryIssue ? MECHANIC_JOINTS[primaryIssue] : null;
-    return {
-      redJoints: new Set(mechanicJoints?.red || []),
-      amberJoints: new Set(mechanicJoints?.amber || []),
-    };
-  }, [primaryIssue]);
+  // Facial keypoints to exclude from dots and lines
+  const facialKeypoints = [
+    MOVENET_LANDMARKS.NOSE,
+    MOVENET_LANDMARKS.LEFT_EYE,
+    MOVENET_LANDMARKS.RIGHT_EYE,
+    MOVENET_LANDMARKS.LEFT_EAR,
+    MOVENET_LANDMARKS.RIGHT_EAR,
+  ] as const;
 
-  // Memoize video rect and current frame with pixel coordinates
-  const { currentFrame, pixelKeypoints, videoRect } = useMemo(() => {
+  // Memoize current frame with pixel coordinates
+  const { currentFrame, pixelKeypoints, noseKeypoint } = useMemo(() => {
     const frame = getFrameForTime(frames, currentTime, fps);
 
     if (!isValidFrame(frame)) {
-      return { currentFrame: null, pixelKeypoints: {}, videoRect: null };
+      return { currentFrame: null, pixelKeypoints: {}, noseKeypoint: null };
     }
 
-    const videoRect = getVideoRect(containerWidth, containerHeight, naturalWidth, naturalHeight);
-
     const pixels: Record<string, { x: number; y: number; confidence: number }> = {};
+    let nose: { x: number; y: number; confidence: number } | null = null;
+
     if (frame?.keypoints) {
       for (const [jointName, keypoint] of Object.entries(frame.keypoints)) {
-        if (keypoint.confidence > 0.3) {
-          const pixel = mapKeypointToPixel(keypoint, videoRect);
-          pixels[jointName] = {
-            ...pixel,
-            confidence: keypoint.confidence,
-          };
+        if (keypoint.confidence > 0.2) {
+          // Handle nose separately for head circle
+          if (jointName === MOVENET_LANDMARKS.NOSE) {
+            nose = {
+              x: (1 - keypoint.x) * containerWidth, // Mirror x coordinate
+              y: keypoint.y * containerHeight,
+              confidence: keypoint.confidence,
+            };
+          }
+          // Exclude facial keypoints from regular dots
+          else if (jointName !== MOVENET_LANDMARKS.NOSE &&
+                   jointName !== MOVENET_LANDMARKS.LEFT_EYE &&
+                   jointName !== MOVENET_LANDMARKS.RIGHT_EYE &&
+                   jointName !== MOVENET_LANDMARKS.LEFT_EAR &&
+                   jointName !== MOVENET_LANDMARKS.RIGHT_EAR) {
+            pixels[jointName] = {
+              x: (1 - keypoint.x) * containerWidth, // Mirror x coordinate
+              y: keypoint.y * containerHeight,
+              confidence: keypoint.confidence,
+            };
+          }
         }
       }
     }
 
-    return { currentFrame: frame, pixelKeypoints: pixels, videoRect };
-  }, [frames, currentTime, fps, containerWidth, containerHeight, naturalWidth, naturalHeight]);
+    return { currentFrame: frame, pixelKeypoints: pixels, noseKeypoint: nose };
+  }, [frames, currentTime, fps, containerWidth, containerHeight]);
 
   // Don't render if frame is invalid
   if (!currentFrame) {
@@ -93,23 +86,33 @@ export default function SkeletonOverlay({
   }
 
   return (
-    <View style={[styles.container, { width: containerWidth, height: containerHeight }]} pointerEvents="none">
+    <View
+      style={[
+        styles.container,
+        { width: containerWidth, height: containerHeight },
+      ]}
+      pointerEvents="none"
+    >
       {/* SVG skeleton */}
       <Svg width={containerWidth} height={containerHeight} viewBox={`0 0 ${containerWidth} ${containerHeight}`} style={StyleSheet.absoluteFill}>
-        {/* Draw connections */}
-        {SKELETON_CONNECTIONS.map(([joint1, joint2], index) => {
+        {/* Draw connections (excluding facial connections) */}
+        {SKELETON_CONNECTIONS.filter(([joint1, joint2]) => {
+          const isFacial1 = joint1 === MOVENET_LANDMARKS.NOSE ||
+                            joint1 === MOVENET_LANDMARKS.LEFT_EYE ||
+                            joint1 === MOVENET_LANDMARKS.RIGHT_EYE ||
+                            joint1 === MOVENET_LANDMARKS.LEFT_EAR ||
+                            joint1 === MOVENET_LANDMARKS.RIGHT_EAR;
+          const isFacial2 = joint2 === MOVENET_LANDMARKS.NOSE ||
+                            joint2 === MOVENET_LANDMARKS.LEFT_EYE ||
+                            joint2 === MOVENET_LANDMARKS.RIGHT_EYE ||
+                            joint2 === MOVENET_LANDMARKS.LEFT_EAR ||
+                            joint2 === MOVENET_LANDMARKS.RIGHT_EAR;
+          return !isFacial1 && !isFacial2;
+        }).map(([joint1, joint2], index) => {
           const kp1 = pixelKeypoints[joint1];
           const kp2 = pixelKeypoints[joint2];
 
           if (!kp1 || !kp2) return null;
-
-          // Determine connection color based on joint highlighting
-          let strokeColor = SKELETON_COLORS.connection;
-          if (redJoints.has(joint1) || redJoints.has(joint2)) {
-            strokeColor = SKELETON_COLORS.red;
-          } else if (amberJoints.has(joint1) || amberJoints.has(joint2)) {
-            strokeColor = SKELETON_COLORS.amber;
-          }
 
           return (
             <Line
@@ -118,53 +121,40 @@ export default function SkeletonOverlay({
               y1={kp1.y}
               x2={kp2.x}
               y2={kp2.y}
-              stroke={strokeColor}
-              strokeWidth="2"
+              stroke={SKELETON_WHITE}
+              strokeWidth="1.5"
               strokeLinecap="round"
             />
           );
         })}
 
-        {/* Draw joints */}
+        {/* Draw joints (excluding facial keypoints) */}
         {Object.entries(pixelKeypoints).map(([jointName, keypoint]) => {
-          let fillColor = SKELETON_COLORS.neutral;
-          if (redJoints.has(jointName)) {
-            fillColor = SKELETON_COLORS.red;
-          } else if (amberJoints.has(jointName)) {
-            fillColor = SKELETON_COLORS.amber;
-          }
-
           return (
             <Circle
               key={`joint-${jointName}`}
               cx={keypoint.x}
               cy={keypoint.y}
               r="4"
-              fill={fillColor}
-              stroke="rgba(255,255,255,0.3)"
-              strokeWidth="1"
+              fill={SKELETON_WHITE}
+              strokeWidth="0"
             />
           );
         })}
+
+        {/* Draw head circle using nose position */}
+        {noseKeypoint && (
+          <Circle
+            key="head-circle"
+            cx={noseKeypoint.x}
+            cy={noseKeypoint.y}
+            r="12"
+            fill="none"
+            stroke={SKELETON_WHITE}
+            strokeWidth="1.5"
+          />
+        )}
       </Svg>
-
-      {/* Issue label pill */}
-      {primaryIssue && MECHANIC_DISPLAY_NAMES[primaryIssue] && (
-        <View style={styles.labelPill}>
-          <Text style={styles.labelText}>
-            {MECHANIC_DISPLAY_NAMES[primaryIssue]}
-          </Text>
-        </View>
-      )}
-
-      {/* Frame counter */}
-      {currentFrame && (
-        <View style={styles.frameCounter}>
-          <Text style={styles.frameText}>
-            Frame {currentFrame.frame_number}
-          </Text>
-        </View>
-      )}
     </View>
   );
 }
@@ -174,36 +164,5 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 0,
     left: 0,
-  },
-  labelPill: {
-    position: 'absolute',
-    top: spacing.cardSm,
-    left: spacing.cardSm,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    borderRadius: radius.pill,
-    paddingVertical: spacing.iconGap / 2,
-    paddingHorizontal: spacing.cardSm,
-  },
-  labelText: {
-    fontFamily: typography.body,
-    fontSize: fontSizes.caption,
-    fontWeight: fontWeights.medium,
-    color: colors.text.primary,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  frameCounter: {
-    position: 'absolute',
-    bottom: spacing.cardSm,
-    right: spacing.cardSm,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    borderRadius: radius.badge,
-    paddingVertical: spacing.iconGap / 2,
-    paddingHorizontal: spacing.iconGap,
-  },
-  frameText: {
-    fontFamily: typography.body,
-    fontSize: fontSizes.micro,
-    color: colors.text.muted,
   },
 });

@@ -37,7 +37,6 @@ import {
 } from '../services/analysis';
 import { trackEvent } from '../services/analytics';
 import type { CoachingOutput, SwingAnalysis } from '../types';
-import { titleToMechanicSlug } from '../utils/skeletonUtils';
 import {
   colors,
   displayTitleProps,
@@ -549,7 +548,6 @@ export default function AnalysisScreen() {
               <SwingVideoPlayer
                 videoUrl={videoUrl}
                 keypoints={analysis?.keypoint_data}
-                primaryIssue={titleToMechanicSlug(co?.primary_mechanical_issue?.title)}
               />
             ) : null}
 
