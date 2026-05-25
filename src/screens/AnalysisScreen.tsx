@@ -14,7 +14,6 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import { Video, ResizeMode } from 'expo-av';
 
 import BackNav from '../components/BackNav';
 import DecisionFactors from '../components/DecisionFactors';
@@ -24,6 +23,7 @@ import PrimaryButton from '../components/PrimaryButton';
 import ScoreCard from '../components/ScoreCard';
 import ScoreRing from '../components/ScoreRing';
 import SectionCard from '../components/SectionCard';
+import SwingVideoPlayer from '../components/SwingVideoPlayer';
 import TabSwitcher from '../components/TabSwitcher';
 import { FEEDBACK_EMAIL } from '../config/constants';
 import { supabase } from '../config/supabase';
@@ -275,7 +275,6 @@ export default function AnalysisScreen() {
   const route = useRoute<Route>();
   const { analysisId } = route.params;
   const { profile } = useAuth();
-  const videoRef = useRef<Video>(null);
   const [activeTab, setActiveTab] = useState(TAB_RESULTS);
   const [analysis, setAnalysis] = useState<SwingAnalysis | null>(null);
   const [previousAnalysis, setPreviousAnalysis] = useState<SwingAnalysis | null>(null);
@@ -544,34 +543,13 @@ export default function AnalysisScreen() {
 
         {activeTab === TAB_RESULTS ? (
           <View style={styles.tabPanels}>
-            {/* 1. Video thumbnail */}
+            {/* 1. Video player with skeleton overlay */}
             {videoUrl ? (
-              <Pressable
-                style={styles.videoThumbnailContainer}
-                onPress={() => {
-                  // Make video thumbnail tappable - could expand to fullscreen or play
-                  videoRef.current?.playAsync().catch(() => {
-                    // Ignore play errors - video might not be fully loaded
-                  });
-                }}
-              >
-                <Video
-                  ref={videoRef}
-                  source={{ uri: videoUrl }}
-                  style={styles.videoThumbnail}
-                  resizeMode={ResizeMode.CONTAIN}
-                  useNativeControls={false}
-                  isLooping={false}
-                  shouldPlay={false}
-                />
-                <View style={styles.videoPlayOverlay}>
-                  <Ionicons
-                    name="play"
-                    size={24}
-                    color={colors.text.primary}
-                  />
-                </View>
-              </Pressable>
+              <SwingVideoPlayer
+                videoUrl={videoUrl}
+                keypoints={analysis?.keypoint_data}
+                primaryIssue={co?.primary_mechanical_issue?.title}
+              />
             ) : null}
 
 
@@ -970,40 +948,6 @@ const styles = StyleSheet.create({
     fontFamily: typography.body,
     fontSize: fontSizes.body,
     color: colors.text.muted,
-  },
-  videoContainer: {
-    marginTop: spacing.cardGap,
-    borderRadius: radius.card,
-    overflow: 'hidden',
-    backgroundColor: colors.bg.surface,
-    aspectRatio: 9 / 16,
-    maxHeight: 320,
-    alignSelf: 'center',
-    width: '100%',
-  },
-  video: {
-    width: '100%',
-    height: '100%',
-  },
-  videoThumbnailContainer: {
-    position: 'relative',
-    borderRadius: radius.card,
-    overflow: 'hidden',
-    backgroundColor: colors.bg.surface,
-    aspectRatio: 16 / 9,
-    width: '100%',
-    maxHeight: 200,
-    alignSelf: 'stretch',
-  },
-  videoThumbnail: {
-    width: '100%',
-    height: '100%',
-  },
-  videoPlayOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.3)',
   },
   positiveObservation: {
     fontFamily: typography.body,
