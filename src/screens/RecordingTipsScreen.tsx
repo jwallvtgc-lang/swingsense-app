@@ -98,86 +98,150 @@ export default function RecordingTipsScreen() {
         </Pressable>
       </View>
 
-      {/* Top half - SVG diagram with full-bleed dark background */}
+      {/* Top half - SVG diagram fills space, no container */}
       <View style={styles.illustrationArea}>
-        <View style={styles.svgDiagram}>
-          <Svg width="280" height="120" viewBox="0 0 280 120">
-            <Defs>
-              <Marker
-                id="arrowhead"
-                markerWidth="10"
-                markerHeight="7"
-                refX="9"
-                refY="3.5"
-                orient="auto"
-              >
-                <Polygon
-                  points="0 0, 10 3.5, 0 7"
-                  fill={colors.text.gold}
-                />
-              </Marker>
-            </Defs>
-
-            {/* Phone icon (simple rectangle) */}
-            <Rect
-              x="25"
-              y="35"
-              width="20"
-              height="32"
-              rx="4"
-              fill={colors.text.gold}
-              stroke={colors.text.gold}
-              strokeWidth="1"
-            />
-            <Rect
-              x="28"
-              y="38"
-              width="14"
-              height="20"
-              rx="2"
-              fill={colors.bg.base}
-            />
-
-            {/* Arrow with distance label */}
-            <Line
-              x1="70"
-              y1="51"
-              x2="200"
-              y2="51"
-              stroke={colors.text.gold}
-              strokeWidth="2"
-              markerEnd="url(#arrowhead)"
-            />
-            <SvgText
-              x="135"
-              y="44"
-              fontSize={fontSizes.caption.toString()}
-              fill={colors.text.muted}
-              textAnchor="middle"
-              fontFamily={typography.body}
+        <Svg width="320" height="180" viewBox="0 0 320 180" style={styles.svgDiagram}>
+          <Defs>
+            <Marker
+              id="arrowhead"
+              markerWidth="10"
+              markerHeight="7"
+              refX="9"
+              refY="3.5"
+              orient="auto"
             >
-              ~10 feet
-            </SvgText>
+              <Polygon
+                points="0 0, 10 3.5, 0 7"
+                fill={colors.text.gold}
+              />
+            </Marker>
+          </Defs>
 
-            {/* Player silhouette (simple circle with body) */}
-            <Circle
-              cx="235"
-              cy="42"
-              r="8"
-              fill={colors.text.muted}
-            />
-            <Rect
-              x="230"
-              y="50"
-              width="10"
-              height="20"
-              rx="2"
-              fill={colors.text.muted}
-            />
-          </Svg>
-        </View>
+          {/* Phone on stand (left side) */}
+          <Rect
+            x="40"
+            y="70"
+            width="24"
+            height="40"
+            rx="5"
+            fill={colors.text.gold}
+            stroke={colors.text.gold}
+            strokeWidth="2"
+          />
+          <Rect
+            x="44"
+            y="74"
+            width="16"
+            height="26"
+            rx="2"
+            fill={colors.bg.base}
+          />
+          {/* Phone stand */}
+          <Line
+            x1="52"
+            y1="110"
+            x2="52"
+            y2="120"
+            stroke={colors.text.gold}
+            strokeWidth="3"
+          />
+          <Line
+            x1="46"
+            y1="120"
+            x2="58"
+            y2="120"
+            stroke={colors.text.gold}
+            strokeWidth="3"
+          />
+
+          {/* Dashed arrow with distance label */}
+          <Line
+            x1="90"
+            y1="90"
+            x2="220"
+            y2="90"
+            stroke={colors.text.gold}
+            strokeWidth="3"
+            strokeDasharray="8,4"
+            markerEnd="url(#arrowhead)"
+          />
+          <SvgText
+            x="155"
+            y="82"
+            fontSize={fontSizes.sectionTitle.toString()}
+            fill={colors.text.gold}
+            textAnchor="middle"
+            fontFamily={typography.body}
+            fontWeight="500"
+          >
+            ~10 feet
+          </SvgText>
+
+          {/* Batter silhouette with bat (right side) */}
+          {/* Head */}
+          <Circle
+            cx="260"
+            cy="65"
+            r="12"
+            fill={colors.text.primary}
+          />
+          {/* Body */}
+          <Line
+            x1="260"
+            y1="77"
+            x2="260"
+            y2="115"
+            stroke={colors.text.primary}
+            strokeWidth="6"
+          />
+          {/* Arms - left arm extended to bat */}
+          <Line
+            x1="260"
+            y1="85"
+            x2="240"
+            y2="78"
+            stroke={colors.text.primary}
+            strokeWidth="4"
+          />
+          {/* Right arm to bat */}
+          <Line
+            x1="260"
+            y1="90"
+            x2="245"
+            y2="85"
+            stroke={colors.text.primary}
+            strokeWidth="4"
+          />
+          {/* Legs */}
+          <Line
+            x1="260"
+            y1="115"
+            x2="250"
+            y2="140"
+            stroke={colors.text.primary}
+            strokeWidth="4"
+          />
+          <Line
+            x1="260"
+            y1="115"
+            x2="270"
+            y2="140"
+            stroke={colors.text.primary}
+            strokeWidth="4"
+          />
+          {/* Bat */}
+          <Rect
+            x="230"
+            y="65"
+            width="8"
+            height="28"
+            rx="4"
+            fill={colors.text.secondary}
+          />
+        </Svg>
+
         <Text style={styles.illustrationCaption}>
-          Side-angle view, full body visible
+          SIDE-ANGLE VIEW · FULL BODY VISIBLE
         </Text>
       </View>
 
@@ -245,9 +309,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bg.base,
   },
   svgDiagram: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: spacing.card,
+    marginBottom: spacing.sectionGap,
   },
   illustrationCaption: {
     fontSize: fontSizes.caption,
@@ -285,16 +347,16 @@ const styles = StyleSheet.create({
     fontSize: fontSizes.actionCardTitle,
     fontFamily: typography.body,
     color: colors.text.primary,
-    lineHeight: Math.round(15 * 1.5),
-    marginTop: spacing.pillGap / 3, // 2px
+    lineHeight: Math.round(fontSizes.actionCardTitle * 1.5),
+    marginTop: spacing.pillGap / 3,
   },
   coachingLine: {
     fontSize: fontSizes.body,
     fontFamily: typography.body,
     color: colors.text.muted,
     textAlign: 'center',
-    lineHeight: Math.round(13 * 1.4),
-    marginBottom: spacing.sectionGap + spacing.cardGap, // 32px
+    lineHeight: Math.round(fontSizes.body * 1.4),
+    marginBottom: spacing.sectionGap + spacing.cardGap,
   },
   startButton: {
     backgroundColor: colors.bg.gold,

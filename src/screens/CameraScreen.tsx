@@ -39,7 +39,7 @@ export default function CameraScreen() {
   const route = useRoute<Route>();
   const cameraRef = useRef<CameraView>(null);
 
-  const [facing, setFacing] = useState<CameraType>('back');
+  const [facing] = useState<CameraType>('front'); // Lock to front camera
   const [isRecording, setIsRecording] = useState(false);
   const [recordedVideoUri, setRecordedVideoUri] = useState<string | null>(null);
   const [recordingDuration, setRecordingDuration] = useState(0);
@@ -80,9 +80,7 @@ export default function CameraScreen() {
     );
   }
 
-  const toggleCameraFacing = () => {
-    setFacing(current => (current === 'back' ? 'front' : 'back'));
-  };
+  // Camera flip functionality removed - locked to front camera
 
   const startRecording = async () => {
     if (!cameraRef.current || isRecording) return;
@@ -157,6 +155,7 @@ export default function CameraScreen() {
         ref={cameraRef}
         style={styles.camera}
         facing={facing}
+        videoQuality="720p"
         onCameraReady={() => setIsReady(true)}
       >
         {/* Header Controls */}
@@ -181,11 +180,9 @@ export default function CameraScreen() {
             <Text style={styles.instructionsText}>
               Position yourself so your full body is visible
             </Text>
-            {facing === 'front' && (
-              <Text style={styles.frontCameraNote}>
-                Front camera view is mirrored
-              </Text>
-            )}
+            <Text style={styles.frontCameraNote}>
+              Front camera view is mirrored
+            </Text>
           </View>
         )}
 
