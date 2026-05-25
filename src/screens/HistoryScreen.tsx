@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Pressable,
   SectionList,
   SectionListData,
   SectionListRenderItem,
@@ -14,10 +15,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import BottomTabBar from '../components/BottomTabBar';
 import EmptyState from '../components/EmptyState';
-import PrimaryButton from '../components/PrimaryButton';
 import { ProgressCoachCard } from '../components/ProgressCoachCard';
 import ScreenHeader from '../components/ScreenHeader';
-import StreakPill from '../components/StreakPill';
 import SwingListItem from '../components/SwingListItem';
 import { useAuth } from '../contexts/AuthContext';
 import { useMainTabBarNav } from '../navigation/useMainTabBarNav';
@@ -36,9 +35,12 @@ import {
   colors,
   fontSizes,
   fontWeights,
+  radius,
   spacing,
   typography,
 } from '../../design-system/tokens';
+
+const LOADING_MIN_HEIGHT = 120; // Prevents layout jump while fetching
 
 function listScore(analysis: SwingAnalysis): number {
   return (
@@ -255,7 +257,7 @@ export default function HistoryScreen() {
     [insets.bottom]
   );
 
-  const { headerSubtitle, headerStreak, headerLongestStreak } = useMemo(() => {
+  const { analysesLabel, headerStreak, headerLongestStreak } = useMemo(() => {
     const { currentStreak, longestStreak } = computeStreak(
       swings
         .filter((s) => s.status === 'completed' && s.created_at)
@@ -263,7 +265,7 @@ export default function HistoryScreen() {
     );
     const n = swings.length;
     return {
-      headerSubtitle: `${n} ${n === 1 ? 'analysis' : 'analyses'}`,
+      analysesLabel: `${n} ${n === 1 ? 'analysis' : 'analyses'}`,
       headerStreak: currentStreak,
       headerLongestStreak: longestStreak,
     };
@@ -355,21 +357,32 @@ export default function HistoryScreen() {
         ]}
       >
         <View style={styles.headerSection}>
-          <ScreenHeader title="SWING HISTORY" subtitle={headerSubtitle} />
-          <View style={styles.streakRow}>
-            {headerStreak > 0 ? <StreakPill streak={headerStreak} /> : null}
-            {headerLongestStreak > 0 ? (
-              <Text style={styles.longestStreak}>
-                Best: {headerLongestStreak} day{headerLongestStreak === 1 ? '' : 's'}
-              </Text>
-            ) : null}
+          <View style={styles.titleRow}>
+            <ScreenHeader title="SWING HISTORY" />
+            <Pressable
+              style={styles.compactButton}
+              onPress={() => navigation.navigate('UploadTab')}
+            >
+              <Text style={styles.compactButtonText}>+ Record Swing</Text>
+            </Pressable>
           </View>
-        </View>
-        <View style={styles.afterHeader}>
-          <PrimaryButton
-            label="Record New Swing"
-            onPress={() => navigation.navigate('UploadTab')}
-          />
+          <Text style={styles.compactMetadataLine}>
+            <Text style={styles.metadataText}>{analysesLabel}</Text>
+            {headerStreak > 0 && (
+              <>
+                <Text style={styles.metadataDot}> • </Text>
+                <Text style={styles.metadataText}>🔥 {headerStreak} day streak</Text>
+              </>
+            )}
+            {headerLongestStreak > 0 && (
+              <>
+                <Text style={styles.metadataDot}> • </Text>
+                <Text style={styles.metadataText}>
+                  Best: {headerLongestStreak} day{headerLongestStreak === 1 ? '' : 's'}
+                </Text>
+              </>
+            )}
+          </Text>
         </View>
         {loading ? (
           <View style={styles.loadingWrap}>
@@ -430,23 +443,39 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   headerSection: {
-    marginBottom: spacing.cardGap,
-    gap: spacing.iconGap,
+    alignSelf: 'stretch',
+    marginBottom: spacing.sectionGap,
   },
-  streakRow: {
+  titleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.cardGap,
+    justifyContent: 'space-between',
   },
-  longestStreak: {
+  compactButton: {
+    backgroundColor: colors.bg.gold,
+    borderRadius: radius.pill,
+    paddingHorizontal: spacing.cardSm,
+    paddingVertical: spacing.pillGap,
+  },
+  compactButtonText: {
     fontFamily: typography.body,
-    fontSize: fontSizes.caption,
+    fontSize: fontSizes.body,
+    fontWeight: fontWeights.medium,
+    color: colors.text.onGold,
+  },
+  compactMetadataLine: {
+    alignSelf: 'stretch',
+    marginTop: spacing.cardGap,
+    fontFamily: typography.body,
+    fontSize: fontSizes.body,
+    fontWeight: fontWeights.medium,
+    lineHeight: Math.round(fontSizes.body * 1.35),
+  },
+  metadataText: {
     color: colors.text.muted,
   },
-  afterHeader: {
-    marginTop: spacing.cardGap,
-    marginBottom: spacing.sectionGap,
-    alignSelf: 'stretch',
+  metadataDot: {
+    color: colors.text.muted,
   },
   listContent: {
     gap: spacing.cardGap,
@@ -456,7 +485,7 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: 120, // 120px loading min height — prevents layout jump while fetching
+    minHeight: LOADING_MIN_HEIGHT,
   },
   emptyWrap: {
     flex: 1,
