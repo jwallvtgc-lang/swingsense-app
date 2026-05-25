@@ -145,7 +145,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.premiumActionCard,
     borderWidth: 1,
     borderColor: colors.border.premiumActionCard,
-    padding: 16,
+    padding: spacing.card,
     minHeight: 110,
     ...Platform.select({
       ios: {
@@ -184,7 +184,7 @@ const styles = StyleSheet.create({
   iconWrap: {
     width: 48,
     height: 48,
-    marginBottom: 12,
+    marginBottom: spacing.iconGap + 4, // 12px spacing for icon-to-text gap
     borderRadius: premiumActionCard.iconRadius,
     borderWidth: 1,
     alignItems: 'center',
@@ -206,22 +206,22 @@ const styles = StyleSheet.create({
   },
   title: {
     fontFamily: typography.body,
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: fontSizes.drillTitle,
+    fontWeight: fontWeights.bold,
     color: colors.text.primary,
-    lineHeight: Math.round(16 * 1.2),
+    lineHeight: Math.round(fontSizes.drillTitle * 1.2),
   },
   subtitle: {
     fontFamily: typography.body,
-    fontSize: 12,
+    fontSize: fontSizes.drillInstruction,
     fontWeight: fontWeights.regular,
     color: colors.text.homeMuted,
-    lineHeight: Math.round(12 * 1.35),
-    marginTop: 4,
+    lineHeight: Math.round(fontSizes.drillInstruction * 1.35),
+    marginTop: spacing.inputGap / 2,
   },
   chevron: {
     position: 'absolute',
-    right: 12,
-    bottom: 12,
+    right: spacing.cardSm,
+    bottom: spacing.cardSm,
   },
 });
