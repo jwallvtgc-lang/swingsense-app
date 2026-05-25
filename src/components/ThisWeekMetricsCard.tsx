@@ -1,7 +1,5 @@
 import React, { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-
-import SectionCard from './SectionCard';
 import type { SwingAnalysis } from '../types';
 import { getISOWeek, getOverallScore, getThisWeekBounds, getLastWeekBounds } from '../utils/weekHelpers';
 import {
@@ -87,7 +85,7 @@ export function ThisWeekMetricsCard({ swings }: Props) {
 
   if (thisWeekSwings.length === 0) {
     return (
-      <SectionCard>
+      <View style={styles.card}>
         <Text style={styles.headerLabel} maxFontSizeMultiplier={1.35}>
           THIS WEEK
         </Text>
@@ -96,12 +94,12 @@ export function ThisWeekMetricsCard({ swings }: Props) {
             No swings this week yet
           </Text>
         </View>
-      </SectionCard>
+      </View>
     );
   }
 
   return (
-    <SectionCard>
+    <View style={styles.card}>
       <Text style={styles.headerLabel} maxFontSizeMultiplier={1.35}>
         THIS WEEK
       </Text>
@@ -152,11 +150,19 @@ export function ThisWeekMetricsCard({ swings }: Props) {
           ))}
         </View>
       </View>
-    </SectionCard>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  card: {
+    backgroundColor: colors.bg.greenDim,
+    borderColor: colors.text.green,
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 12,
+    alignSelf: 'stretch',
+  },
   headerLabel: {
     fontFamily: typography.body,
     fontSize: fontSizes.label,
