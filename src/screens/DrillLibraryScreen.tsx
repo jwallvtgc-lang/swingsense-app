@@ -3,6 +3,7 @@ import {
   FlatList,
   Pressable,
   SafeAreaView,
+  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -12,7 +13,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import BackNav from '../components/BackNav';
 import { DRILLS } from '../data/drillsData';
-import { EXPERIENCE_LEVEL_LABELS } from '../constants/drillConstants';
+import { EXPERIENCE_LEVEL_LABELS, MECHANIC_LABELS } from '../constants/drillConstants';
 import type { DrillCard, DrillMechanic } from '../types/drill';
 import type { MainStackParamList } from '../navigation/types';
 import {
@@ -47,11 +48,13 @@ function DrillGridCard({ drill, onPress }: DrillGridCardProps) {
       style={({ pressed }) => [styles.gridCard, pressed && styles.gridCardPressed]}
       onPress={onPress}
     >
-      {/* Mechanic color bar at top */}
-      <View style={[styles.gridCardColorBar, { backgroundColor: colors.mechanic[drill.mechanic] }]} />
-
       {/* Card content */}
       <View style={styles.gridCardContent}>
+        {/* Mechanic label */}
+        <Text style={styles.gridCardMechanic}>
+          {MECHANIC_LABELS[drill.mechanic]}
+        </Text>
+
         {/* Title */}
         <Text style={styles.gridCardTitle} numberOfLines={2}>
           {drill.title}
@@ -109,14 +112,17 @@ export default function DrillLibraryScreen() {
 
       <View style={styles.content}>
         {/* Header */}
-        <Text style={styles.header} {...displayTitleProps}>
-          DRILL LIBRARY
-        </Text>
+        <Text style={styles.header} {...displayTitleProps}>Drill Library</Text>
 
         {/* Filter tabs */}
-        <View style={styles.filterContainer}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.filterScroll}
+          contentContainerStyle={styles.filterContainer}
+        >
           {MECHANIC_FILTERS.map(renderFilterTab)}
-        </View>
+        </ScrollView>
 
         {/* Drill grid */}
         <FlatList
@@ -148,15 +154,24 @@ const styles = StyleSheet.create({
     color: colors.text.primary,
     marginBottom: spacing.sectionGap,
   },
-  filterContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.iconGap,
+  filterScroll: {
+    flexGrow: 0,
+    minHeight: 44,
     marginBottom: spacing.sectionGap,
   },
+  filterContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.iconGap,
+    paddingVertical: spacing.pillGap,
+  },
   filterTab: {
-    paddingHorizontal: spacing.cardSm,
+    flexShrink: 0,
+    minHeight: 36,
+    paddingHorizontal: spacing.card,
     paddingVertical: spacing.iconGap,
+    alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: colors.bg.surface,
     borderRadius: radius.subCard,
     borderWidth: 1,
@@ -167,16 +182,17 @@ const styles = StyleSheet.create({
     borderColor: colors.text.gold,
   },
   filterTabText: {
+    flexShrink: 0,
     fontFamily: typography.body,
-    fontSize: fontSizes.caption,
-    fontWeight: fontWeights.medium,
+    fontSize: fontSizes.body,
+    lineHeight: Math.round(fontSizes.body * 1.35),
     color: colors.text.secondary,
   },
   filterTabTextActive: {
     color: colors.text.gold,
   },
   listContent: {
-    paddingBottom: 20,
+    paddingBottom: spacing.sectionGap,
   },
   row: {
     justifyContent: 'space-between',
@@ -192,14 +208,19 @@ const styles = StyleSheet.create({
   gridCardPressed: {
     opacity: 0.8,
   },
-  gridCardColorBar: {
-    height: 4,
-    width: '100%',
-  },
   gridCardContent: {
     padding: spacing.cardSm,
     flex: 1,
     justifyContent: 'space-between',
+  },
+  gridCardMechanic: {
+    fontFamily: typography.body,
+    fontSize: fontSizes.caption, // 11px from design system
+    fontWeight: fontWeights.medium,
+    color: colors.text.muted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: spacing.iconGap,
   },
   gridCardTitle: {
     fontFamily: typography.body,
