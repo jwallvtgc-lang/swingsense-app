@@ -74,7 +74,7 @@ swingsense-app/
 
 ## Current Build Status
 
-- Version: 1.1.0 (24) — live in TestFlight
+- Version: 1.1.0 (25) — live in TestFlight
 - Distribution: store (all testers can install)
 - Backend: Auto-deploys from GitHub main branch
 - TestFlight public link: https://testflight.apple.com/join/jrA4Jg74
