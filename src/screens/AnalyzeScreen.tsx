@@ -193,7 +193,7 @@ export default function AnalyzeScreen() {
                       Primary Recommendation
                     </Text>
                     <Text style={styles.recommendationDrill} numberOfLines={1}>
-                      {lastAnalysis.coaching_output.drill}
+                      {lastAnalysis.coaching_output.drill.split('.')[0]}
                     </Text>
                   </View>
                 )}
