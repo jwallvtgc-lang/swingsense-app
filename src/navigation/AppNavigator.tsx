@@ -51,11 +51,11 @@ function MainTabs() {
 function AuthNavigator() {
   return (
     <SplashAuthStack.Navigator
-      initialRouteName="Splash"
+      initialRouteName="Auth"
       screenOptions={{ headerShown: false }}
     >
-      <SplashAuthStack.Screen name="Splash" component={SplashScreen} />
       <SplashAuthStack.Screen name="Auth" component={AuthScreen} />
+      <SplashAuthStack.Screen name="Splash" component={SplashScreen} />
       <SplashAuthStack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />
       <SplashAuthStack.Screen name="TermsOfService" component={TermsOfServiceScreen} />
     </SplashAuthStack.Navigator>

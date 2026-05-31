@@ -21,8 +21,8 @@ export function logConfig() {
   }
 }
 
-/** Native splash / launch edge color — must match app.json splash.backgroundColor */
-export const SPLASH_BACKGROUND = '#050508';
+/** Native splash / launch edge color — seamless with splash + home (black) */
+export const SPLASH_BACKGROUND = '#000000';
 
 /** Subtle top tint for auth / continuity with splash (sports-tech green) */
 export const SPLASH_TINT_TOP = 'rgba(16, 185, 129, 0.07)';

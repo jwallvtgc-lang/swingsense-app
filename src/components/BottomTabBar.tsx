@@ -13,7 +13,7 @@ import {
 } from '../../design-system/tokens';
 
 const VB = 24;
-const APP_ICON = require('../../assets/icon.png');
+const TAB_ANALYZE_ICON = require('../../assets/tab-analyze-icon.png');
 
 export type BottomTabId = 'analyze' | 'history' | 'profile';
 
@@ -24,14 +24,11 @@ export type BottomTabBarProps = {
   onTabPress: (tab: BottomTabId) => void;
 };
 
-function TabIconAnalyze({ active }: TabIconProps) {
+function TabIconAnalyze({ color }: TabIconProps) {
   return (
     <Image
-      source={APP_ICON}
-      style={[
-        styles.appTabIcon,
-        { opacity: active ? 1 : 0.5 }, // pressed/inactive opacity — interaction feel, no token needed
-      ]}
+      source={TAB_ANALYZE_ICON}
+      style={[styles.appTabIcon, { tintColor: color }]}
       resizeMode="contain"
       accessibilityLabel="Analyze"
     />

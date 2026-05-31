@@ -68,12 +68,60 @@ Content container. No navigation. No chevron.
 - padding: `spacing.card` (16px)
 - Optional icon header: 28px square, `radius.badge` (6px), `colors.bg.goldDim` bg
 
-### ActionCard
-Navigation row. Always has a chevron. Tap goes somewhere.
-- Same surface/radius as SectionCard
-- Icon slot: `actionCard.iconSize` (56px), `actionCard.iconRadius` (12px)
-- Icon bg: `colors.bg.actionIconGold` (Upload) or `colors.bg.actionIconGreen` (Record)
-- Chevron: `actionCard.chevronColor`
+### ActionCard (premium — Analyze home)
+Primary Upload / Record actions on the Analyze tab. Vertical layout: icon → title → subtitle, chevron aligned to text block.
+
+**Surface**
+- bg: `colors.bg.premiumActionCard` (`rgba(255,255,255,0.04)`)
+- pressed bg: `colors.bg.premiumActionCardPressed`
+- border: `colors.border.premiumActionCard` / pressed: `colors.border.premiumActionCardPressed`
+- radius: `radius.premiumActionCard` (24px)
+- padding: `premiumActionCard.padH` (24) × `premiumActionCard.padV` (18)
+- min height: `premiumActionCard.minHeight` (138)
+
+**Typography**
+- title: `fontSizes.premiumActionCardTitle` (20), `premiumActionCard.titleFontWeight` (700), `colors.text.primary`
+- subtitle: `fontSizes.premiumActionCardSubtitle` (13), `colors.text.homeMuted`
+
+**Icon slot (rounded square only — no circular halo)**
+- size: `premiumActionCard.iconSlot` (54), inner icon: `premiumActionCard.iconInner` (27)
+- radius: `radius.premiumActionIcon` (14)
+- **Gold variant (Upload):** `premiumActionCardVariants.gold` — bg `colors.bg.goldDim`, border `colors.border.actionIconGold`, glow `colors.brand.goldGlow`, icon `colors.text.gold`
+- **Emerald variant (Record):** `premiumActionCardVariants.emerald` — bg `colors.bg.greenDim`, border `colors.border.actionIconEmerald`, glow `colors.brand.emerald`, icon `colors.brand.emerald`
+
+**Interaction**
+- press scale: `premiumActionCard.pressScale` (0.98), duration `premiumActionCard.pressMs`
+- chevron: `premiumActionCard.chevronColor`, size `premiumActionCard.chevronSize`
+- subtle colored shadow on icon square (iOS); never use SVG `FeGaussianBlur` on splash-style haze
+
+### ActionCard (legacy reference)
+Older docs referenced `actionCard.iconSize` (56) / `radius.card` (14) row cards. New Analyze home uses **premium** tokens above.
+
+### Analyze home header (`AnalyzeHeader`)
+Stack order:
+1. **Dynamic greeting** — local time via `greetingWithName()` → `Good Morning/Afternoon/Evening, {name}`
+2. **SwingSense wordmark** — Righteous `Swing` + gold `Sense`, `fontSizes.wordmark`, `displayTitleProps`
+3. **Product tagline** — `homeHeader.productTagline` (`AI-POWERED BASEBALL DEVELOPMENT`)
+4. **Streak pill** — when streak &gt; 0, `StreakPill` below tagline
+
+**Tokens**
+- greeting: `fontSizes.homeGreeting` (18), `fontWeights.medium`, `colors.text.homeGreeting` (38% white — secondary), `spacing.homeGreetingBelow` (0)
+- tagline: `fontSizes.homeTaglineHero` (12), `letterSpacing.productTagline`, uppercase, `colors.text.homeTagline` (~47% white — tertiary), `spacing.homeWordmarkBelow` (-5), `spacing.homeTaglineBelow` (6) / `homeTaglineBelowContent` (14), `spacing.homeStreakBelow` (8)
+- **Hierarchy:** wordmark (primary) → greeting → tagline
+
+### Branded splash (`BrandedSplash`)
+- Gradient: `splashBrand.bgStops` / `splashBrand.bgLocations` (`colors.bg.splashTop` → `splashBase`)
+- Logo width: `splashLogoWidth(viewportWidth)` from `splashBrand.logoBaseVwRatio` × `logoSizeScale`, cap `logoBaseMaxWidth`
+- Haze: `colors.brand.emerald`, `splashBrand.hazeSize`, opacity `splashBrand.hazeOpacityMin`–`Max` — **gradient only, no SVG blur**
+- Tagline: same copy as home (`homeHeader.productTagline`), style `colors.text.splashTagline`, `letterSpacing.productTagline`
+- Loading dots: `colors.text.muted` outer, `colors.brand.emerald` center
+
+### Brand accent aliases
+| Token | Hex | Use |
+|-------|-----|-----|
+| `colors.brand.emerald` | `#10b981` | Record tab/action icon, splash haze (marketing emerald) |
+| `colors.brand.goldGlow` | `#f59e0b` | Subtle gold icon halo on premium cards |
+| `colors.text.green` | `#3dbd7a` | Semantic positive UI (tips, trends) — not the same as brand emerald |
 
 ### SubScoreCard
 2×2 grid item. ScoreRing sm + label.
@@ -247,7 +295,8 @@ Label left, value right, hairline separator below.
 | `SectionCard` | `components/SectionCard.tsx` | Analyze, Analysis, Profile |
 | `ActionCard` | `components/ActionCard.tsx` | Analyze |
 | `TipRow` | `components/TipRow.tsx` | Analyze |
-| `HeroHeader` | `components/HeroHeader.tsx` | Analyze |
+| `AnalyzeHeader` | `components/AnalyzeHeader.tsx` | Analyze |
+| `HeroHeader` | `components/HeroHeader.tsx` | Legacy / unused on Analyze |
 | `ScoreRing` | `components/ScoreRing.tsx` | Analysis, History |
 | `SubScoreCard` | `components/SubScoreCard.tsx` | Analysis |
 | `DeltaPill` | `components/DeltaPill.tsx` | Analysis |

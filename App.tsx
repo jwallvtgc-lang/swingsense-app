@@ -17,6 +17,7 @@ import {
   Inter_600SemiBold,
 } from '@expo-google-fonts/inter';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import BrandedSplash from './src/components/BrandedSplash';
 import { AuthProvider } from './src/contexts/AuthContext';
 import AppNavigator from './src/navigation/AppNavigator';
 import { logConfig } from './src/config/constants';
@@ -27,6 +28,7 @@ logConfig();
 
 export default function App() {
   const [nativeSplashDone, setNativeSplashDone] = useState(false);
+  const [brandedSplashDone, setBrandedSplashDone] = useState(false);
   const [fontsLoaded] = useFonts({
     BebasNeue_400Regular,
     Righteous_400Regular,
@@ -52,6 +54,7 @@ export default function App() {
     const t = setTimeout(async () => {
       try {
         await SplashScreen.hideAsync();
+        console.log('[App] native splash hidden — waitMs:', waitMs, 'elapsed:', elapsed);
       } catch (e) {
         console.warn('[App] SplashScreen.hideAsync:', e);
       } finally {
@@ -72,8 +75,19 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <AuthProvider>
-        <StatusBar style="light" />
-        <AppNavigator />
+        {!brandedSplashDone ? (
+          <BrandedSplash
+            onComplete={() => {
+              console.log('[App] branded splash done — mounting AppNavigator');
+              setBrandedSplashDone(true);
+            }}
+          />
+        ) : (
+          <>
+            <StatusBar style="light" />
+            <AppNavigator />
+          </>
+        )}
       </AuthProvider>
     </SafeAreaProvider>
   );

@@ -34,6 +34,15 @@ export const colors = {
     actionIconGold: '#2a1f00', // Upload from Library icon bg
     actionIconGreen: '#0d2218', // Record Now icon bg
 
+    // Premium Analyze action cards (glass surface)
+    premiumActionCard: 'rgba(255,255,255,0.04)',
+    premiumActionCardPressed: 'rgba(255,255,255,0.06)',
+
+    // Branded splash gradient stops
+    splashTop: '#061226',
+    splashMid: '#02050A',
+    splashBase: '#000000',
+
     // Auth screen
     authGradientTop: '#0a1a14', // LinearGradient top color (Login screen only)
     authGradientBottom: '#000000', // LinearGradient — black from ~40% to bottom
@@ -62,7 +71,11 @@ export const colors = {
     inputPlaceholder: 'rgba(255,255,255,0.25)',
 
     // Analyze screen
-    greeting: 'rgba(255,255,255,0.35)', // "HEY, JARED WALL"
+    greeting: 'rgba(255,255,255,0.35)', // legacy HeroHeader uppercase greeting
+    homeMuted: 'rgba(255,255,255,0.55)', // Premium ActionCard subtitles
+    homeGreeting: 'rgba(255,255,255,0.38)', // Analyze home dynamic greeting (secondary)
+    homeTagline: 'rgba(255,255,255,0.47)', // Analyze home product tagline (tertiary)
+    splashTagline: 'rgba(255,255,255,0.45)', // BrandedSplash tagline under wordmark
 
     /** PrimaryButton label on gold (DESIGN_SYSTEM) */
     onGold: '#000000',
@@ -73,6 +86,10 @@ export const colors = {
     dim: 'rgba(255,255,255,0.10)', // slightly more visible
     medium: 'rgba(255,255,255,0.15)', // hover states
     gold: '#f0a500', // active input border
+    premiumActionCard: 'rgba(255,255,255,0.06)',
+    premiumActionCardPressed: 'rgba(255,255,255,0.14)',
+    actionIconGold: 'rgba(245,158,11,0.22)',
+    actionIconEmerald: 'rgba(16,185,129,0.22)',
     /** Auth — Continue with Google subtle edge */
     authGoogle: '#e0e0e0',
     /** Auth — Log in with Email outline */
@@ -95,6 +112,16 @@ export const colors = {
     power_position: '#639922', // green
     slot: '#9B59B6', // purple
     balance_at_contact: '#1ABC9C', // teal
+  },
+
+  /** Marketing / UI emerald — tabs, splash haze, Record action icon (distinct from semantic green) */
+  brand: {
+    emerald: '#10b981',
+    goldGlow: '#f59e0b', // subtle icon halo (Tailwind amber-500)
+  },
+
+  shadow: {
+    default: '#000000',
   },
 }
 
@@ -120,7 +147,12 @@ export const fontSizes = {
   /** Auth — Continue with Apple / Google / Email method buttons */
   oauthMethodLabel: 17,
   drillTitle: 16, // DrillCard title (bold)
-  actionCardTitle: 15, // ActionCard title
+  actionCardTitle: 15, // Legacy ActionCard title
+  homeGreeting: 18, // Analyze home dynamic greeting
+  homeTagline: 13, // Splash + shared product tagline base
+  homeTaglineHero: 12, // Analyze home header tagline (1px below splash)
+  premiumActionCardTitle: 20, // Premium ActionCard title
+  premiumActionCardSubtitle: 13, // Premium ActionCard subtitle
   sectionTitle: 14, // SectionCard header
   body: 13, // General body text
   drillInstruction: 12, // DrillStep instruction (Inter)
@@ -142,7 +174,8 @@ export const letterSpacing = {
   wordmarkTight: -0.5, // AnalyzeScreen Righteous wordmark (Swing / Sense)
   cta: 2, // Button labels
   label: 3, // Uppercase section labels
-  tagline: 4, // Subtitle under wordmark
+  tagline: 4, // Subtitle under wordmark (Login)
+  productTagline: 2.34, // 0.18em at 13px — home header + BrandedSplash
   tight: 1, // Bebas Neue display numbers
   bottomTab: 1.5, // BottomTabBar labels
 }
@@ -151,7 +184,9 @@ export const radius = {
   screen: 38, // Phone outer frame (reference only)
   logo: 22, // LogoTile corner radius (lg)
   logoMd: 16, // LogoTile corner radius (md)
-  card: 14, // SectionCard, SwingListItem, ActionCard, PrimaryButton
+  card: 14, // SectionCard, SwingListItem, legacy ActionCard, PrimaryButton
+  premiumActionCard: 24, // Premium Analyze Upload / Record cards
+  premiumActionIcon: 14, // Icon slot inside premium ActionCard
   subCard: 12, // SubScoreCard, TextInput, TabSwitcher outer
   input: 10, // Small square media thumbs (e.g. Analyze last swing)
   xs: 4, // Micro badges on thumbnails
@@ -184,12 +219,25 @@ export const spacing = {
   tabPad: 3, // Padding inside TabSwitcher container
   tabInner: 9, // Padding inside individual tab option
   tipRowGap: 10, // Gap between TipRow instances (DESIGN_SYSTEM)
+  homeGreetingBelow: 0, // Greeting → wordmark (tight hero)
+  homeWordmarkBelow: -5, // Wordmark → tagline (negative pulls tagline closer)
+  homeTaglineBelow: 6, // Tagline → streak pill
+  homeTaglineBelowContent: 14, // Tagline → first card when no streak
+  homeStreakBelow: 8, // Streak pill → first card
+  premiumActionCardPadH: 24,
+  premiumActionCardPadV: 18,
+  premiumActionIconTitleGap: 8,
+  premiumActionTitleSubtitleGap: 6,
+  premiumActionTextRowGap: 6,
+  splashLogoToTagline: 24, // BrandedSplash hero → tagline (was 0 margin + tagline mb 22 ≈ layout)
+  splashTaglineToDots: 22,
+  splashHeroOffsetTop: -210,
 }
 
 export const animation = {
   fadeUpDuration: 800, // ms — entrance animation
   fadeUpDelay: 200, // ms — stagger between elements
-  splashHold: 1500, // ms — SplashScreen display before nav
+  splashHold: 4000, // ms — SplashScreen display before nav (logo fade + glow + tagline)
   tabTransition: 200, // ms — TabSwitcher active state change
 }
 
@@ -223,15 +271,126 @@ export const bottomTab = {
 }
 
 export const actionCard = {
-  iconSize: 56, // Icon square container size
-  iconInner: 28, // SVG icon size inside container
-  iconRadius: 12, // Icon container border radius
-  chevronColor: 'rgba(255,255,255,0.3)',
+  iconSize: 56, // Legacy icon square container size
+  iconInner: 28, // Legacy SVG icon size inside container
+  iconRadius: 12, // Legacy icon container border radius
+  chevronColor: 'rgba(255,255,255,0.3)', // Legacy SectionCard-style ActionCard
+}
+
+/** Premium Upload / Record cards on Analyze home */
+export const premiumActionCard = {
+  minHeight: 138,
+  bodyMinHeight: 96,
+  padH: 24,
+  padV: 18,
+  iconTitleGap: 8,
+  titleSubtitleGap: 6,
+  textRowGap: 6,
+  iconSlot: 54,
+  iconInner: 27,
+  iconRadius: radius.premiumActionIcon,
+  textBlockMaxWidth: '78%' as const,
+  pressScale: 0.98,
+  pressMs: 150,
+  chevronSize: 22,
+  chevronColor: 'rgba(255,255,255,0.58)',
+  titleFontWeight: '700' as const,
+  titleLineHeightRatio: 1.2,
+  subtitleLineHeightRatio: 1.35,
+  glowCycleMs: 4000,
+  glowPulseMin: 0.35,
+  glowPulseMax: 0.55,
+  glowShadowOpacityMin: 0.08,
+  glowShadowOpacityMax: 0.16,
+  iconGlowShadowRadius: 10,
+  iconColumnMarginTop: -2,
+  textBlockMarginTop: -4,
+  shadowIos: {
+    offset: { width: 0, height: 8 },
+    opacity: 0.35,
+    radius: 16,
+  },
+  shadowIosPressed: {
+    offset: { width: 0, height: 10 },
+    opacity: 0.48,
+    radius: 20,
+  },
+  elevation: 6,
+  elevationPressed: 10,
+  iconElevation: 3,
+}
+
+export const premiumActionCardVariants = {
+  gold: {
+    iconBg: colors.bg.goldDim,
+    borderColor: colors.border.actionIconGold,
+    glowColor: colors.brand.goldGlow,
+  },
+  emerald: {
+    iconBg: colors.bg.greenDim,
+    borderColor: colors.border.actionIconEmerald,
+    glowColor: colors.brand.emerald,
+  },
+} as const
+
+export const homeHeader = {
+  productTagline: 'AI-POWERED BASEBALL DEVELOPMENT',
+} as const
+
+export const splashBrand = {
+  bgStops: [
+    colors.bg.splashTop,
+    colors.bg.splashMid,
+    colors.bg.splashBase,
+    colors.bg.splashBase,
+  ] as const,
+  bgLocations: [0, 0.18, 0.4, 1] as const,
+  logoAspect: 682 / 1024,
+  logoEntranceMs: 700,
+  glowCycleMs: 4000,
+  logoBaseVwRatio: 0.7,
+  logoBaseMaxWidth: 340,
+  logoSizeScale: 1.15,
+  hazeSize: 1400,
+  hazeBleedRatio: 0.12,
+  hazeOpacityMin: 0.04,
+  hazeOpacityMax: 0.08,
+  dotSize: 6,
+  dotGap: 10,
+  dotOuterOpacity: 0.35,
+  hazeLayerOpacities: {
+    layerB: 0.72,
+    layerC: 0.6,
+    layerD: 0.55,
+  },
+} as const
+
+export function splashLogoWidth(viewportWidth: number): number {
+  const vw = splashBrand.logoBaseVwRatio * splashBrand.logoSizeScale;
+  const max = splashBrand.logoBaseMaxWidth * splashBrand.logoSizeScale;
+  return Math.min(viewportWidth * vw, max);
+}
+
+export function splashHazeFieldSize(): number {
+  const bleed = splashBrand.hazeSize * splashBrand.hazeBleedRatio;
+  return splashBrand.hazeSize + bleed * 2;
+}
+
+export function splashHazeBleed(): number {
+  return splashBrand.hazeSize * splashBrand.hazeBleedRatio;
 }
 
 export const drillStep = {
   circle: 22, // Numbered bullet diameter
 }
+
+/** "Start drill →" / "View Analysis →" link on drill and last-swing cards */
+export const drillCardLink = {
+  fontSize: fontSizes.micro,
+  fontWeight: fontWeights.medium,
+  color: colors.text.gold,
+  pressOpacity: 0.8,
+} as const
 
 export const sectionCard = {
   iconSlot: 28, // Optional header icon container (square)
