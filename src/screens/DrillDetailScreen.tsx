@@ -112,8 +112,6 @@ export default function DrillDetailScreen() {
     <SafeAreaView style={styles.container}>
       <BackNav label="Back" onPress={() => navigation.goBack()} />
 
-      {/* Mechanic accent bar */}
-      <View style={[styles.accentBar, { backgroundColor: colors.mechanic[drill.mechanic] }]} />
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <View style={styles.content}>
@@ -137,9 +135,7 @@ export default function DrillDetailScreen() {
 
           {/* Badges row */}
           <View style={styles.badgesRow}>
-            <View style={[styles.mechanicBadge, { backgroundColor: colors.mechanic[drill.mechanic] }]}>
-              <Text style={styles.mechanicText}>{MECHANIC_LABELS[drill.mechanic]}</Text>
-            </View>
+            <Text style={styles.mechanicText}>{MECHANIC_LABELS[drill.mechanic]}</Text>
             <View style={styles.levelBadge}>
               <Text style={styles.levelText}>{EXPERIENCE_LEVEL_LABELS[drill.experience_level]}</Text>
             </View>
@@ -198,10 +194,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.bg.base,
   },
-  accentBar: {
-    height: 4,
-    width: '100%',
-  },
   scrollView: {
     flex: 1,
   },
@@ -223,16 +215,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: spacing.iconGap,
   },
-  mechanicBadge: {
-    paddingHorizontal: spacing.iconGap,
-    paddingVertical: spacing.pillGap * 0.67, // ~4px
-    borderRadius: radius.badge,
-  },
   mechanicText: {
     fontFamily: typography.body,
-    fontSize: fontSizes.caption,
+    fontSize: fontSizes.caption, // 11px
     fontWeight: fontWeights.medium,
-    color: colors.text.primary,
+    color: colors.text.muted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   levelBadge: {
     backgroundColor: colors.bg.surface,
