@@ -187,6 +187,16 @@ export default function AnalyzeScreen() {
                   {lastAnalysis.coaching_output?.primary_mechanical_issue?.title ??
                     'Tap to review'}
                 </Text>
+                {lastAnalysis.coaching_output?.drill && (
+                  <View style={styles.recommendationBlock}>
+                    <Text style={styles.recommendationLabel}>
+                      Primary Recommendation
+                    </Text>
+                    <Text style={styles.recommendationDrill} numberOfLines={1}>
+                      {lastAnalysis.coaching_output.drill}
+                    </Text>
+                  </View>
+                )}
               </View>
             </View>
             <Text style={styles.viewAnalysisLink}>View analysis →</Text>
@@ -319,6 +329,23 @@ const styles = StyleSheet.create({
     fontSize: fontSizes.body,
     color: colors.text.primary,
     fontWeight: fontWeights.medium,
+  },
+  recommendationBlock: {
+    marginTop: spacing.iconGap,
+  },
+  recommendationLabel: {
+    fontFamily: typography.body,
+    fontSize: fontSizes.label,
+    color: colors.text.gold,
+    textTransform: 'uppercase',
+    letterSpacing: letterSpacing.label,
+    marginBottom: spacing.iconGap / 2,
+  },
+  recommendationDrill: {
+    fontFamily: typography.body,
+    fontSize: 14,
+    color: colors.text.primary,
+    fontWeight: fontWeights.bold,
   },
   viewAnalysisLink: {
     position: 'absolute',
