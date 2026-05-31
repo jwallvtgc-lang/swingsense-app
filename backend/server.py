@@ -1262,6 +1262,14 @@ class ProgressCoachRequest(BaseModel):
     player_profile: dict
 
 
+class PersonalBestRequest(BaseModel):
+    user_id: str
+    swing_id: str
+    new_score: int
+    previous_best: int | None
+    player_profile: dict
+
+
 class HealthResponse(BaseModel):
     status: str
     model_loaded: bool
@@ -1771,6 +1779,127 @@ Write a short encouraging progress update in Darian's voice."""
     # Add our computed best_overall to the response
     claude_response["best_overall"] = best_overall
     return claude_response
+
+
+@app.post("/personal-best")
+async def personal_best(request: PersonalBestRequest):
+    api_key = os.environ.get("ANTHROPIC_API_KEY")
+    if not api_key:
+        raise HTTPException(status_code=500, detail="ANTHROPIC_API_KEY not configured")
+
+    _log(f"[PersonalBest] user_id={request.user_id} swing_id={request.swing_id} new_score={request.new_score} previous_best={request.previous_best}")
+
+    profile = request.player_profile
+    name = profile.get("first_name", "Player")
+    age = profile.get("age", 15)
+    experience = profile.get("experience_level", "")
+
+    # Determine if this is the first swing or a genuine improvement
+    is_first_swing = request.previous_best is None
+    improvement_points = 0 if is_first_swing else request.new_score - request.previous_best
+
+    system_prompt = """You are an elite baseball hitting coach celebrating a player's personal best swing. Use Darian's coaching voice — warm, genuinely excited, specific, dugout coach energy.
+
+COACHING VOICE:
+- Sound like a coach who just watched their player crush one in practice
+- Use Darian's vocabulary: power position, balance point, stay connected, hips first, let it travel, rubber band, attack from the top
+- Celebrate the achievement genuinely without being over the top
+- Connect the score improvement to real mechanics they must have executed
+- End with motivation to keep building on this foundation
+- Keep it conversational — like texting after a great practice session
+
+TONE RULES:
+- For first swing ever: focus on establishing a baseline, celebrate getting started
+- For small improvement (1-5 points): acknowledge steady progress, encourage consistency
+- For solid improvement (6-12 points): celebrate the breakthrough, name what clicked
+- For major improvement (13+ points): genuine excitement, this is a big moment
+
+BANNED WORDS: biomechanical, kinetic chain, hip-shoulder separation, analysis indicates, suboptimal, metrics, data points
+
+Respond in JSON only:
+{
+  "celebration_text": "string — 2-3 sentences in Darian voice celebrating the achievement",
+  "what_clicked": "string — one specific mechanic improvement that likely drove the score gain (Stance, Load, Power Position, Slot, or Balance at Contact)",
+  "keep_building": "string — one encouraging sentence about maintaining this momentum"
+}"""
+
+    # Build context based on whether it's first swing or improvement
+    if is_first_swing:
+        context = f"This is {name}'s very first swing analysis — establishing their baseline score of {request.new_score}."
+        tone_instruction = "Welcome them to the journey. This score is their starting point, not a judgment. Focus on the fact that they're now getting real feedback on their mechanics."
+    else:
+        context = f"{name} just improved from {request.previous_best} to {request.new_score} (+{improvement_points} points)."
+        if improvement_points <= 5:
+            tone_instruction = "Acknowledge the steady progress. Small gains compound into big improvements over time."
+        elif improvement_points <= 12:
+            tone_instruction = "This is a solid breakthrough. Something clicked mechanically. Celebrate what they did right."
+        else:
+            tone_instruction = "This is a major jump. Be genuinely excited. This player just had a significant mechanical breakthrough."
+
+    user_message = f"""Player: {name}, Age: {age}, Experience: {experience}
+
+Context: {context}
+
+Instruction: {tone_instruction}
+
+Write a personal best celebration in Darian's coaching voice."""
+
+    client = Anthropic(api_key=api_key)
+
+    # Build full prompt for tracing
+    full_prompt = f"SYSTEM:\n{system_prompt}\n\nUSER:\n{user_message}"
+
+    # Time the Claude API call
+    start_time = time.time()
+    response = client.messages.create(
+        model="claude-sonnet-4-20250514",
+        max_tokens=600,
+        system=system_prompt,
+        messages=[{"role": "user", "content": user_message}],
+    )
+    latency_ms = round((time.time() - start_time) * 1000)
+
+    result_text = response.content[0].text
+
+    try:
+        parsed_result = json.loads(result_text)
+    except json.JSONDecodeError:
+        start = result_text.find("{")
+        end = result_text.rfind("}") + 1
+        if start >= 0 and end > start:
+            parsed_result = json.loads(result_text[start:end])
+        else:
+            parsed_result = None
+            raise HTTPException(status_code=500, detail="Failed to parse personal best response")
+
+    # Write coaching trace (async, non-blocking)
+    try:
+        # Build computed metrics for personal best
+        computed_metrics = {
+            "new_score": request.new_score,
+            "previous_best": request.previous_best,
+            "improvement_points": improvement_points,
+            "is_first_swing": is_first_swing
+        }
+
+        await write_coaching_trace(
+            user_id=request.user_id,
+            swing_id=request.swing_id,
+            call_type="personal_best",
+            experience_level=profile.get("experience_level"),
+            computed_metrics=computed_metrics,
+            full_prompt=full_prompt,
+            raw_response=result_text,
+            parsed_response=parsed_result,
+            latency_ms=latency_ms,
+            model_version="claude-sonnet-4-20250514",
+            prompt_version=PERSONAL_BEST_PROMPT_VERSION
+        )
+    except Exception as e:
+        _log(f"[personal_best] Error writing trace: {e}")
+        # Continue - don't fail the response due to trace errors
+
+    return parsed_result
 
 
 @app.on_event("startup")
