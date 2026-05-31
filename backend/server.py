@@ -14,6 +14,7 @@ import os
 import tempfile
 import time
 import urllib.request
+import uuid
 from pathlib import Path
 
 import cv2
@@ -283,7 +284,86 @@ def calculate_head_stability(frames: list) -> int | None:
     return round(min(100, max(0, final_score)))
 
 
+async def write_coaching_trace(
+    user_id: str | None,
+    swing_id: str | None,
+    call_type: str,
+    experience_level: str | None,
+    computed_metrics: dict | None,
+    full_prompt: str,
+    raw_response: str,
+    parsed_response: dict | None,
+    latency_ms: int,
+    model_version: str,
+    prompt_version: str
+) -> None:
+    """Write a coaching trace record to Supabase for quality tracking."""
+    SUPABASE_URL = (os.environ.get("SUPABASE_URL") or "").rstrip("/")
+    SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_KEY") or os.environ.get("SUPABASE_ANON_KEY")
+
+    if not SUPABASE_URL or not SUPABASE_KEY:
+        _log("[CoachingTrace] WARNING: Missing Supabase config, skipping trace write")
+        return
+
+    try:
+        headers = {
+            "apikey": SUPABASE_KEY,
+            "Authorization": f"Bearer {SUPABASE_KEY}",
+            "Content-Type": "application/json",
+        }
+
+        # Extract parsed fields for quality tracking
+        parsed_primary_issue = None
+        parsed_cue = None
+        parsed_drill = None
+        parsed_summary = None
+
+        if parsed_response and isinstance(parsed_response, dict):
+            if call_type == "main_analysis":
+                parsed_primary_issue = parsed_response.get("primary_mechanical_issue", {}).get("title")
+                parsed_drill = parsed_response.get("drill")
+                parsed_summary = parsed_response.get("overall_summary")
+            elif call_type == "drill_coach":
+                parsed_cue = parsed_response.get("response_text")
+                parsed_drill = parsed_response.get("adjusted_drill")
+            elif call_type == "progress_coach":
+                parsed_summary = parsed_response.get("summary")
+
+        payload = {
+            "user_id": user_id,
+            "swing_id": swing_id,
+            "call_type": call_type,
+            "experience_level": experience_level,
+            "computed_metrics": computed_metrics,
+            "full_prompt": full_prompt,
+            "raw_response": raw_response,
+            "parsed_primary_issue": parsed_primary_issue,
+            "parsed_cue": parsed_cue,
+            "parsed_drill": parsed_drill,
+            "parsed_summary": parsed_summary,
+            "latency_ms": latency_ms,
+            "model_version": model_version,
+            "prompt_version": prompt_version,
+        }
+
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            resp = await client.post(
+                f"{SUPABASE_URL}/rest/v1/coaching_traces",
+                headers=headers,
+                json=payload
+            )
+            resp.raise_for_status()
+            _log(f"[CoachingTrace] Logged {call_type} trace: {latency_ms}ms, model={model_version}, prompt={prompt_version}")
+    except Exception as e:
+        _log(f"[CoachingTrace] ERROR writing trace: {e}")
+        # Don't raise - trace logging failures shouldn't break the API
+
+
 # ── Claude Analysis ──────────────────────────────────────────────
+
+# Increment on every prompt change. Logged in coaching_traces for quality tracking.
+MAIN_ANALYSIS_PROMPT_VERSION = "v1.0"
+# v1.0: Initial production prompt with Darian's Core 5 mechanics framework
 
 SYSTEM_PROMPT = """\
 You are Darian — an elite baseball hitting coach with D1 playing experience and years of \
@@ -1021,9 +1101,10 @@ def compute_core_5(frames: list, head_stability_score: int | None = None) -> dic
     return scores
 
 
-def analyze_with_claude(
+async def analyze_with_claude(
     keypoint_data: dict,
     player_profile: dict,
+    user_id: str | None = None,
     analysis_id: str | None = None,
     previous_swing: dict | None = None,
     swing_metrics: str = "",
@@ -1100,23 +1181,52 @@ The lowest scoring mechanic above is the most likely primary issue. Use overall 
 
     client = Anthropic(api_key=api_key)
 
+    # Build full prompt for tracing
+    full_prompt = f"SYSTEM:\n{SYSTEM_PROMPT}\n\nUSER:\n{user_message}"
+
+    # Time the Claude API call
+    start_time = time.time()
     response = client.messages.create(
         model="claude-sonnet-4-6",
         max_tokens=4096,
         system=SYSTEM_PROMPT,
         messages=[{"role": "user", "content": user_message}],
     )
+    latency_ms = round((time.time() - start_time) * 1000)
 
     result_text = response.content[0].text
 
     try:
-        return json.loads(result_text)
+        parsed_result = json.loads(result_text)
     except json.JSONDecodeError:
         start = result_text.find("{")
         end = result_text.rfind("}") + 1
         if start >= 0 and end > start:
-            return json.loads(result_text[start:end])
-        raise HTTPException(status_code=500, detail="Failed to parse Claude response as JSON")
+            parsed_result = json.loads(result_text[start:end])
+        else:
+            parsed_result = None
+            raise HTTPException(status_code=500, detail="Failed to parse Claude response as JSON")
+
+    # Write coaching trace (async, non-blocking)
+    try:
+        await write_coaching_trace(
+            user_id=user_id,
+            swing_id=analysis_id,
+            call_type="main_analysis",
+            experience_level=player_profile.get("experience_level"),
+            computed_metrics=core_5_scores,
+            full_prompt=full_prompt,
+            raw_response=result_text,
+            parsed_response=parsed_result,
+            latency_ms=latency_ms,
+            model_version="claude-sonnet-4-6",
+            prompt_version=MAIN_ANALYSIS_PROMPT_VERSION
+        )
+    except Exception as e:
+        _log(f"[analyze_with_claude] Error writing trace: {e}")
+        # Continue - don't fail the analysis due to trace errors
+
+    return parsed_result
 
 
 # ── API Endpoints ────────────────────────────────────────────────
@@ -1308,9 +1418,10 @@ async def analyze(request: AnalyzeRequest):
                 else ps.dict(exclude_none=True)
             )
         _log("[Analyze] Calling Claude with fresh keypoint data...")
-        coaching_output = analyze_with_claude(
+        coaching_output = await analyze_with_claude(
             keypoint_data,
             profile,
+            user_id=request.user_id,
             analysis_id=request.analysis_id,
             previous_swing=prev_sw,
             swing_metrics=swing_metrics_text,
@@ -1347,6 +1458,10 @@ async def analyze(request: AnalyzeRequest):
     finally:
         Path(tmp_path).unlink(missing_ok=True)
 
+
+# Increment on every prompt change. Logged in coaching_traces for quality tracking.
+DRILL_COACH_PROMPT_VERSION = "v1.0"
+# v1.0: Initial drill follow-up prompt with Darian's coaching voice and feedback response patterns
 
 @app.post("/drill-followup")
 async def drill_followup(request: DrillFollowupRequest):
@@ -1407,23 +1522,62 @@ Player feedback: {request.feedback}
 Instruction: {tone_instruction}"""
 
     client = Anthropic(api_key=api_key)
+
+    # Build full prompt for tracing
+    full_prompt = f"SYSTEM:\n{system_prompt}\n\nUSER:\n{user_message}"
+
+    # Time the Claude API call
+    start_time = time.time()
     response = client.messages.create(
         model="claude-sonnet-4-20250514",
         max_tokens=1000,
         system=system_prompt,
         messages=[{"role": "user", "content": user_message}],
     )
+    latency_ms = round((time.time() - start_time) * 1000)
 
     result_text = response.content[0].text
+
     try:
-        return json.loads(result_text)
+        parsed_result = json.loads(result_text)
     except json.JSONDecodeError:
         start = result_text.find("{")
         end = result_text.rfind("}") + 1
         if start >= 0 and end > start:
-            return json.loads(result_text[start:end])
-        raise HTTPException(status_code=500, detail="Failed to parse response")
+            parsed_result = json.loads(result_text[start:end])
+        else:
+            parsed_result = None
+            raise HTTPException(status_code=500, detail="Failed to parse response")
 
+    # Write coaching trace (async, non-blocking)
+    try:
+        await write_coaching_trace(
+            user_id=profile.get("user_id"),  # Assuming user_id is in profile
+            swing_id=request.analysis_id,
+            call_type="drill_coach",
+            experience_level=profile.get("experience_level"),
+            computed_metrics=None,  # No computed metrics for drill followup
+            full_prompt=full_prompt,
+            raw_response=result_text,
+            parsed_response=parsed_result,
+            latency_ms=latency_ms,
+            model_version="claude-sonnet-4-20250514",
+            prompt_version=DRILL_COACH_PROMPT_VERSION
+        )
+    except Exception as e:
+        _log(f"[drill_followup] Error writing trace: {e}")
+        # Continue - don't fail the response due to trace errors
+
+    return parsed_result
+
+
+# Increment on every prompt change. Logged in coaching_traces for quality tracking.
+PROGRESS_COACH_PROMPT_VERSION = "v1.0"
+# v1.0: Initial progress tracking prompt with Core 5 trend analysis and Darian's coaching language
+
+# Increment on every prompt change. Logged in coaching_traces for quality tracking.
+PERSONAL_BEST_PROMPT_VERSION = "v1.0"
+# v1.0: Initial personal best celebration prompt for milestone swing achievements
 
 @app.post("/progress-coach")
 async def progress_coach(request: ProgressCoachRequest):
@@ -1557,14 +1711,22 @@ Lowest average metric (needs most work): {most_stuck or "none yet"}
 Write a short encouraging progress update in Darian's voice."""
 
     client = Anthropic(api_key=api_key)
+
+    # Build full prompt for tracing
+    full_prompt = f"SYSTEM:\n{system_prompt}\n\nUSER:\n{user_message}"
+
+    # Time the Claude API call
+    start_time = time.time()
     response = client.messages.create(
         model="claude-sonnet-4-20250514",
         max_tokens=500,
         system=system_prompt,
         messages=[{"role": "user", "content": user_message}],
     )
+    latency_ms = round((time.time() - start_time) * 1000)
 
     result_text = response.content[0].text
+
     try:
         claude_response = json.loads(result_text)
     except json.JSONDecodeError:
@@ -1573,8 +1735,38 @@ Write a short encouraging progress update in Darian's voice."""
         if start >= 0 and end > start:
             claude_response = json.loads(result_text[start:end])
         else:
+            claude_response = None
             _log("[ProgressCoach] Failed to parse Claude response as JSON")
             raise HTTPException(status_code=500, detail="Failed to parse response")
+
+    # Write coaching trace (async, non-blocking)
+    try:
+        # Build computed metrics summary
+        computed_metrics = {
+            "swings_count": len(request.swings),
+            "best_overall": best_overall,
+            "trends": {label: change for label, change in zip(
+                ["Stance", "Load", "Power Position", "Slot", "Balance at Contact"],
+                [trend(m)[0] for m in metrics if trend(m)[0] is not None]
+            )}
+        }
+
+        await write_coaching_trace(
+            user_id=request.user_id,
+            swing_id=None,  # Progress coach doesn't relate to a specific swing
+            call_type="progress_coach",
+            experience_level=profile.get("experience_level"),
+            computed_metrics=computed_metrics,
+            full_prompt=full_prompt,
+            raw_response=result_text,
+            parsed_response=claude_response,
+            latency_ms=latency_ms,
+            model_version="claude-sonnet-4-20250514",
+            prompt_version=PROGRESS_COACH_PROMPT_VERSION
+        )
+    except Exception as e:
+        _log(f"[progress_coach] Error writing trace: {e}")
+        # Continue - don't fail the response due to trace errors
 
     # Add our computed best_overall to the response
     claude_response["best_overall"] = best_overall
