@@ -116,39 +116,47 @@ export default function CameraScreen() {
   };
 
   const fireVoiceCues = async () => {
+    console.log('[Speech] fireVoiceCues started');
+    console.log('[Speech] SPEECH_CONFIG:', JSON.stringify(SPEECH_CONFIG));
+
     try {
       await Audio.setAudioModeAsync({
         allowsRecordingIOS: false,
         playsInSilentModeIOS: true,
         shouldDuckAndroid: false,
       });
+      console.log('[Speech] Audio session configured');
     } catch (e) {
-      console.log('[CameraScreen] Audio session setup failed:', e);
+      console.log('[Speech] Audio session failed:', e);
     }
 
+    console.log('[Speech] About to speak cue 1');
     try {
       await Speech.speak(
         "Step back until your full body is visible in the frame.",
         SPEECH_CONFIG
       );
+      console.log('[Speech] Cue 1 completed');
     } catch (e) {
-      console.log('[CameraScreen] Speech cue 1 failed:', e);
+      console.log('[Speech] Cue 1 failed:', e);
     }
 
+    console.log('[Speech] Waiting 2 seconds');
     await new Promise(r => setTimeout(r, 2000));
 
+    console.log('[Speech] About to speak cue 2');
     try {
       await Speech.speak(
         "Take your full swing when you are ready.",
         SPEECH_CONFIG
       );
+      console.log('[Speech] Cue 2 completed');
     } catch (e) {
-      console.log('[CameraScreen] Speech cue 2 failed:', e);
+      console.log('[Speech] Cue 2 failed:', e);
     }
 
+    console.log('[Speech] Starting countdown');
     await new Promise(r => setTimeout(r, 500));
-
-    // Always start countdown regardless of speech success/failure
     startCountdown();
   };
 
@@ -166,6 +174,7 @@ export default function CameraScreen() {
   };
 
   const onCameraReady = () => {
+    console.log('[Camera] onCameraReady fired, scheduling voice cues');
     // Add 500ms buffer for real devices to fully initialize
     setTimeout(() => {
       isReadyRef.current = true;
