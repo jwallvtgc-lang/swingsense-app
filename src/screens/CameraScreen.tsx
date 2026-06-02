@@ -121,7 +121,7 @@ export default function CameraScreen() {
 
     try {
       await Audio.setAudioModeAsync({
-        allowsRecordingIOS: false,
+        allowsRecordingIOS: true,
         playsInSilentModeIOS: true,
         shouldDuckAndroid: false,
       });
