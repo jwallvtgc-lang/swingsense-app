@@ -112,10 +112,29 @@ export default function CameraScreen() {
   };
 
   const fireVoiceCues = async () => {
-    await Speech.speak("Step back until your full body is visible in the frame.", SPEECH_CONFIG);
+    try {
+      await Speech.speak(
+        "Step back until your full body is visible in the frame.",
+        SPEECH_CONFIG
+      );
+    } catch (e) {
+      console.log('[CameraScreen] Speech cue 1 failed:', e);
+    }
+
     await new Promise(r => setTimeout(r, 2000));
-    await Speech.speak("Take your full swing when you are ready.", SPEECH_CONFIG);
+
+    try {
+      await Speech.speak(
+        "Take your full swing when you are ready.",
+        SPEECH_CONFIG
+      );
+    } catch (e) {
+      console.log('[CameraScreen] Speech cue 2 failed:', e);
+    }
+
     await new Promise(r => setTimeout(r, 500));
+
+    // Always start countdown regardless of speech success/failure
     startCountdown();
   };
 
