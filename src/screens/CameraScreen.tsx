@@ -163,13 +163,17 @@ export default function CameraScreen() {
   const handleManualRecord = () => {
     if (countdownTimer.current) clearInterval(countdownTimer.current);
     setCountdown(null);
-    startRecording();
+    setTimeout(() => {
+      startRecording();
+    }, 500);
   };
 
   const tryAutoStartRecording = () => {
     if (isReadyRef.current && autoStartPending.current) {
       autoStartPending.current = false;
-      startRecording();
+      setTimeout(() => {
+        startRecording();
+      }, 1500);
     }
   };
 
