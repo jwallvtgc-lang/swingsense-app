@@ -193,7 +193,14 @@ export default function CameraScreen() {
   };
 
   const startRecording = async () => {
-    if (!cameraRef.current || isRecording) return;
+    console.log('[Recording] startRecording called');
+    console.log('[Recording] cameraRef.current exists:', !!cameraRef.current);
+    console.log('[Recording] isRecording:', isRecording);
+
+    if (!cameraRef.current || isRecording) {
+      console.log('[Recording] Early return — ref or recording state blocked');
+      return;
+    }
 
     try {
       setIsRecording(true);
