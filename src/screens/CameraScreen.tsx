@@ -50,6 +50,7 @@ export default function CameraScreen() {
   const [permission, requestPermission] = useCameraPermissions();
   const cuesHaveFired = useRef(false);
   const countdownTimer = useRef<NodeJS.Timeout | null>(null);
+  const autoStartPending = useRef(false);
 
   // Timer effect for recording duration
   useEffect(() => {
@@ -103,7 +104,8 @@ export default function CameraScreen() {
         if (prev === null || prev <= 1) {
           clearInterval(countdownTimer.current!);
           setCountdown(null);
-          startRecording();
+          autoStartPending.current = true;
+          tryAutoStartRecording();
           return null;
         }
         return prev - 1;
@@ -144,13 +146,24 @@ export default function CameraScreen() {
     startRecording();
   };
 
+  const tryAutoStartRecording = () => {
+    if (isReady && autoStartPending.current) {
+      autoStartPending.current = false;
+      startRecording();
+    }
+  };
+
   const onCameraReady = () => {
-    setIsReady(true);
+    // Add 500ms buffer for real devices to fully initialize
+    setTimeout(() => {
+      setIsReady(true);
+      tryAutoStartRecording(); // Check if auto-start is pending
 
-    if (cuesHaveFired.current) return;
-    cuesHaveFired.current = true;
+      if (cuesHaveFired.current) return;
+      cuesHaveFired.current = true;
 
-    setTimeout(fireVoiceCues, 1000);
+      setTimeout(fireVoiceCues, 1000);
+    }, 500);
   };
 
   const startRecording = async () => {
