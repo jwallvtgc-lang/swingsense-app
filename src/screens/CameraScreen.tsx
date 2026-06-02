@@ -45,7 +45,8 @@ export default function CameraScreen() {
   const [isRecording, setIsRecording] = useState(false);
   const [recordedVideoUri, setRecordedVideoUri] = useState<string | null>(null);
   const [recordingDuration, setRecordingDuration] = useState(0);
-  const [isReady, setIsReady] = useState(false);
+  const [isReadyUI, setIsReadyUI] = useState(false);
+  const isReadyRef = useRef(false);
   const [countdown, setCountdown] = useState<number | null>(null);
   const [permission, requestPermission] = useCameraPermissions();
   const cuesHaveFired = useRef(false);
@@ -147,7 +148,7 @@ export default function CameraScreen() {
   };
 
   const tryAutoStartRecording = () => {
-    if (isReady && autoStartPending.current) {
+    if (isReadyRef.current && autoStartPending.current) {
       autoStartPending.current = false;
       startRecording();
     }
@@ -156,7 +157,8 @@ export default function CameraScreen() {
   const onCameraReady = () => {
     // Add 500ms buffer for real devices to fully initialize
     setTimeout(() => {
-      setIsReady(true);
+      isReadyRef.current = true;
+      setIsReadyUI(true);
       tryAutoStartRecording(); // Check if auto-start is pending
 
       if (cuesHaveFired.current) return;
@@ -291,14 +293,14 @@ export default function CameraScreen() {
               style={[
                 styles.recordButton,
                 isRecording && styles.recordButtonActive,
-                !isReady && styles.recordButtonDisabled,
+                !isReadyUI && styles.recordButtonDisabled,
               ]}
               onPress={isRecording ? stopRecording : handleManualRecord}
-              disabled={!isReady}
+              disabled={!isReadyUI}
             >
               {isRecording ? (
                 <View style={styles.stopSquare} />
-              ) : !isReady ? (
+              ) : !isReadyUI ? (
                 <ActivityIndicator size="small" color={colors.text.primary} />
               ) : (
                 <View style={styles.recordDot} />
