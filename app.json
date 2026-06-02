@@ -9,7 +9,7 @@
     "newArchEnabled": false,
     "backgroundColor": "#050508",
     "splash": {
-      "image": "./assets/icon.png",
+      "image": "./assets/splash-wordmark.png",
       "resizeMode": "contain",
       "backgroundColor": "#000000"
     },
@@ -52,7 +52,7 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/icon.png",
+          "image": "./assets/splash-wordmark.png",
           "resizeMode": "contain",
           "backgroundColor": "#000000"
         }
