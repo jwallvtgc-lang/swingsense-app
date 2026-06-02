@@ -15,6 +15,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
 import * as Speech from 'expo-speech';
+import { Audio } from 'expo-av';
 import {
   bottomTab,
   camera,
@@ -115,6 +116,16 @@ export default function CameraScreen() {
   };
 
   const fireVoiceCues = async () => {
+    try {
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: false,
+        playsInSilentModeIOS: true,
+        shouldDuckAndroid: false,
+      });
+    } catch (e) {
+      console.log('[CameraScreen] Audio session setup failed:', e);
+    }
+
     try {
       await Speech.speak(
         "Step back until your full body is visible in the frame.",
