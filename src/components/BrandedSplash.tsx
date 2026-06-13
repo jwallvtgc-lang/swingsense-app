@@ -225,7 +225,6 @@ export default function BrandedSplash({ onComplete }: BrandedSplashProps) {
         style={[
           styles.content,
           {
-            paddingTop: insets.top,
             paddingBottom: insets.bottom + spacing.sectionGap * 2,
           },
         ]}
@@ -267,7 +266,7 @@ export default function BrandedSplash({ onComplete }: BrandedSplashProps) {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: colors.bg.splashBase,
+    backgroundColor: '#000000',
   },
   content: {
     flex: 1,
@@ -278,7 +277,6 @@ const styles = StyleSheet.create({
   heroBlock: {
     alignItems: 'center',
     alignSelf: 'center',
-    marginTop: spacing.splashHeroOffsetTop,
     paddingBottom: spacing.sectionGap * 3,
     overflow: 'visible',
   },
