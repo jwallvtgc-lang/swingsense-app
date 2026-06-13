@@ -117,7 +117,7 @@ export default function ActionCard({
             <Text style={styles.title} numberOfLines={2} maxFontSizeMultiplier={1.2}>
               {title}
             </Text>
-            <Text style={styles.subtitle} numberOfLines={2} maxFontSizeMultiplier={1.2}>
+            <Text style={styles.subtitle} maxFontSizeMultiplier={1.2}>
               {subtitle}
             </Text>
           </View>

@@ -170,13 +170,13 @@ export default function AnalyzeScreen() {
                   <View style={styles.thumbPlaceholder} />
                 )}
                 <View style={styles.scoreBadge}>
-                  <Text style={styles.scoreBadgeText}>
+                  <Text style={styles.scoreBadgeText} allowFontScaling={false}>
                     {Math.round(lastAnalysis.similarity_score ?? 0)}
                   </Text>
                 </View>
               </View>
               <View style={styles.swingInfo}>
-                <Text style={styles.swingLabel}>
+                <Text style={styles.swingLabel} allowFontScaling={false}>
                   Last swing ·{' '}
                   {new Date(lastAnalysis.created_at).toLocaleDateString('en-US', {
                     month: 'short',
@@ -189,7 +189,7 @@ export default function AnalyzeScreen() {
                 </Text>
                 {lastAnalysis.coaching_output?.drill && (
                   <View style={styles.recommendationBlock}>
-                    <Text style={styles.recommendationLabel}>
+                    <Text style={styles.recommendationLabel} numberOfLines={1} allowFontScaling={false}>
                       Primary Recommendation
                     </Text>
                     <Text style={styles.recommendationDrill} numberOfLines={1}>
@@ -199,7 +199,7 @@ export default function AnalyzeScreen() {
                 )}
               </View>
             </View>
-            <Text style={styles.viewAnalysisLink}>View analysis →</Text>
+            <Text style={styles.viewAnalysisLink} allowFontScaling={false}>View analysis →</Text>
           </Pressable>
         ) : (
           <Text style={styles.instruction}>
@@ -332,6 +332,7 @@ const styles = StyleSheet.create({
   },
   recommendationBlock: {
     marginTop: spacing.iconGap,
+    marginBottom: 24,
   },
   recommendationLabel: {
     fontFamily: typography.body,
