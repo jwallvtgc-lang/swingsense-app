@@ -3,6 +3,7 @@ import { View, Text, Pressable, StyleSheet, Dimensions } from 'react-native';
 import { Video, ResizeMode, AVPlaybackStatus } from 'expo-av';
 import { Ionicons } from '@expo/vector-icons';
 import SkeletonOverlay from './SkeletonOverlay';
+import FullScreenVideoPlayer from './FullScreenVideoPlayer';
 import {
   colors,
   fontSizes,
@@ -29,6 +30,7 @@ export default function SwingVideoPlayer({
   const [currentTime, setCurrentTime] = useState(0);
   const [videoDimensions, setVideoDimensions] = useState({ width: 0, height: 0 });
   const [naturalSize, setNaturalSize] = useState({ width: 0, height: 0 });
+  const [fullScreenVisible, setFullScreenVisible] = useState(false);
 
   const onPlaybackStatusUpdate = useCallback((status: AVPlaybackStatus) => {
     if (status.isLoaded) {
@@ -100,6 +102,20 @@ export default function SwingVideoPlayer({
     setShowSkeleton(prev => !prev);
   }, []);
 
+  const openFullScreen = useCallback(async () => {
+    // Pause the inline video when opening full screen
+    try {
+      await videoRef.current?.pauseAsync();
+    } catch (error) {
+      // Ignore pause errors
+    }
+    setFullScreenVisible(true);
+  }, []);
+
+  const closeFullScreen = useCallback(() => {
+    setFullScreenVisible(false);
+  }, []);
+
   const hasKeypoints = keypoints?.frames && keypoints.frames.length > 0;
 
   const isPortraitVideo =
@@ -112,13 +128,16 @@ export default function SwingVideoPlayer({
   return (
     <View style={styles.container}>
       {/* Video Player Container */}
-      <View style={[
-        styles.videoContainer,
-        videoDimensions.width > 0 && {
-          width: videoDimensions.width,
-          height: videoDimensions.height,
-        }
-      ]}>
+      <Pressable
+        style={[
+          styles.videoContainer,
+          videoDimensions.width > 0 && {
+            width: videoDimensions.width,
+            height: videoDimensions.height,
+          }
+        ]}
+        onPress={openFullScreen}
+      >
         <View
           style={[
             styles.videoInner,
@@ -168,7 +187,7 @@ export default function SwingVideoPlayer({
             </View>
           </Pressable>
         )}
-      </View>
+      </Pressable>
 
       {/* Controls */}
       <View style={styles.controls}>
@@ -185,6 +204,16 @@ export default function SwingVideoPlayer({
           </Pressable>
         )}
       </View>
+
+      {/* Full Screen Video Modal */}
+      <FullScreenVideoPlayer
+        visible={fullScreenVisible}
+        onClose={closeFullScreen}
+        videoUrl={videoUrl}
+        keypoints={keypoints}
+        initialTime={currentTime}
+        initialShowSkeleton={showSkeleton}
+      />
     </View>
   );
 }
