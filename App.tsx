@@ -40,35 +40,26 @@ export default function App() {
     Inter_600SemiBold,
   });
 
-  // Expo hides the native splash as soon as any React view hierarchy mounts (see expo-splash-screen
-  // README). So: keep returning null until fonts are ready AND we've called hideAsync after a
-  // minimum display time. Do NOT mount SafeAreaProvider before then — that was replacing the PNG.
-
+  // Hide native splash immediately so animated splash takes over as quickly as possible
   useEffect(() => {
-    if (!fontsLoaded) return;
-
-    const elapsed = Date.now() - SPLASH_T0_MS;
-    const waitMs = Math.max(0, SPLASH_MIN_MS - elapsed);
     let cancelled = false;
-
-    const t = setTimeout(async () => {
+    (async () => {
       try {
         await SplashScreen.hideAsync();
-        console.log('[App] native splash hidden — waitMs:', waitMs, 'elapsed:', elapsed);
+        console.log('[App] native splash hidden immediately');
       } catch (e) {
         console.warn('[App] SplashScreen.hideAsync:', e);
       } finally {
         if (!cancelled) setNativeSplashDone(true);
       }
-    }, waitMs);
+    })();
 
     return () => {
       cancelled = true;
-      clearTimeout(t);
     };
-  }, [fontsLoaded]);
+  }, []);
 
-  if (!fontsLoaded || !nativeSplashDone) {
+  if (!nativeSplashDone) {
     return null;
   }
 
