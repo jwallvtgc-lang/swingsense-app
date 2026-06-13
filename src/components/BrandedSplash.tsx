@@ -110,34 +110,52 @@ function AtmosphericEmeraldHaze({ opacity }: { opacity: Animated.Value }) {
 }
 
 function LoadingDots() {
-  const centerPulse = useRef(new Animated.Value(0.5)).current;
+  const dot1Pulse = useRef(new Animated.Value(0.3)).current;
+  const dot2Pulse = useRef(new Animated.Value(0.3)).current;
+  const dot3Pulse = useRef(new Animated.Value(0.3)).current;
 
   useEffect(() => {
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(centerPulse, {
-          toValue: 1,
-          duration: 900,
-          easing: Easing.inOut(Easing.ease),
-          useNativeDriver: true,
-        }),
-        Animated.timing(centerPulse, {
-          toValue: 0.45,
-          duration: 900,
-          easing: Easing.inOut(Easing.ease),
-          useNativeDriver: true,
-        }),
-      ])
-    );
-    loop.start();
-    return () => loop.stop();
-  }, [centerPulse]);
+    const createDotAnimation = (dotValue: Animated.Value, delay: number) => {
+      return Animated.loop(
+        Animated.sequence([
+          Animated.delay(delay),
+          Animated.timing(dotValue, {
+            toValue: 1,
+            duration: 600,
+            easing: Easing.inOut(Easing.ease),
+            useNativeDriver: true,
+          }),
+          Animated.timing(dotValue, {
+            toValue: 0.3,
+            duration: 600,
+            easing: Easing.inOut(Easing.ease),
+            useNativeDriver: true,
+          }),
+          Animated.delay(300), // Delay before next cycle
+        ])
+      );
+    };
+
+    const dot1Animation = createDotAnimation(dot1Pulse, 0);
+    const dot2Animation = createDotAnimation(dot2Pulse, 150);
+    const dot3Animation = createDotAnimation(dot3Pulse, 300);
+
+    dot1Animation.start();
+    dot2Animation.start();
+    dot3Animation.start();
+
+    return () => {
+      dot1Animation.stop();
+      dot2Animation.stop();
+      dot3Animation.stop();
+    };
+  }, [dot1Pulse, dot2Pulse, dot3Pulse]);
 
   return (
     <View style={styles.dotsRow}>
-      <View style={[styles.dot, styles.dotOuter]} />
-      <Animated.View style={[styles.dot, styles.dotCenter, { opacity: centerPulse }]} />
-      <View style={[styles.dot, styles.dotOuter]} />
+      <Animated.View style={[styles.dot, styles.dotAnimated, { opacity: dot1Pulse }]} />
+      <Animated.View style={[styles.dot, styles.dotAnimated, { opacity: dot2Pulse }]} />
+      <Animated.View style={[styles.dot, styles.dotAnimated, { opacity: dot3Pulse }]} />
     </View>
   );
 }
@@ -310,6 +328,9 @@ const styles = StyleSheet.create({
     width: splashBrand.dotSize,
     height: splashBrand.dotSize,
     borderRadius: splashBrand.dotSize / 2,
+  },
+  dotAnimated: {
+    backgroundColor: colors.brand.emerald,
   },
   dotOuter: {
     backgroundColor: colors.text.muted,
