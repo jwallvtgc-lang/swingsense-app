@@ -60,7 +60,7 @@ export default function SkeletonOverlay({
                jointName !== MOVENET_LANDMARKS.RIGHT_EAR)) {
             pixels[jointName] = {
               x: keypoint.y * containerWidth,
-              y: (1 - keypoint.x) * containerHeight,
+              y: keypoint.x * containerHeight,
               confidence: keypoint.confidence,
             };
           }
