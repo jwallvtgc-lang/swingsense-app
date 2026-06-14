@@ -12,7 +12,6 @@ import {
 import { Video, ResizeMode, AVPlaybackStatus } from 'expo-av';
 import { Ionicons } from '@expo/vector-icons';
 import * as VideoThumbnails from 'expo-video-thumbnails';
-import MotionTrailPanel from './MotionTrailPanel';
 import {
   camera,
   colors,
@@ -22,7 +21,6 @@ import {
   spacing,
   typography,
 } from '../../design-system/tokens';
-import { getVideoRect } from '../utils/skeletonUtils';
 import type { KeypointData, PrimaryMechanicalIssue } from '../types';
 
 interface FullScreenVideoPlayerProps {
@@ -32,7 +30,6 @@ interface FullScreenVideoPlayerProps {
   keypoints?: KeypointData | null;
   primaryIssue?: PrimaryMechanicalIssue | null;
   initialTime?: number;
-  initialShowSkeleton?: boolean;
 }
 
 interface ThumbnailData {
@@ -47,10 +44,8 @@ export default function FullScreenVideoPlayer({
   keypoints,
   primaryIssue,
   initialTime = 0,
-  initialShowSkeleton = false,
 }: FullScreenVideoPlayerProps) {
   const videoRef = useRef<Video>(null);
-  const [showSkeleton, setShowSkeleton] = useState(initialShowSkeleton);
   const [isPlaying, setIsPlaying] = useState(true);
   const [currentTime, setCurrentTime] = useState(initialTime);
   const [duration, setDuration] = useState(0);
@@ -116,17 +111,16 @@ export default function FullScreenVideoPlayer({
     const { naturalSize } = readyStatus;
     setNaturalSize(naturalSize);
 
-    // Calculate video panel dimensions (72% of available space for split layout)
+    // Calculate video dimensions to fill full screen area
     const availableHeight = screenHeight - spacing.sectionGap * 8; // Header + scrubber + safe areas
-    const videoAreaHeight = availableHeight * 0.72; // Top 72% for video
 
     const aspectRatio = naturalSize.width / naturalSize.height;
     let displayWidth = screenWidth;
     let displayHeight = screenWidth / aspectRatio;
 
-    // If height exceeds video area, scale down to fit
-    if (displayHeight > videoAreaHeight) {
-      displayHeight = videoAreaHeight;
+    // If height exceeds available area, scale down to fit
+    if (displayHeight > availableHeight) {
+      displayHeight = availableHeight;
       displayWidth = displayHeight * aspectRatio;
     }
 
@@ -145,9 +139,6 @@ export default function FullScreenVideoPlayer({
     }
   };
 
-  const toggleSkeleton = useCallback(() => {
-    setShowSkeleton(prev => !prev);
-  }, []);
 
   const seekToTime = async (time: number) => {
     try {
@@ -162,7 +153,6 @@ export default function FullScreenVideoPlayer({
     seekToTime(time);
   };
 
-  const hasKeypoints = keypoints?.frames && keypoints.frames.length > 0;
 
   const isPortraitVideo = naturalSize.height > naturalSize.width && naturalSize.width > 0;
   const innerVideoWidth = isPortraitVideo
@@ -186,21 +176,10 @@ export default function FullScreenVideoPlayer({
           <Pressable style={styles.closeButton} onPress={onClose}>
             <Ionicons name="chevron-back" size={28} color={colors.text.primary} />
           </Pressable>
-
-          {hasKeypoints && (
-            <Pressable style={styles.skeletonToggle} onPress={toggleSkeleton}>
-              <Ionicons
-                name={showSkeleton ? "body" : "body-outline"}
-                size={24}
-                color={showSkeleton ? colors.brand.emerald : colors.text.secondary}
-              />
-            </Pressable>
-          )}
         </View>
 
-        {/* Main content area - split view */}
+        {/* Main content area - full screen video */}
         <View style={styles.contentArea}>
-          {/* Video panel - Top 60% */}
           <View style={styles.videoPanel}>
             <View style={[
               styles.videoContainer,
@@ -248,18 +227,6 @@ export default function FullScreenVideoPlayer({
               )}
             </View>
           </View>
-
-          {/* Motion Trail Panel - Bottom 28% */}
-          {showSkeleton && hasKeypoints && keypoints?.frames && (
-            <MotionTrailPanel
-              frames={keypoints.frames}
-              primaryIssue={primaryIssue}
-              fps={keypoints.fps}
-              containerWidth={screenWidth}
-              containerHeight={(screenHeight - spacing.sectionGap * 8) * 0.28}
-              currentTime={currentTime}
-            />
-          )}
         </View>
 
         {/* Frame scrubber */}
@@ -335,14 +302,11 @@ const styles = StyleSheet.create({
   closeButton: {
     padding: spacing.iconGap,
   },
-  skeletonToggle: {
-    padding: spacing.iconGap,
-  },
   contentArea: {
     flex: 1,
   },
   videoPanel: {
-    flex: 0.72, // Top 72% for video
+    flex: 1, // Take full available space
     justifyContent: 'center',
     alignItems: 'center',
   },

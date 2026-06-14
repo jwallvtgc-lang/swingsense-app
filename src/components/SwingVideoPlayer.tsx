@@ -3,7 +3,6 @@ import { View, Text, Pressable, StyleSheet, Dimensions, Image } from 'react-nati
 import { Video, ResizeMode, AVPlaybackStatus } from 'expo-av';
 import { Ionicons } from '@expo/vector-icons';
 import * as VideoThumbnails from 'expo-video-thumbnails';
-import SkeletonOverlay from './SkeletonOverlay';
 import FullScreenVideoPlayer from './FullScreenVideoPlayer';
 import {
   colors,
@@ -13,7 +12,6 @@ import {
   spacing,
   typography,
 } from '../../design-system/tokens';
-import { getVideoRect } from '../utils/skeletonUtils';
 import type { KeypointData, PrimaryMechanicalIssue } from '../types';
 
 interface SwingVideoPlayerProps {
@@ -28,7 +26,6 @@ export default function SwingVideoPlayer({
   primaryIssue,
 }: SwingVideoPlayerProps) {
   const videoRef = useRef<Video>(null);
-  const [showSkeleton, setShowSkeleton] = useState(false);
   const [thumbnailUri, setThumbnailUri] = useState<string | null>(null);
   const [videoDimensions, setVideoDimensions] = useState({ width: 0, height: 0 });
   const [naturalSize, setNaturalSize] = useState({ width: 0, height: 0 });
@@ -70,26 +67,8 @@ export default function SwingVideoPlayer({
     }
 
     setVideoDimensions({ width: displayWidth, height: displayHeight });
-    console.log('[SwingVideoPlayer] naturalSize:', naturalSize.width, naturalSize.height);
-    console.log('[SwingVideoPlayer] videoDimensions:', displayWidth.toFixed(1), displayHeight.toFixed(1));
-    const rect = getVideoRect(
-      displayWidth,
-      displayHeight,
-      naturalSize.width,
-      naturalSize.height
-    );
-    console.log(
-      '[SwingVideoPlayer] videoRect:',
-      rect.x.toFixed(1),
-      rect.y.toFixed(1),
-      rect.width.toFixed(1),
-      rect.height.toFixed(1)
-    );
   }, []);
 
-  const toggleSkeleton = useCallback(() => {
-    setShowSkeleton(prev => !prev);
-  }, []);
 
   const openFullScreen = useCallback(() => {
     setFullScreenVisible(true);
@@ -99,7 +78,6 @@ export default function SwingVideoPlayer({
     setFullScreenVisible(false);
   }, []);
 
-  const hasKeypoints = keypoints?.frames && keypoints.frames.length > 0;
 
   const isPortraitVideo =
     naturalSize.height > naturalSize.width && naturalSize.width > 0;
@@ -168,21 +146,6 @@ export default function SwingVideoPlayer({
         </View>
       </Pressable>
 
-      {/* Controls */}
-      <View style={styles.controls}>
-        {hasKeypoints && (
-          <Pressable style={styles.skeletonButton} onPress={toggleSkeleton}>
-            <Ionicons
-              name="body-outline"
-              size={16}
-              color={colors.text.secondary}
-            />
-            <Text style={styles.skeletonButtonText}>
-              {showSkeleton ? 'Hide skeleton' : 'Show skeleton'}
-            </Text>
-          </Pressable>
-        )}
-      </View>
 
       {/* Full Screen Video Modal */}
       <FullScreenVideoPlayer
@@ -192,7 +155,6 @@ export default function SwingVideoPlayer({
         keypoints={keypoints}
         primaryIssue={primaryIssue}
         initialTime={0}
-        initialShowSkeleton={showSkeleton}
       />
     </View>
   );
@@ -201,7 +163,6 @@ export default function SwingVideoPlayer({
 const styles = StyleSheet.create({
   container: {
     width: '100%',
-    gap: spacing.cardGap,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -250,27 +211,5 @@ const styles = StyleSheet.create({
     height: 56,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  controls: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing.iconGap,
-  },
-  skeletonButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.iconGap / 2,
-    paddingVertical: spacing.iconGap,
-    paddingHorizontal: spacing.cardSm,
-    borderRadius: radius.pill,
-    backgroundColor: colors.bg.surface,
-    borderWidth: 1,
-    borderColor: colors.border.subtle,
-  },
-  skeletonButtonText: {
-    fontFamily: typography.body,
-    fontSize: fontSizes.caption,
-    fontWeight: fontWeights.medium,
-    color: colors.text.secondary,
   },
 });
