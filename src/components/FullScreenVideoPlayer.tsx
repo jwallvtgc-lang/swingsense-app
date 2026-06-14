@@ -12,7 +12,7 @@ import {
 import { Video, ResizeMode, AVPlaybackStatus } from 'expo-av';
 import { Ionicons } from '@expo/vector-icons';
 import * as VideoThumbnails from 'expo-video-thumbnails';
-import SkeletonOverlay from './SkeletonOverlay';
+import StickFigurePanel from './StickFigurePanel';
 import {
   camera,
   colors,
@@ -114,15 +114,17 @@ export default function FullScreenVideoPlayer({
     const { naturalSize } = readyStatus;
     setNaturalSize(naturalSize);
 
-    // Calculate full screen dimensions maintaining aspect ratio
+    // Calculate video panel dimensions (60% of available space for split layout)
+    const availableHeight = screenHeight - spacing.sectionGap * 8; // Header + scrubber + safe areas
+    const videoAreaHeight = availableHeight * 0.6; // Top 60% for video
+
     const aspectRatio = naturalSize.width / naturalSize.height;
     let displayWidth = screenWidth;
     let displayHeight = screenWidth / aspectRatio;
 
-    // If height exceeds screen, scale down - leave room for header, scrubber, and safe areas
-    const reservedSpace = spacing.sectionGap * 8; // Header + scrubber + safe areas
-    if (displayHeight > screenHeight - reservedSpace) {
-      displayHeight = screenHeight - reservedSpace;
+    // If height exceeds video area, scale down to fit
+    if (displayHeight > videoAreaHeight) {
+      displayHeight = videoAreaHeight;
       displayWidth = displayHeight * aspectRatio;
     }
 
@@ -194,66 +196,65 @@ export default function FullScreenVideoPlayer({
           )}
         </View>
 
-        {/* Video area */}
-        <View style={styles.videoArea}>
-          <View style={[
-            styles.videoContainer,
-            videoDimensions.width > 0 && {
-              width: videoDimensions.width,
-              height: videoDimensions.height,
-            }
-          ]}>
-            <View
-              style={[
-                styles.videoInner,
-                videoDimensions.width > 0 && {
-                  width: innerVideoWidth,
-                  height: innerVideoHeight,
-                },
-                isPortraitVideo && styles.videoInnerPortrait,
-              ]}
-            >
-              <Video
-                ref={videoRef}
-                source={{ uri: videoUrl }}
-                style={styles.video}
-                resizeMode={ResizeMode.CONTAIN}
-                useNativeControls={false}
-                isLooping={false}
-                shouldPlay={true}
-                rate={1.0}
-                positionMillis={initialTime}
-                onPlaybackStatusUpdate={onPlaybackStatusUpdate}
-                onReadyForDisplay={onReadyForDisplay}
-              />
+        {/* Main content area - split view */}
+        <View style={styles.contentArea}>
+          {/* Video panel - Top 60% */}
+          <View style={styles.videoPanel}>
+            <View style={[
+              styles.videoContainer,
+              videoDimensions.width > 0 && {
+                width: videoDimensions.width,
+                height: videoDimensions.height,
+              }
+            ]}>
+              <View
+                style={[
+                  styles.videoInner,
+                  videoDimensions.width > 0 && {
+                    width: innerVideoWidth,
+                    height: innerVideoHeight,
+                  },
+                  isPortraitVideo && styles.videoInnerPortrait,
+                ]}
+              >
+                <Video
+                  ref={videoRef}
+                  source={{ uri: videoUrl }}
+                  style={styles.video}
+                  resizeMode={ResizeMode.CONTAIN}
+                  useNativeControls={false}
+                  isLooping={false}
+                  shouldPlay={true}
+                  rate={1.0}
+                  positionMillis={initialTime}
+                  onPlaybackStatusUpdate={onPlaybackStatusUpdate}
+                  onReadyForDisplay={onReadyForDisplay}
+                />
+              </View>
 
-              {showSkeleton &&
-                hasKeypoints &&
-                videoDimensions.width > 0 &&
-                naturalSize.width > 0 && (
-                  <SkeletonOverlay
-                    frames={keypoints.frames}
-                    containerWidth={innerVideoWidth}
-                    containerHeight={innerVideoHeight}
-                    currentTime={currentTime}
-                    fps={keypoints.fps}
-                  />
-                )}
+              {/* Play/Pause Overlay */}
+              {!isPlaying && (
+                <Pressable style={styles.playOverlay} onPress={togglePlayback}>
+                  <View style={styles.playButton}>
+                    <Ionicons
+                      name="play"
+                      size={32}
+                      color={colors.text.primary}
+                    />
+                  </View>
+                </Pressable>
+              )}
             </View>
-
-            {/* Play/Pause Overlay */}
-            {!isPlaying && (
-              <Pressable style={styles.playOverlay} onPress={togglePlayback}>
-                <View style={styles.playButton}>
-                  <Ionicons
-                    name="play"
-                    size={32}
-                    color={colors.text.primary}
-                  />
-                </View>
-              </Pressable>
-            )}
           </View>
+
+          {/* Stick Figure Panel - Bottom 40% */}
+          <StickFigurePanel
+            visible={!!(showSkeleton && hasKeypoints)}
+            keypoints={keypoints}
+            currentTime={currentTime}
+            panelWidth={screenWidth}
+            panelHeight={(screenHeight - spacing.sectionGap * 8) * 0.4}
+          />
         </View>
 
         {/* Frame scrubber */}
@@ -332,8 +333,11 @@ const styles = StyleSheet.create({
   skeletonToggle: {
     padding: spacing.iconGap,
   },
-  videoArea: {
+  contentArea: {
     flex: 1,
+  },
+  videoPanel: {
+    flex: 0.6, // Top 60% for video
     justifyContent: 'center',
     alignItems: 'center',
   },
