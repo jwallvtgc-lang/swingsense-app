@@ -14,16 +14,18 @@ import {
   typography,
 } from '../../design-system/tokens';
 import { getVideoRect } from '../utils/skeletonUtils';
-import type { KeypointData } from '../types';
+import type { KeypointData, PrimaryMechanicalIssue } from '../types';
 
 interface SwingVideoPlayerProps {
   videoUrl: string;
   keypoints?: KeypointData | null;
+  primaryIssue?: PrimaryMechanicalIssue | null;
 }
 
 export default function SwingVideoPlayer({
   videoUrl,
   keypoints,
+  primaryIssue,
 }: SwingVideoPlayerProps) {
   const videoRef = useRef<Video>(null);
   const [showSkeleton, setShowSkeleton] = useState(false);
@@ -188,6 +190,7 @@ export default function SwingVideoPlayer({
         onClose={closeFullScreen}
         videoUrl={videoUrl}
         keypoints={keypoints}
+        primaryIssue={primaryIssue}
         initialTime={0}
         initialShowSkeleton={showSkeleton}
       />

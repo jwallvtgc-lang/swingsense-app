@@ -548,6 +548,7 @@ export default function AnalysisScreen() {
               <SwingVideoPlayer
                 videoUrl={videoUrl}
                 keypoints={analysis?.keypoint_data}
+                primaryIssue={analysis?.coaching_output?.primary_mechanical_issue}
               />
             ) : null}
 

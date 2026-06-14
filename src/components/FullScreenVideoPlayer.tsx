@@ -12,7 +12,7 @@ import {
 import { Video, ResizeMode, AVPlaybackStatus } from 'expo-av';
 import { Ionicons } from '@expo/vector-icons';
 import * as VideoThumbnails from 'expo-video-thumbnails';
-import StickFigurePanel from './StickFigurePanel';
+import MotionTrailPanel from './MotionTrailPanel';
 import {
   camera,
   colors,
@@ -23,13 +23,14 @@ import {
   typography,
 } from '../../design-system/tokens';
 import { getVideoRect } from '../utils/skeletonUtils';
-import type { KeypointData } from '../types';
+import type { KeypointData, PrimaryMechanicalIssue } from '../types';
 
 interface FullScreenVideoPlayerProps {
   visible: boolean;
   onClose: () => void;
   videoUrl: string;
   keypoints?: KeypointData | null;
+  primaryIssue?: PrimaryMechanicalIssue | null;
   initialTime?: number;
   initialShowSkeleton?: boolean;
 }
@@ -44,6 +45,7 @@ export default function FullScreenVideoPlayer({
   onClose,
   videoUrl,
   keypoints,
+  primaryIssue,
   initialTime = 0,
   initialShowSkeleton = false,
 }: FullScreenVideoPlayerProps) {
@@ -247,14 +249,17 @@ export default function FullScreenVideoPlayer({
             </View>
           </View>
 
-          {/* Stick Figure Panel - Bottom 40% */}
-          <StickFigurePanel
-            visible={!!(showSkeleton && hasKeypoints)}
-            keypoints={keypoints}
-            currentTime={currentTime}
-            panelWidth={screenWidth}
-            panelHeight={(screenHeight - spacing.sectionGap * 8) * 0.28}
-          />
+          {/* Motion Trail Panel - Bottom 28% */}
+          {showSkeleton && hasKeypoints && keypoints?.frames && (
+            <MotionTrailPanel
+              frames={keypoints.frames}
+              primaryIssue={primaryIssue}
+              fps={keypoints.fps}
+              containerWidth={screenWidth}
+              containerHeight={(screenHeight - spacing.sectionGap * 8) * 0.28}
+              currentTime={currentTime}
+            />
+          )}
         </View>
 
         {/* Frame scrubber */}
