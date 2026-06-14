@@ -1,7 +1,8 @@
-import React, { useRef, useState, useCallback } from 'react';
-import { View, Text, Pressable, StyleSheet, Dimensions } from 'react-native';
+import React, { useRef, useState, useCallback, useEffect } from 'react';
+import { View, Text, Pressable, StyleSheet, Dimensions, Image } from 'react-native';
 import { Video, ResizeMode, AVPlaybackStatus } from 'expo-av';
 import { Ionicons } from '@expo/vector-icons';
+import * as VideoThumbnails from 'expo-video-thumbnails';
 import SkeletonOverlay from './SkeletonOverlay';
 import FullScreenVideoPlayer from './FullScreenVideoPlayer';
 import {
@@ -26,29 +27,27 @@ export default function SwingVideoPlayer({
 }: SwingVideoPlayerProps) {
   const videoRef = useRef<Video>(null);
   const [showSkeleton, setShowSkeleton] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [currentTime, setCurrentTime] = useState(0);
+  const [thumbnailUri, setThumbnailUri] = useState<string | null>(null);
   const [videoDimensions, setVideoDimensions] = useState({ width: 0, height: 0 });
   const [naturalSize, setNaturalSize] = useState({ width: 0, height: 0 });
   const [fullScreenVisible, setFullScreenVisible] = useState(false);
 
-  const onPlaybackStatusUpdate = useCallback((status: AVPlaybackStatus) => {
-    if (status.isLoaded) {
-      const newIsPlaying = status.isPlaying;
-      const newCurrentTime = status.positionMillis || 0;
-
-      // BUG 2 FIX: Handle video finishing to enable replay
-      if (status.didJustFinish) {
-        videoRef.current?.setPositionAsync(0);
-        setIsPlaying(false);
-        return;
+  // Generate thumbnail for static display
+  useEffect(() => {
+    const generateThumbnail = async () => {
+      try {
+        const { uri } = await VideoThumbnails.getThumbnailAsync(videoUrl, {
+          time: 0, // First frame
+        });
+        setThumbnailUri(uri);
+      } catch (error) {
+        console.error('[SwingVideoPlayer] Error generating thumbnail:', error);
       }
+    };
 
-      // Only update state if values actually changed to prevent unnecessary re-renders
-      setIsPlaying(prev => prev !== newIsPlaying ? newIsPlaying : prev);
-      setCurrentTime(prev => Math.abs(prev - newCurrentTime) > 100 ? newCurrentTime : prev); // 100ms threshold
-    }
-  }, []);
+    generateThumbnail();
+  }, [videoUrl]);
+
 
   const onReadyForDisplay = useCallback((readyStatus: { naturalSize: { width: number; height: number } }) => {
     const { naturalSize } = readyStatus;
@@ -86,29 +85,11 @@ export default function SwingVideoPlayer({
     );
   }, []);
 
-  const togglePlayback = async () => {
-    try {
-      if (isPlaying) {
-        await videoRef.current?.pauseAsync();
-      } else {
-        await videoRef.current?.playAsync();
-      }
-    } catch (error) {
-      // Ignore play/pause errors
-    }
-  };
-
   const toggleSkeleton = useCallback(() => {
     setShowSkeleton(prev => !prev);
   }, []);
 
-  const openFullScreen = useCallback(async () => {
-    // Pause the inline video when opening full screen
-    try {
-      await videoRef.current?.pauseAsync();
-    } catch (error) {
-      // Ignore pause errors
-    }
+  const openFullScreen = useCallback(() => {
     setFullScreenVisible(true);
   }, []);
 
@@ -148,45 +129,41 @@ export default function SwingVideoPlayer({
             isPortraitVideo && styles.videoInnerPortrait,
           ]}
         >
+          {/* Hidden video for dimensions only */}
           <Video
             ref={videoRef}
             source={{ uri: videoUrl }}
-            style={styles.video}
+            style={styles.hiddenVideo}
             resizeMode={ResizeMode.CONTAIN}
             useNativeControls={false}
             isLooping={false}
             shouldPlay={false}
             rate={1.0}
-            onPlaybackStatusUpdate={onPlaybackStatusUpdate}
             onReadyForDisplay={onReadyForDisplay}
           />
 
-          {showSkeleton &&
-            hasKeypoints &&
-            videoDimensions.width > 0 &&
-            naturalSize.width > 0 && (
-              <SkeletonOverlay
-                frames={keypoints.frames}
-                containerWidth={innerVideoWidth}
-                containerHeight={innerVideoHeight}
-                currentTime={currentTime}
-                fps={keypoints.fps}
-              />
-            )}
+          {/* Static thumbnail display */}
+          {thumbnailUri ? (
+            <Image
+              source={{ uri: thumbnailUri }}
+              style={styles.video}
+              resizeMode="contain"
+            />
+          ) : (
+            <View style={styles.video} />
+          )}
         </View>
 
-        {/* Play/Pause Overlay */}
-        {!isPlaying && (
-          <Pressable style={styles.playOverlay} onPress={togglePlayback}>
-            <View style={styles.playButton}>
-              <Ionicons
-                name="play"
-                size={24}
-                color={colors.text.primary}
-              />
-            </View>
-          </Pressable>
-        )}
+        {/* Play Overlay - Always visible for thumbnail */}
+        <View style={styles.playOverlay}>
+          <View style={styles.playButton}>
+            <Ionicons
+              name="play"
+              size={24}
+              color={colors.text.primary}
+            />
+          </View>
+        </View>
       </Pressable>
 
       {/* Controls */}
@@ -211,7 +188,7 @@ export default function SwingVideoPlayer({
         onClose={closeFullScreen}
         videoUrl={videoUrl}
         keypoints={keypoints}
-        initialTime={currentTime}
+        initialTime={0}
         initialShowSkeleton={showSkeleton}
       />
     </View>
@@ -246,6 +223,12 @@ const styles = StyleSheet.create({
   video: {
     width: '100%',
     height: '100%',
+  },
+  hiddenVideo: {
+    width: 0,
+    height: 0,
+    opacity: 0,
+    position: 'absolute',
   },
   playOverlay: {
     position: 'absolute',

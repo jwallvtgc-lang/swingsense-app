@@ -77,7 +77,7 @@ export default function FullScreenVideoPlayer({
       for (let i = 0; i < thumbCount; i++) {
         const time = i * interval;
         const { uri } = await VideoThumbnails.getThumbnailAsync(videoUrl, {
-          time: time,
+          time: Math.round(time),
         });
         newThumbnails.push({ time, uri });
       }
