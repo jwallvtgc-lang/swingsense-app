@@ -167,8 +167,8 @@ export function mapKeypointToPixel(
   videoRect: { x: number; y: number; width: number; height: number }
 ): { x: number; y: number } {
   return {
-    x: videoRect.x + (keypoint.x * videoRect.width),
-    y: videoRect.y + (keypoint.y * videoRect.height),
+    x: videoRect.x + (keypoint.y * videoRect.width),
+    y: videoRect.y + ((1 - keypoint.x) * videoRect.height),
   };
 }
 
