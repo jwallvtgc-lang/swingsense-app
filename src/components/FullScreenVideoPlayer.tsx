@@ -114,9 +114,9 @@ export default function FullScreenVideoPlayer({
     const { naturalSize } = readyStatus;
     setNaturalSize(naturalSize);
 
-    // Calculate video panel dimensions (60% of available space for split layout)
+    // Calculate video panel dimensions (72% of available space for split layout)
     const availableHeight = screenHeight - spacing.sectionGap * 8; // Header + scrubber + safe areas
-    const videoAreaHeight = availableHeight * 0.6; // Top 60% for video
+    const videoAreaHeight = availableHeight * 0.72; // Top 72% for video
 
     const aspectRatio = naturalSize.width / naturalSize.height;
     let displayWidth = screenWidth;
@@ -253,7 +253,7 @@ export default function FullScreenVideoPlayer({
             keypoints={keypoints}
             currentTime={currentTime}
             panelWidth={screenWidth}
-            panelHeight={(screenHeight - spacing.sectionGap * 8) * 0.4}
+            panelHeight={(screenHeight - spacing.sectionGap * 8) * 0.28}
           />
         </View>
 
@@ -337,7 +337,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   videoPanel: {
-    flex: 0.6, // Top 60% for video
+    flex: 0.72, // Top 72% for video
     justifyContent: 'center',
     alignItems: 'center',
   },
