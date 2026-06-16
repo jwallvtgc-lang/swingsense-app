@@ -562,14 +562,29 @@ export default function AnalysisScreen() {
               </SectionCard>
             )}
 
-            {/* 3. ScoreCard - new compact score display */}
+            {/* 3. Needs Improvement */}
+            {co?.primary_mechanical_issue && (
+              <SectionCard title="NEEDS IMPROVEMENT" titleColor={colors.text.red}>
+                <View style={styles.improvementChip}>
+                  <Ionicons name="flag" size={12} color={colors.text.red} />
+                  <Text style={styles.improvementChipText}>
+                    {co.primary_mechanical_issue.title}
+                  </Text>
+                </View>
+                <Text style={styles.improvementDescription} maxFontSizeMultiplier={1.35}>
+                  {co.primary_mechanical_issue.description}
+                </Text>
+              </SectionCard>
+            )}
+
+            {/* 4. ScoreCard - new compact score display */}
             <ScoreCard
               score={heroScore}
               delta={scoreDelta}
               recentScores={recentScores}
             />
 
-            {/* 4. Mechanic breakdown - after ScoreCard */}
+            {/* 5. Mechanic breakdown - after ScoreCard */}
             <View style={styles.decisionFactorsWrap}>
               <DecisionFactors
                 stanceScore={analysis?.stance_score ?? null}
@@ -581,7 +596,7 @@ export default function AnalysisScreen() {
               />
             </View>
 
-            {/* 5. Comparison - after mechanic breakdown */}
+            {/* 6. Comparison - after mechanic breakdown */}
             {showCompareSection && previousAnalysis ? (
               <SectionCard
                 title="Compared to your last swing"
@@ -953,6 +968,29 @@ const styles = StyleSheet.create({
     fontFamily: typography.body,
     fontSize: fontSizes.body,
     color: colors.text.green,
+    lineHeight: Math.round(fontSizes.body * 1.45),
+  },
+  improvementChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.deltaPillInnerGap,
+    backgroundColor: colors.bg.redDim,
+    borderRadius: radius.pill,
+    paddingVertical: spacing.deltaPillPadV,
+    paddingHorizontal: spacing.deltaPillPadH,
+    alignSelf: 'flex-start',
+    marginBottom: spacing.iconGap,
+  },
+  improvementChipText: {
+    fontFamily: typography.body,
+    fontSize: fontSizes.body,
+    fontWeight: fontWeights.medium,
+    color: colors.text.red,
+  },
+  improvementDescription: {
+    fontFamily: typography.body,
+    fontSize: fontSizes.body,
+    color: colors.text.secondary,
     lineHeight: Math.round(fontSizes.body * 1.45),
   },
   heroScore: {
