@@ -97,7 +97,7 @@ export default function SwingVideoPlayer({
         style={[
           styles.videoContainer,
           fullWidth
-            ? { width: windowWidth, backgroundColor: 'transparent' }
+            ? { width: windowWidth, marginHorizontal: -spacing.screen, backgroundColor: 'transparent' }
             : styles.videoContainerCard,
           !fullWidth && videoDimensions.width > 0
             ? { width: videoDimensions.width, height: videoDimensions.height }
