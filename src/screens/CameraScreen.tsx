@@ -201,7 +201,7 @@ export default function CameraScreen() {
     try {
       setIsRecording(true);
       const video = await cameraRef.current.recordAsync({
-        maxDuration: 15,
+        maxDuration: 10,
       });
 
       if (video) {

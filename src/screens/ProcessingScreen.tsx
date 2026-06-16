@@ -173,18 +173,28 @@ export default function ProcessingScreen() {
 
   if (error) {
     const isNoSwing = /couldn't detect a swing|no swing detected/i.test(error);
+    const isUploadError = !isNoSwing && /upload failed|video file not found|not authenticated|signed url/i.test(error);
+
+    const errorTitle = isNoSwing
+      ? 'No Swing Detected'
+      : isUploadError
+      ? 'Upload Failed'
+      : 'Analysis Failed';
+
+    const errorMessage = __DEV__
+      ? error
+      : isNoSwing
+      ? error
+      : isUploadError
+      ? 'Check your connection and try again.'
+      : 'Our servers hit an issue — tap Try Again.';
+
     return (
       <View style={styles.container}>
         <View style={styles.errorContainer}>
           <Ionicons name="alert-circle" size={64} color={COLORS.red} />
-          <Text style={styles.errorTitle}>
-            {isNoSwing ? 'No Swing Detected' : 'Analysis Failed'}
-          </Text>
-          <Text style={styles.errorMessage}>
-            {isNoSwing
-              ? error
-              : 'Upload failed — check your connection and try again.'}
-          </Text>
+          <Text style={styles.errorTitle}>{errorTitle}</Text>
+          <Text style={styles.errorMessage}>{errorMessage}</Text>
           <View style={styles.errorActions}>
             <Pressable
               style={({ pressed }) => [styles.ctaButton, pressed && styles.ctaButtonPressed]}
