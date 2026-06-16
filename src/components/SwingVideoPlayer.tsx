@@ -88,13 +88,17 @@ export default function SwingVideoPlayer({
     : videoDimensions.width;
   const innerVideoHeight = videoDimensions.height;
 
+  const windowWidth = Dimensions.get('window').width;
+
   return (
-    <View style={[styles.container, fullWidth && styles.containerFullWidth]}>
+    <View style={styles.container}>
       {/* Video Player Container */}
       <Pressable
         style={[
           styles.videoContainer,
-          fullWidth ? styles.videoContainerFull : styles.videoContainerCard,
+          fullWidth
+            ? { width: windowWidth, backgroundColor: 'transparent' }
+            : styles.videoContainerCard,
           !fullWidth && videoDimensions.width > 0
             ? { width: videoDimensions.width, height: videoDimensions.height }
             : undefined,
@@ -169,9 +173,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  containerFullWidth: {
-    marginHorizontal: -spacing.screen,
-  },
   videoContainer: {
     position: 'relative',
     overflow: 'hidden',
@@ -184,11 +185,6 @@ const styles = StyleSheet.create({
     borderRadius: radius.card,
     maxHeight: 200,
     alignSelf: 'center',
-  },
-  videoContainerFull: {
-    borderRadius: 0,
-    alignSelf: 'stretch',
-    backgroundColor: 'transparent',
   },
   videoInner: {
     position: 'relative',
