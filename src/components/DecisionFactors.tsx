@@ -213,7 +213,7 @@ export default function DecisionFactors({
         <Text style={styles.hintText}>See what drove this score</Text>
         <Ionicons
           name={expanded ? 'chevron-up' : 'chevron-down'}
-          size={18}
+          size={16}
           color={colors.text.muted}
         />
       </Pressable>
@@ -270,14 +270,13 @@ const styles = StyleSheet.create({
   },
   mergedTop: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: spacing.cardGap,
-    marginBottom: spacing.cardGap,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: spacing.iconGap,
   },
   scoreColumn: {
     alignItems: 'center',
     gap: spacing.pillGap,
-    minWidth: 60,
   },
   scoreCircle: {
     width: scoreCard.circleSize,
@@ -298,9 +297,8 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   factorsColumn: {
-    flex: 1,
+    alignItems: 'flex-end',
     gap: spacing.iconGap,
-    justifyContent: 'center',
   },
   pipRow: {
     flexDirection: 'row',
@@ -317,14 +315,13 @@ const styles = StyleSheet.create({
     fontWeight: fontWeights.regular,
     fontSize: fontSizes.caption,
     color: colors.text.muted,
+    textAlign: 'right',
   },
   expandRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingTop: spacing.cardGap,
-    borderTopWidth: 1,
-    borderTopColor: colors.border.subtle,
+    paddingTop: spacing.iconGap,
   },
   expandRowPressed: {
     opacity: 0.92,
@@ -333,7 +330,7 @@ const styles = StyleSheet.create({
     fontFamily: typography.body,
     fontWeight: fontWeights.regular,
     fontSize: fontSizes.caption,
-    color: colors.text.secondary,
+    color: colors.text.muted,
   },
   expanded: {
     marginTop: spacing.cardGap,

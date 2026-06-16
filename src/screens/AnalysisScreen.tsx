@@ -532,14 +532,12 @@ export default function AnalysisScreen() {
           <View style={styles.tabPanels}>
             {/* 1. Video player — full width, edge to edge */}
             {videoUrl ? (
-              <View style={styles.videoFullWidth}>
-                <SwingVideoPlayer
-                  videoUrl={videoUrl}
-                  keypoints={analysis?.keypoint_data}
-                  primaryIssue={analysis?.coaching_output?.primary_mechanical_issue}
-                  fullWidth
-                />
-              </View>
+              <SwingVideoPlayer
+                videoUrl={videoUrl}
+                keypoints={analysis?.keypoint_data}
+                primaryIssue={analysis?.coaching_output?.primary_mechanical_issue}
+                fullWidth
+              />
             ) : null}
 
 
@@ -975,9 +973,6 @@ const styles = StyleSheet.create({
     fontSize: fontSizes.body,
     color: colors.text.secondary,
     lineHeight: Math.round(fontSizes.body * 1.45),
-  },
-  videoFullWidth: {
-    marginHorizontal: -spacing.screen,
   },
   afterSubGrid: {
     marginTop: spacing.cardGap,
