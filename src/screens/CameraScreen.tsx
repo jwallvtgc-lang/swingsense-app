@@ -9,7 +9,7 @@ import {
   Dimensions,
   ActivityIndicator,
 } from 'react-native';
-import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
+import { CameraView, CameraType, useCameraPermissions, useMicrophonePermissions } from 'expo-camera';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -50,6 +50,7 @@ export default function CameraScreen() {
   const isReadyRef = useRef(false);
   const [countdown, setCountdown] = useState<number | null>(null);
   const [permission, requestPermission] = useCameraPermissions();
+  const [audioPermission, requestAudioPermission] = useMicrophonePermissions();
   const cuesHaveFired = useRef(false);
   const countdownTimer = useRef<NodeJS.Timeout | null>(null);
   const autoStartPending = useRef(false);
@@ -147,6 +148,19 @@ export default function CameraScreen() {
     }
 
     await new Promise(r => setTimeout(r, 500));
+
+    if (!audioPermission?.granted) {
+      const result = await requestAudioPermission();
+      if (!result.granted) {
+        Alert.alert(
+          'Microphone Required',
+          'SwingSense needs microphone access to record your swing. Please enable Camera and Microphone in Settings.',
+          [{ text: 'OK' }]
+        );
+        return;
+      }
+    }
+
     startCountdown();
   };
 
@@ -187,7 +201,7 @@ export default function CameraScreen() {
     try {
       setIsRecording(true);
       const video = await cameraRef.current.recordAsync({
-        maxDuration: 30,
+        maxDuration: 15,
       });
 
       if (video) {
@@ -195,7 +209,10 @@ export default function CameraScreen() {
       }
     } catch (error) {
       console.error('Recording failed:', error);
-      Alert.alert('Recording Failed', 'Could not record video. Please try again.');
+      const message = __DEV__
+        ? `Could not record video.\n\n${error instanceof Error ? error.message : String(error)}`
+        : 'Could not record video. Please try again.';
+      Alert.alert('Recording Failed', message);
     } finally {
       setIsRecording(false);
     }
@@ -255,6 +272,7 @@ export default function CameraScreen() {
 
       <CameraView
         ref={cameraRef}
+        mode="video"
         style={styles.camera}
         facing={facing}
         videoQuality="720p"
