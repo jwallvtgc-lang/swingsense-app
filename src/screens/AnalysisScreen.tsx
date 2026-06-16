@@ -20,7 +20,6 @@ import DecisionFactors from '../components/DecisionFactors';
 import DrillStep from '../components/DrillStep';
 import FeedbackRow from '../components/FeedbackRow';
 import PrimaryButton from '../components/PrimaryButton';
-import ScoreCard from '../components/ScoreCard';
 import ScoreRing from '../components/ScoreRing';
 import SectionCard from '../components/SectionCard';
 import SwingVideoPlayer from '../components/SwingVideoPlayer';
@@ -442,7 +441,6 @@ export default function AnalysisScreen() {
     return '';
   }, [coachSummary, analysis]);
 
-  // Calculate delta for ScoreCard
   const scoreDelta = useMemo(() => {
     if (!analysis || !previousAnalysis) return null;
 
@@ -450,17 +448,6 @@ export default function AnalysisScreen() {
     const previousScore = heroOverallScore(previousAnalysis);
     return currentScore - previousScore;
   }, [analysis, previousAnalysis]);
-
-  // Calculate recent scores for ScoreCard sparkline (last 3 scores, excluding current)
-  const recentScores = useMemo(() => {
-    if (!analysis) return [];
-
-    // Filter out the current analysis and get the most recent 3 before it
-    return allAnalyses
-      .filter(a => a.id !== analysis.id)
-      .slice(0, 3) // Take the 3 most recent (already sorted newest first)
-      .map(a => heroOverallScore(a));
-  }, [analysis, allAnalyses]);
 
   const handleDrillFeedback = async (
     feedback: 'helped' | 'still_struggling' | 'confused'
@@ -543,13 +530,16 @@ export default function AnalysisScreen() {
 
         {activeTab === TAB_RESULTS ? (
           <View style={styles.tabPanels}>
-            {/* 1. Video player with skeleton overlay */}
+            {/* 1. Video player — full width, edge to edge */}
             {videoUrl ? (
-              <SwingVideoPlayer
-                videoUrl={videoUrl}
-                keypoints={analysis?.keypoint_data}
-                primaryIssue={analysis?.coaching_output?.primary_mechanical_issue}
-              />
+              <View style={styles.videoFullWidth}>
+                <SwingVideoPlayer
+                  videoUrl={videoUrl}
+                  keypoints={analysis?.keypoint_data}
+                  primaryIssue={analysis?.coaching_output?.primary_mechanical_issue}
+                  fullWidth
+                />
+              </View>
             ) : null}
 
 
@@ -577,24 +567,17 @@ export default function AnalysisScreen() {
               </SectionCard>
             )}
 
-            {/* 4. ScoreCard - new compact score display */}
-            <ScoreCard
+            {/* 4. Merged score + mechanic breakdown */}
+            <DecisionFactors
+              stanceScore={analysis?.stance_score ?? null}
+              loadScore={analysis?.load_score ?? null}
+              powerPositionScore={analysis?.power_position_score ?? null}
+              slotScore={analysis?.slot_score ?? null}
+              balanceAtContactScore={analysis?.balance_at_contact_score ?? null}
+              primaryIssue={co?.primary_mechanical_issue?.title}
               score={heroScore}
               delta={scoreDelta}
-              recentScores={recentScores}
             />
-
-            {/* 5. Mechanic breakdown - after ScoreCard */}
-            <View style={styles.decisionFactorsWrap}>
-              <DecisionFactors
-                stanceScore={analysis?.stance_score ?? null}
-                loadScore={analysis?.load_score ?? null}
-                powerPositionScore={analysis?.power_position_score ?? null}
-                slotScore={analysis?.slot_score ?? null}
-                balanceAtContactScore={analysis?.balance_at_contact_score ?? null}
-                primaryIssue={co?.primary_mechanical_issue?.title}
-              />
-            </View>
 
             {/* 6. Comparison - after mechanic breakdown */}
             {showCompareSection && previousAnalysis ? (
@@ -967,7 +950,7 @@ const styles = StyleSheet.create({
   positiveObservation: {
     fontFamily: typography.body,
     fontSize: fontSizes.body,
-    color: colors.text.green,
+    color: colors.text.secondary,
     lineHeight: Math.round(fontSizes.body * 1.45),
   },
   improvementChip: {
@@ -993,14 +976,8 @@ const styles = StyleSheet.create({
     color: colors.text.secondary,
     lineHeight: Math.round(fontSizes.body * 1.45),
   },
-  heroScore: {
-    marginTop: spacing.sectionGap,
-    alignItems: 'center',
-    alignSelf: 'stretch',
-  },
-  decisionFactorsWrap: {
-    marginTop: spacing.sectionGap,
-    alignSelf: 'stretch',
+  videoFullWidth: {
+    marginHorizontal: -spacing.screen,
   },
   afterSubGrid: {
     marginTop: spacing.cardGap,

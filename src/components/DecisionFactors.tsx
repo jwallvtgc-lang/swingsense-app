@@ -15,8 +15,10 @@ import {
   fontSizes,
   fontWeights,
   getCore5BandColor,
+  getScoreColor,
   letterSpacing,
   radius,
+  scoreCard,
   scoreRing,
   spacing,
   typography,
@@ -33,6 +35,8 @@ export interface DecisionFactorsProps {
   slotScore: number | null;
   balanceAtContactScore: number | null;
   primaryIssue?: string;
+  score?: number;
+  delta?: number | null;
 }
 
 type FactorRow = {
@@ -108,6 +112,8 @@ export default function DecisionFactors({
   slotScore,
   balanceAtContactScore,
   primaryIssue,
+  score,
+  delta,
 }: DecisionFactorsProps) {
   const [expanded, setExpanded] = useState(false);
 
@@ -138,43 +144,78 @@ export default function DecisionFactors({
     setExpanded((e) => !e);
   };
 
+  const scoreBandColor = score != null ? getScoreColor(score) : colors.text.muted;
+
+  const trendText = (() => {
+    if (score == null) return '';
+    if (delta == null) return '1st swing';
+    if (delta > 0) return `+${delta} from last`;
+    if (delta < 0) return `${delta} from last`;
+    return 'no change';
+  })();
+
+  const trendColor = (() => {
+    if (delta == null || delta === 0) return colors.text.muted;
+    return delta > 0 ? colors.text.green : colors.text.muted;
+  })();
+
   return (
     <View style={styles.card}>
+      {/* Top: score circle (left) + pips + summary (right) */}
+      <View style={styles.mergedTop}>
+        {score != null && (
+          <View style={styles.scoreColumn}>
+            <View style={[styles.scoreCircle, { borderColor: scoreBandColor }]}>
+              <Text
+                style={[styles.scoreNumber, { color: scoreBandColor }]}
+                maxFontSizeMultiplier={1.35}
+              >
+                {Math.round(score)}
+              </Text>
+            </View>
+            <Text
+              style={[styles.trendText, { color: trendColor }]}
+              maxFontSizeMultiplier={1.35}
+            >
+              {trendText}
+            </Text>
+          </View>
+        )}
+        <View style={styles.factorsColumn}>
+          <View style={styles.pipRow}>
+            {rows.map((r) => (
+              <View
+                key={r.key}
+                style={[
+                  styles.pip,
+                  {
+                    backgroundColor:
+                      r.score != null ? getCore5BandColor(r.score) : colors.text.hint,
+                  },
+                ]}
+              />
+            ))}
+          </View>
+          <Text style={styles.summaryText}>{summary}</Text>
+        </View>
+      </View>
+
+      {/* Expand toggle */}
       <Pressable
         onPress={toggle}
-        style={({ pressed }) => [styles.headerPress, pressed && styles.headerPressed]}
+        style={({ pressed }) => [styles.expandRow, pressed && styles.expandRowPressed]}
         accessibilityRole="button"
         accessibilityState={{ expanded }}
         accessibilityLabel={
           expanded ? 'Collapse decision factors' : 'Expand decision factors'
         }
       >
-        <View style={styles.headerTop}>
-          <Text style={styles.sectionLabel}>Decision factors</Text>
-          <View style={styles.headerRight}>
-            <Text style={styles.hintText}>See what drove this score</Text>
-            <Ionicons
-              name={expanded ? 'chevron-up' : 'chevron-down'}
-              size={18}
-              color={colors.text.muted}
-            />
-          </View>
-        </View>
-        <View style={styles.pipRow}>
-          {rows.map((r) => (
-            <View
-              key={r.key}
-              style={[
-                styles.pip,
-                {
-                  backgroundColor:
-                    r.score != null ? getCore5BandColor(r.score) : colors.text.hint,
-                },
-              ]}
-            />
-          ))}
-        </View>
-        <Text style={styles.summaryText}>{summary}</Text>
+        <Text style={styles.hintText}>See what drove this score</Text>
+        <Ionicons
+          name={expanded ? 'chevron-up' : 'chevron-down'}
+          size={18}
+          color={colors.text.muted}
+        />
       </Pressable>
 
       {expanded ? (
@@ -226,45 +267,45 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bg.surface,
     borderRadius: radius.card,
     padding: spacing.card,
+  },
+  mergedTop: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.cardGap,
     marginBottom: spacing.cardGap,
   },
-  headerPress: {
-    alignSelf: 'stretch',
-  },
-  headerPressed: {
-    opacity: 0.92,
-  },
-  headerTop: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: spacing.iconGap,
-  },
-  sectionLabel: {
-    flex: 1,
-    minWidth: 0,
-    fontFamily: typography.body,
-    fontWeight: fontWeights.medium,
-    fontSize: fontSizes.sectionTitle,
-    color: colors.text.primary,
-  },
-  headerRight: {
-    flexDirection: 'row',
+  scoreColumn: {
     alignItems: 'center',
     gap: spacing.pillGap,
-    flexShrink: 0,
+    minWidth: 60,
   },
-  hintText: {
-    fontFamily: typography.body,
-    fontWeight: fontWeights.regular,
+  scoreCircle: {
+    width: scoreCard.circleSize,
+    height: scoreCard.circleSize,
+    borderRadius: radius.circle,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  scoreNumber: {
+    fontFamily: typography.display,
     fontSize: fontSizes.caption,
-    color: colors.text.secondary,
+    letterSpacing: letterSpacing.tight,
+  },
+  trendText: {
+    fontFamily: typography.body,
+    fontSize: fontSizes.micro,
+    textAlign: 'center',
+  },
+  factorsColumn: {
+    flex: 1,
+    gap: spacing.iconGap,
+    justifyContent: 'center',
   },
   pipRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.pillGap,
-    marginTop: spacing.iconGap,
   },
   pip: {
     width: spacing.subGrid,
@@ -272,11 +313,27 @@ const styles = StyleSheet.create({
     borderRadius: radius.circle,
   },
   summaryText: {
-    marginTop: spacing.iconGap,
     fontFamily: typography.body,
     fontWeight: fontWeights.regular,
     fontSize: fontSizes.caption,
     color: colors.text.muted,
+  },
+  expandRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingTop: spacing.cardGap,
+    borderTopWidth: 1,
+    borderTopColor: colors.border.subtle,
+  },
+  expandRowPressed: {
+    opacity: 0.92,
+  },
+  hintText: {
+    fontFamily: typography.body,
+    fontWeight: fontWeights.regular,
+    fontSize: fontSizes.caption,
+    color: colors.text.secondary,
   },
   expanded: {
     marginTop: spacing.cardGap,

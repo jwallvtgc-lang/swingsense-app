@@ -18,12 +18,14 @@ interface SwingVideoPlayerProps {
   videoUrl: string;
   keypoints?: KeypointData | null;
   primaryIssue?: PrimaryMechanicalIssue | null;
+  fullWidth?: boolean;
 }
 
 export default function SwingVideoPlayer({
   videoUrl,
   keypoints,
   primaryIssue,
+  fullWidth = false,
 }: SwingVideoPlayerProps) {
   const videoRef = useRef<Video>(null);
   const [thumbnailUri, setThumbnailUri] = useState<string | null>(null);
@@ -92,21 +94,22 @@ export default function SwingVideoPlayer({
       <Pressable
         style={[
           styles.videoContainer,
-          videoDimensions.width > 0 && {
-            width: videoDimensions.width,
-            height: videoDimensions.height,
-          }
+          fullWidth ? styles.videoContainerFull : styles.videoContainerCard,
+          !fullWidth && videoDimensions.width > 0
+            ? { width: videoDimensions.width, height: videoDimensions.height }
+            : undefined,
         ]}
         onPress={openFullScreen}
       >
         <View
           style={[
             styles.videoInner,
-            videoDimensions.width > 0 && {
-              width: innerVideoWidth,
-              height: innerVideoHeight,
-            },
-            isPortraitVideo && styles.videoInnerPortrait,
+            fullWidth
+              ? { width: '100%', height: '100%' }
+              : videoDimensions.width > 0
+                ? { width: innerVideoWidth, height: innerVideoHeight }
+                : undefined,
+            !fullWidth && isPortraitVideo ? styles.videoInnerPortrait : undefined,
           ]}
         >
           {/* Hidden video for dimensions only */}
@@ -168,14 +171,20 @@ const styles = StyleSheet.create({
   },
   videoContainer: {
     position: 'relative',
-    borderRadius: radius.card,
     overflow: 'hidden',
     backgroundColor: colors.bg.surface,
     aspectRatio: 16 / 9,
-    maxHeight: 200,
-    alignSelf: 'center',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  videoContainerCard: {
+    borderRadius: radius.card,
+    maxHeight: 200,
+    alignSelf: 'center',
+  },
+  videoContainerFull: {
+    borderRadius: 0,
+    alignSelf: 'stretch',
   },
   videoInner: {
     position: 'relative',
