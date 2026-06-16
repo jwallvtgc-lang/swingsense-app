@@ -1398,8 +1398,8 @@ async def analyze(request: AnalyzeRequest):
         if request.front_facing:
             _log("[Analyze] Mirroring X coordinates for front-facing camera")
             for frame in keypoint_data["frames"]:
-                for keypoint in frame["keypoints"]:
-                    keypoint[0] = 1.0 - keypoint[0]  # Mirror X coordinate
+                for kp in frame["keypoints"].values():
+                    kp["x"] = 1.0 - float(kp["x"])
         if len(keypoint_data["frames"]) < 30:
             _log(
                 "[Analyze] WARNING: Low frame count — metrics will be unreliable. Video may be too short or wrong format."
