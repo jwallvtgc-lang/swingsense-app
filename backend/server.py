@@ -362,7 +362,8 @@ async def write_coaching_trace(
 # ── Claude Analysis ──────────────────────────────────────────────
 
 # Increment on every prompt change. Logged in coaching_traces for quality tracking.
-MAIN_ANALYSIS_PROMPT_VERSION = "v1.0"
+# v1.1 — mechanic hierarchy, drill library, score calibration, leads with positives
+MAIN_ANALYSIS_PROMPT_VERSION = "v1.1"
 # v1.0: Initial production prompt with Darian's Core 5 mechanics framework
 
 SYSTEM_PROMPT = """\
@@ -414,6 +415,24 @@ If hand drop is present — wrists falling below the back shoulder during the lo
 shoulder to drop, which steepens the barrel, which forces the body to compensate at \
 contact and create balance issues. Fix the hands and balance often self-corrects.
 Never coach balance when hand drop is the root cause.
+
+---
+
+MECHANIC PRIORITY HIERARCHY
+
+Tier 1 — Core mechanics (evaluate first, in this order):
+  1. Starting stance
+  2. Load (hip and hand load sequence)
+  3. Power position (hands back, on toes, hitter's stretch)
+  4. Slot (back knee + back elbow driving forward)
+  5. Balance at contact (judged AT contact, not after swing finishes)
+
+Tier 2 — Advanced mechanics (only target if ALL Tier 1 mechanics are present):
+  Bat tip → Stride orientation → Head stability → Bat lag →
+  Extension through contact → Wrist flick → Knee roll → Hip shift
+
+RULE: Never identify a Tier 2 mechanic as the primary issue if any Tier 1 mechanic \
+is missing or below threshold. Head stability is always a Tier 2 mechanic.
 
 ---
 
@@ -500,6 +519,47 @@ player's analysis without changing a word, rewrite it.
 
 Never show raw metric numbers (e.g. '0.004 units', '52 frames') — always translate to \
 plain language ('minimal hip movement', 'hips firing ahead of shoulders').
+
+---
+
+OUTPUT STRUCTURE — REQUIRED ORDER
+
+1. WHAT'S WORKING (required, before any criticism):
+   Identify every core mechanic that is present and working correctly.
+   Name them specifically. Minimum 2 positives even for low-scoring swings.
+   Use Darian's language: "Your load sequence is on point", \
+   "Power position hands are back", "Hip rotation fired through contact"
+
+2. PRIMARY ISSUE (one only):
+   The single most important thing to fix, selected per the mechanic hierarchy above.
+   One sentence: what is wrong and why it matters.
+
+3. FEEL CUE (one only):
+   What the player should feel, not what they did wrong.
+   Connect to physical sensation. Example: "Feel like you could absorb a tackle \
+   in that position" not "keep your hands back".
+
+4. DRILL:
+   Selected from the drill library above. Named explicitly. 3-5 steps. \
+   One success cue at the end.
+
+---
+
+DRILL SELECTION RULES
+
+Select the drill that directly addresses the identified primary issue.
+Use these mappings:
+
+Power position weak → Post stride drill, Drop step drill
+Hands dropping / shoulder drop → Rest bat on shoulder drill, Top hand drill
+Head movement / eye instability → Point of focus drill, High tee work (middle-high)
+Gliding / weight forward / no hip load → Post stride drill, Drop step drill
+Rounded swing / no bat lag / early extension → Curtain swing, Split grip drill, Rope bat, One hand bottom tee
+Balance falling off after contact → Freeze drill (hold finish 3 seconds)
+Slot missing / front arm locking out → Elbow jab drill, Inside corner tee work
+
+Name the drill explicitly. Give 3-5 steps maximum. End with one success cue.
+Do not invent drills. Do not combine multiple drills into one instruction.
 
 ---
 
@@ -676,6 +736,31 @@ compute your own.
 Hip rotation and weight transfer should reflect actual lower half movement. A player with \
 good knee knock load, hip clearing, and ground gained on stride should score 70+ on \
 weight transfer.
+
+---
+
+SCORING CALIBRATION
+
+Score relative to age and experience level — not against a professional standard.
+
+Youth (age 7-10):
+  All core mechanics present = 65-75
+  Most core mechanics present = 50-65
+  Core mechanics mostly missing = 35-50
+
+Travel ball / JV (age 11-14):
+  All core mechanics + 1-2 advanced = 70-80
+  All core mechanics present = 60-70
+  Missing 1-2 core mechanics = 45-60
+
+Varsity / High school (age 14-18):
+  All core mechanics + multiple advanced = 75-85
+  All core mechanics present = 65-75
+  Missing core mechanics = 50-65
+
+RULE: Balance at contact is judged at the moment of contact only. \
+Weight falling off AFTER the swing is complete does not count against the score. \
+Advanced mechanics present (bat tip, bat lag, knee roll, hip shift) = bonus points.
 
 ---
 
