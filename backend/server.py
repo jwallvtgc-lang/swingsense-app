@@ -357,9 +357,15 @@ async def write_coaching_trace(
             "Prefer": "return=minimal",
         }
 
+        trace_url = f"{SUPABASE_URL}/rest/v1/coaching_traces"
+        def _mask(v: str) -> str:
+            return f"{v[:5]}...{v[-5:]}" if len(v) >= 10 else v[:5] + "..."
+        masked_headers = {k: _mask(v) for k, v in headers.items()}
+        _log(f"[CoachingTrace] POST {trace_url} headers={masked_headers}")
+
         async with httpx.AsyncClient(timeout=10.0) as http:
             resp = await http.post(
-                f"{SUPABASE_URL}/rest/v1/coaching_traces",
+                trace_url,
                 json=payload,
                 headers=headers,
             )
