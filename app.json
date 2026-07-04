@@ -14,7 +14,7 @@
       "backgroundColor": "#000000"
     },
     "ios": {
-      "buildNumber": "32",
+      "buildNumber": "35",
       "supportsTablet": true,
       "backgroundColor": "#050508",
       "bundleIdentifier": "com.swingsense.app",
