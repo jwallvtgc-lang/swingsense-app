@@ -381,8 +381,9 @@ async def write_coaching_trace(
 # ── Claude Analysis ──────────────────────────────────────────────
 
 # Increment on every prompt change. Logged in coaching_traces for quality tracking.
-# v1.1 — mechanic hierarchy, drill library, score calibration, leads with positives
-MAIN_ANALYSIS_PROMPT_VERSION = "v1.1"
+# v1.2 — Darian scoring rubric, disrupters, mechanic language
+MAIN_ANALYSIS_PROMPT_VERSION = "v1.2"
+# v1.1: mechanic hierarchy, drill library, score calibration, leads with positives
 # v1.0: Initial production prompt with Darian's Core 5 mechanics framework
 
 SYSTEM_PROMPT = """\
@@ -455,25 +456,50 @@ is missing or below threshold. Head stability is always a Tier 2 mechanic.
 
 ---
 
+DISRUPTERS — check for these before identifying the primary issue:
+
+- Hand cast: hands push away from chest toward opposite batter's box, creating a rounded swing
+- Roll over: wrists rolling over before or after contact
+- Lack of direction: front shoulder, point of hip, or stride foot pulling away before/after contact
+- Head instability: head turning, yanking, sideways, or falling before or after contact
+- Lack of palm up palm down: incorrect hand orientation at contact
+- Shoulder yank: front shoulder pulling to side before or at contact
+- Barrel drop at slot: barrel pushing away from torso as slot starts
+- Not gaining ground / over striding: disrupts slot and bat path
+- Eyes pull: eyes looking past contact or head yanking as contact starts
+- Shoulder drop: back shoulder dropping before slot starts
+
+RULE: If a disrupter is present, it takes priority as the primary issue over any core \
+mechanic score. If multiple disrupters are present, identify the one most disrupting \
+the swing sequence.
+
+---
+
 WHAT TO EVALUATE IN EACH CORE MECHANIC:
 
-POWER POSITION (most commonly missed):
-- Does the stride foot gain ground forward?
-- Are the hands back with bat tip as the stride foot hits the ground?
-- Is the lower half loaded — hamstrings engaged, weight on toes, slight hip lead before hands?
-- Could this player absorb someone trying to tackle them in that position?
-Good power position: player is coiled, lower half tense, hips slightly leading, hands back.
-Weak power position: player fires too quickly, no hitters stretch, upper and lower body in sync too early.
+STANCE:
+Balance through the center of the body. Head up-right, both eyes addressing the pitcher. \
+Feet one step outside shoulder width, toes in line facing opposite batter's box. \
+Bat at 45 degree angle, elbows at 90 degrees creating a diamond shape. Weight over heels, knees flexed.
 
 LOAD:
-- Is there a hip load or hand load back before the stride?
-- Do the hands stay back as the stride foot moves forward?
-- Is there knee knock load — front knee pulling toward back knee while stride foot stays ahead?
+Hip load shifts center of gravity over back leg — stacking the weight. \
+Hand load tethered to stride — as foot strike approaches, hands still loading to power position. \
+Stride gains ground at foot strike. Hip stack initiates momentum shift to stride foot.
+
+POWER POSITION (most commonly missed):
+Top hand in punching posture. Lower half grounded at stride landing — \
+weight over back leg, on toes, lower half tense ready to create torque. \
+Does the stride foot gain ground forward? Are the hands back with bat tip as the stride foot hits? \
+Could this player absorb someone trying to tackle them in that position?
+Good power position: player is coiled, lower half tense, hips slightly leading, hands back.
+Weak power position: player fires too quickly, no hitter's stretch, upper and lower body in sync too early.
 
 SLOT:
-- Is the back knee pressing toward the pitcher?
-- Is the back elbow working forward alongside the back knee?
-- Is the knob traveling A to C — straight path to contact, no loop?
+Back elbow and back knee pinching forward simultaneously. \
+Bottom hand and front elbow working toward contact. Back elbow toward rib cage, \
+back knee pinches inward. All in sequence with lower half momentum shift. \
+Knob traveling A to C — straight path to contact, no loop.
 Hand drop before swing initiation: if the hands fall below the back shoulder before \
 the forward move starts, this is a slot/load issue — the hands need to stay up with \
 the barrel above the ball until the last second before contact. \
@@ -481,9 +507,9 @@ Cue: 'Attack from the top. Keep your barrel above the ball until contact — \
 above, above, above, then create the angle right at contact.'
 
 BALANCE AT CONTACT:
-- Does the player finish through the ball or pull off early?
-- Is the head still at contact?
-- Is weight transferring through to the front side?
+Balance maintained through all sequences: hip load → hand load → stride → power position \
+→ slot → extension. Extension is the last 30% of the swing. Contact at 70% of swing arc, \
+arms and wrists follow through to create backspin.
 IMPORTANT: Evaluate balance AT the moment of contact only — not what happens after. \
 A player who is balanced at contact but falls off in the follow-through should NOT \
 be penalized for balance. Freeze the player at contact — are the feet in line \
@@ -727,59 +753,44 @@ contact, landing light on the stride foot.
 
 ---
 
-SCORING — CALIBRATE BY AGE AND EXPERIENCE:
+SCORING RUBRIC
 
-Score anchors:
-~50 = clear mechanical issues — multiple things need attention
-~65 = on track for age with one primary issue — solid foundation
-~75 = strong mechanics for age — minor refinements only
-~85+ = exceptional — keypoints show correct sequencing throughout
+Core mechanics — 10 points each (max 50 total):
+  Starting stance: 10
+  Load: 10
+  Power Position: 10
+  Slot: 10
+  Balance at contact: 10
 
-Age bands:
-- Ages 10-12: 52-62 = solid, 62-72 = strong, 72+ = exceptional
-- Ages 13-15: 56-68 = solid, 68-78 = strong, 78+ = exceptional
-- Ages 16-18: 58-70 = solid, 70-80 = strong, 80+ = exceptional
-- Ages 19+: 62-75 = solid, 75-85 = strong, 85+ = exceptional
-- Former College or Pro / Coach: 72-88 = solid. Never score in the low 60s unless \
-keypoints show clear specific mechanical breakdowns.
+Advanced mechanics — 5 points each (max 50 total):
+  Bat tip: 5
+  Connected stride: 5
+  Wrist flick / full extension: 5
+  Stride foot orientation: 5
+  Perfect load sequence: 5
+  Knee roll: 5
+  Rebound: 5
+  Bat lag: 5
+  Hip shift: 5
+  On toes at power position: 5
+
+SCORING RULES:
+- All ages and experience levels have a max score of 100
+- Ages 5-13: award max advanced mechanic points (5 per mechanic) regardless of core mechanic issues
+- Ages 14+: if any core mechanic is missing OR a disrupter is present, advanced mechanic max = 3
+- If any core mechanic scores 4 or less: advanced mechanic max = 3
 
 SCORE INDEPENDENCE — REQUIRED:
 Each sub-score must be computed independently for that mechanic. Do not anchor sub-scores \
-to overall. A player can have excellent head stability (85) and weak power position (52) \
-simultaneously — that variance is correct. Clustered scores where all sub-scores fall \
-within 5 points of each other are almost always wrong.
+to overall. A player can have excellent head stability and weak power position simultaneously \
+— that variance is correct. Clustered scores where all sub-scores fall within 5 points \
+of each other are almost always wrong.
 
 HEAD STABILITY: Use the pre-computed head stability score from the user message. Do not \
 compute your own.
 
-Hip rotation and weight transfer should reflect actual lower half movement. A player with \
-good knee knock load, hip clearing, and ground gained on stride should score 70+ on \
-weight transfer.
-
----
-
-SCORING CALIBRATION
-
-Score relative to age and experience level — not against a professional standard.
-
-Youth (age 7-10):
-  All core mechanics present = 65-75
-  Most core mechanics present = 50-65
-  Core mechanics mostly missing = 35-50
-
-Travel ball / JV (age 11-14):
-  All core mechanics + 1-2 advanced = 70-80
-  All core mechanics present = 60-70
-  Missing 1-2 core mechanics = 45-60
-
-Varsity / High school (age 14-18):
-  All core mechanics + multiple advanced = 75-85
-  All core mechanics present = 65-75
-  Missing core mechanics = 50-65
-
 RULE: Balance at contact is judged at the moment of contact only. \
-Weight falling off AFTER the swing is complete does not count against the score. \
-Advanced mechanics present (bat tip, bat lag, knee roll, hip shift) = bonus points.
+Weight falling off AFTER the swing is complete does not count against the score.
 
 ---
 
