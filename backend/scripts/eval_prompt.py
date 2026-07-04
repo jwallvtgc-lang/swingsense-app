@@ -227,99 +227,19 @@ Respond with JSON only. No preamble. No explanation outside the JSON.
 # ---------------------------------------------------------------------------
 # Ground truth — 7 labeled swings from Darian's scoring sheet (June 2026)
 #
-# darian_grade: Swings 1-3 use old format (grade inferred from quality score + verdict).
-#               Swings 4-7 have explicit structured verdict with A/B/C/F.
-#   Swing 1: 1/10 quality, completely wrong primary issue → F
-#   Swing 2: "did OK", right issue (head movement), tangled drill → C
-#   Swing 3: 6/10 quality, wrong prioritization (balance vs hands) → C
-#   Swing 4: explicit C — wrong mechanic (balance vs torque), language wrong
-#   Swing 5: explicit C — wrong mechanic (hands vs head), drill mismatch, language off
-#   Swing 6: explicit C — wrong mechanic (pulling off vs gliding), language wrong
-#   Swing 7: explicit F — wrong mechanic (spinning vs rounded swing), robotic, drill mismatch
+# All 7 swings use the structured verdict format with explicit A/B/C/F grade.
+#   Swing 1 (sheet #4): explicit C — wrong mechanic (balance vs torque), language wrong
+#   Swing 2 (sheet #5): explicit C — wrong mechanic (hands vs head), drill mismatch, language off
+#   Swing 3 (sheet #6): explicit C — wrong mechanic (pulling off vs gliding), language wrong
+#   Swing 4 (sheet #7): explicit F — wrong mechanic (spinning vs rounded swing), robotic, drill mismatch
+#   Swing 5 (sheet #8): explicit F — wrong mechanic (balance vs starting stance), 37pt score gap
+#   Swing 6 (sheet #9): explicit B — correct mechanic, correct drill, minor issues
+#   Swing 7 (sheet #10): explicit F — wrong mechanic (balance vs long swing), strong swing underscore
 # ---------------------------------------------------------------------------
 
 GROUND_TRUTH = [
     {
         "swing_id": 1,
-        "age": 16,
-        "level": "varsity high school",
-        "mechanics_context": (
-            "All 5 core mechanics present: stance ✓, load ✓, power position (weak) ✓, "
-            "slot ✓, balance at contact ✓. Advanced mechanics also present: bat tip, "
-            "head stability VERY GOOD throughout the entire swing, bat dip, knee roll "
-            "very good, rebound very good. Power position not strong enough — stride "
-            "foot needs more ground, hands need to be back with bat tip as stride foot "
-            "lands, not on toes at power position."
-        ),
-        "darian_primary_issue": "power position — stride foot needs to gain ground, hands need to be back with bat tip as stride foot hits the ground, hitter's stretch too weak",
-        "darian_grade": "F",
-        "app_primary_issue": "head position and stability — head is moving, disrupting the swing",
-        "app_summary": (
-            "Your head stability is the main thing to focus on in your swing. "
-            "Keeping your head still will improve your ability to track and hit the ball "
-            "consistently. Your load looks active but head movement is costing you."
-        ),
-        "app_drill": (
-            "Helmet snug drill — press your helmet snug on your head before each swing "
-            "and focus on keeping it in place throughout the swing. Repeat 10 times."
-        ),
-    },
-    {
-        "swing_id": 2,
-        "age": 14,
-        "level": "junior varsity",
-        "mechanics_context": (
-            "Hip load and lower half working well. Knee knock load good. Gained ground "
-            "with stride foot. Hand stability OK — hands didn't bounce or get pulled around. "
-            "Fired from a slightly downward angle which is good. Core mechanics mostly present. "
-            "Primary weakness: head moves significantly through hip load and as stride foot "
-            "lands, skewing vision and hurting timing."
-        ),
-        "darian_primary_issue": "head movement through load and stride — head moves a lot as stride foot lands, skewing vision and hurting timing",
-        "darian_grade": "C",
-        "app_primary_issue": "head stability — head is moving through the load and stride, causing vision and timing issues",
-        "app_summary": (
-            "Your lower half is working hard and you're gaining good ground with your stride. "
-            "Focus on keeping your head neutral through the swing. Keep your chin level and "
-            "don't let your shoulder chase your chin — your front shoulder rests under your "
-            "chin at the start and your back shoulder rotates under that neutral chin at contact."
-        ),
-        "app_drill": (
-            "Keep your chin level throughout the swing. Your front shoulder rests under your "
-            "chin at the starting stance — as you take your swing, your back shoulder will "
-            "rotate under that neutral chin. Try this concept on the tee first before "
-            "live pitching."
-        ),
-    },
-    {
-        "swing_id": 3,
-        "age": 7,
-        "level": "coach pitch",
-        "mechanics_context": (
-            "Starting stance good. Hand load and stride good. Knee roll and hip rotation good. "
-            "Core mechanics almost all present. "
-            "Primary weakness: hands drop below the shoulder before the swing starts, "
-            "back shoulder drops with them, creating a long slow swing path and forcing "
-            "upward extension at contact. "
-            "Secondary: head slides slightly away at contact — eyes drift off the ball."
-        ),
-        "darian_primary_issue": "hands dropping before the swing starts — back shoulder drops with them, creating a long slow swing and forcing upward extension at contact",
-        "darian_grade": "C",
-        "app_primary_issue": "balance through contact — momentum pulls away and balance is lost as the swing concludes",
-        "app_summary": (
-            "Good load and stride fundamentals — you're working your lower half well. "
-            "The main adjustment is staying balanced through the whole swing. Get on your "
-            "front side at contact and hold that finish position. Your balance through "
-            "the swing will lead to more consistent contact."
-        ),
-        "app_drill": (
-            "Freeze drill — take a full swing and hold your finish position for 3 seconds. "
-            "Feel your weight on your front foot and maintain your balance at the "
-            "conclusion of the swing."
-        ),
-    },
-    {
-        "swing_id": 4,
         "age": 16,
         "level": "high school",
         "mechanics_context": (
@@ -345,7 +265,7 @@ GROUND_TRUTH = [
         ),
     },
     {
-        "swing_id": 5,
+        "swing_id": 2,
         "age": 10,
         "level": "travel",
         "mechanics_context": (
@@ -369,7 +289,7 @@ GROUND_TRUTH = [
         ),
     },
     {
-        "swing_id": 6,
+        "swing_id": 3,
         "age": 7,
         "level": "youth",
         "mechanics_context": (
@@ -397,7 +317,7 @@ GROUND_TRUTH = [
         ),
     },
     {
-        "swing_id": 7,
+        "swing_id": 4,
         "age": 10,
         "level": "rec",
         "mechanics_context": (
@@ -423,7 +343,7 @@ GROUND_TRUTH = [
         ),
     },
     {
-        "swing_id": 8,
+        "swing_id": 5,
         "age": 9,
         "level": "rec",
         "mechanics_context": (
@@ -452,7 +372,7 @@ GROUND_TRUTH = [
         ),
     },
     {
-        "swing_id": 9,
+        "swing_id": 6,
         "age": 10,
         "level": "rec/little league",
         "mechanics_context": (
@@ -480,7 +400,7 @@ GROUND_TRUTH = [
         ),
     },
     {
-        "swing_id": 10,
+        "swing_id": 7,
         "age": 13,
         "level": "travel ball",
         "mechanics_context": (
