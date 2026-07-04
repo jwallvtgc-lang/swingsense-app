@@ -470,14 +470,6 @@ export async function startAnalysisPipeline(
       return { analysis: null, error: updateError as Error };
     }
 
-    trackEvent('swing_analysis_completed', {
-      overall_score: similarityBreakdown?.overall ?? null,
-      experience_level: profile?.experience_level ?? null,
-      primary_issue: coachingOutput?.primary_mechanical_issue?.title ?? null,
-    });
-
-    await logAnalysisCompleted(userId, analysisId, coachingOutput);
-
     supabase.from('coaching_traces').insert({
       user_id: userId,
       swing_id: analysisId,
@@ -493,6 +485,18 @@ export async function startAnalysisPipeline(
     }).then(({ error: traceError }) => {
       if (traceError) console.warn('[coaching_traces] insert failed:', traceError.message);
     });
+
+    trackEvent('swing_analysis_completed', {
+      overall_score: similarityBreakdown?.overall ?? null,
+      experience_level: profile?.experience_level ?? null,
+      primary_issue: coachingOutput?.primary_mechanical_issue?.title ?? null,
+    });
+
+    try {
+      await logAnalysisCompleted(userId, analysisId, coachingOutput);
+    } catch (logErr) {
+      console.warn('[logAnalysisCompleted] failed:', logErr);
+    }
 
     onStatusChange?.('completed', 'Analysis complete!');
 
