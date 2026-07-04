@@ -42,6 +42,8 @@ _log(
     f"[Startup] SUPABASE_SERVICE_KEY={'set' if os.environ.get('SUPABASE_SERVICE_KEY') else 'NOT SET'}"
 )
 _log(f"[Startup] SUPABASE_ANON_KEY={'set' if os.environ.get('SUPABASE_ANON_KEY') else 'NOT SET'}")
+_trace_key = os.environ.get("SUPABASE_SERVICE_KEY") or os.environ.get("SUPABASE_ANON_KEY") or ""
+_log(f"[Startup] CoachingTrace key: {_trace_key[:20]}...{_trace_key[-5:] if len(_trace_key) >= 5 else '(too short)'}")
 
 try:
     from tflite_runtime.interpreter import Interpreter
