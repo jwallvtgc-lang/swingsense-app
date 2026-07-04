@@ -25,7 +25,6 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from supabase import create_client, Client
 
 load_dotenv()
 
@@ -285,70 +284,6 @@ def calculate_head_stability(frames: list) -> int | None:
 
     final_score = (range_score * 0.6) + (variance_score * 0.4)
     return round(min(100, max(0, final_score)))
-
-
-async def write_coaching_trace(
-    user_id: str | None,
-    swing_id: str | None,
-    call_type: str,
-    experience_level: str | None,
-    computed_metrics: dict | None,
-    full_prompt: str,
-    raw_response: str,
-    parsed_response: dict | None,
-    latency_ms: int,
-    model_version: str,
-    prompt_version: str
-) -> None:
-    """Write a coaching trace record to Supabase for quality tracking."""
-    SUPABASE_URL = (os.environ.get("SUPABASE_URL") or "").rstrip("/")
-    SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_KEY") or os.environ.get("SUPABASE_ANON_KEY")
-
-    if not SUPABASE_URL or not SUPABASE_KEY:
-        _log("[CoachingTrace] WARNING: Missing Supabase config, skipping trace write")
-        return
-
-    try:
-        # Extract parsed fields for quality tracking
-        parsed_primary_issue = None
-        parsed_cue = None
-        parsed_drill = None
-        parsed_summary = None
-
-        if parsed_response and isinstance(parsed_response, dict):
-            if call_type == "main_analysis":
-                parsed_primary_issue = parsed_response.get("primary_mechanical_issue", {}).get("title")
-                parsed_drill = parsed_response.get("drill")
-                parsed_summary = parsed_response.get("overall_summary")
-            elif call_type == "drill_coach":
-                parsed_cue = parsed_response.get("response_text")
-                parsed_drill = parsed_response.get("adjusted_drill")
-            elif call_type == "progress_coach":
-                parsed_summary = parsed_response.get("summary")
-
-        payload = {
-            "user_id": user_id,
-            "swing_id": swing_id,
-            "call_type": call_type,
-            "experience_level": experience_level,
-            "computed_metrics": computed_metrics,
-            "full_prompt": full_prompt,
-            "raw_response": raw_response,
-            "parsed_primary_issue": parsed_primary_issue,
-            "parsed_cue": parsed_cue,
-            "parsed_drill": parsed_drill,
-            "parsed_summary": parsed_summary,
-            "latency_ms": latency_ms,
-            "model_version": model_version,
-            "prompt_version": prompt_version,
-        }
-
-        sb: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
-        sb.table("coaching_traces").insert(payload).execute()
-        _log(f"[CoachingTrace] Logged {call_type} trace: {latency_ms}ms, model={model_version}, prompt={prompt_version}")
-    except Exception as e:
-        _log(f"[CoachingTrace] ERROR writing trace: {e}")
-        # Don't raise - trace logging failures shouldn't break the API
 
 
 # ── Claude Analysis ──────────────────────────────────────────────
@@ -1284,25 +1219,6 @@ The lowest scoring mechanic above is the most likely primary issue. Use overall 
             parsed_result = None
             raise HTTPException(status_code=500, detail="Failed to parse Claude response as JSON")
 
-    # Write coaching trace (async, non-blocking)
-    try:
-        await write_coaching_trace(
-            user_id=user_id,
-            swing_id=analysis_id,
-            call_type="main_analysis",
-            experience_level=player_profile.get("experience_level"),
-            computed_metrics=core_5_scores,
-            full_prompt=full_prompt,
-            raw_response=result_text,
-            parsed_response=parsed_result,
-            latency_ms=latency_ms,
-            model_version="claude-sonnet-4-6",
-            prompt_version=MAIN_ANALYSIS_PROMPT_VERSION
-        )
-    except Exception as e:
-        _log(f"[analyze_with_claude] Error writing trace: {e}")
-        # Continue - don't fail the analysis due to trace errors
-
     return parsed_result
 
 
@@ -1529,6 +1445,10 @@ async def analyze(request: AnalyzeRequest):
             "coaching_output": coaching_output,
             "core_5_scores": core_5_scores,
             "processing_time_seconds": round(elapsed, 1),
+            "prompt_version": MAIN_ANALYSIS_PROMPT_VERSION,
+            "model_version": "claude-sonnet-4-6",
+            "latency_ms": round(elapsed * 1000),
+            "computed_metrics": core_5_scores,
         }
     except httpx.HTTPStatusError as e:
         _log(f"[Analyze] Video download failed: {e}")
@@ -1633,25 +1553,6 @@ Instruction: {tone_instruction}"""
         else:
             parsed_result = None
             raise HTTPException(status_code=500, detail="Failed to parse response")
-
-    # Write coaching trace (async, non-blocking)
-    try:
-        await write_coaching_trace(
-            user_id=profile.get("user_id"),  # Assuming user_id is in profile
-            swing_id=request.analysis_id,
-            call_type="drill_coach",
-            experience_level=profile.get("experience_level"),
-            computed_metrics=None,  # No computed metrics for drill followup
-            full_prompt=full_prompt,
-            raw_response=result_text,
-            parsed_response=parsed_result,
-            latency_ms=latency_ms,
-            model_version="claude-sonnet-4-20250514",
-            prompt_version=DRILL_COACH_PROMPT_VERSION
-        )
-    except Exception as e:
-        _log(f"[drill_followup] Error writing trace: {e}")
-        # Continue - don't fail the response due to trace errors
 
     return parsed_result
 
@@ -1824,35 +1725,6 @@ Write a short encouraging progress update in Darian's voice."""
             _log("[ProgressCoach] Failed to parse Claude response as JSON")
             raise HTTPException(status_code=500, detail="Failed to parse response")
 
-    # Write coaching trace (async, non-blocking)
-    try:
-        # Build computed metrics summary
-        computed_metrics = {
-            "swings_count": len(request.swings),
-            "best_overall": best_overall,
-            "trends": {label: change for label, change in zip(
-                ["Stance", "Load", "Power Position", "Slot", "Balance at Contact"],
-                [trend(m)[0] for m in metrics if trend(m)[0] is not None]
-            )}
-        }
-
-        await write_coaching_trace(
-            user_id=request.user_id,
-            swing_id=None,  # Progress coach doesn't relate to a specific swing
-            call_type="progress_coach",
-            experience_level=profile.get("experience_level"),
-            computed_metrics=computed_metrics,
-            full_prompt=full_prompt,
-            raw_response=result_text,
-            parsed_response=claude_response,
-            latency_ms=latency_ms,
-            model_version="claude-sonnet-4-20250514",
-            prompt_version=PROGRESS_COACH_PROMPT_VERSION
-        )
-    except Exception as e:
-        _log(f"[progress_coach] Error writing trace: {e}")
-        # Continue - don't fail the response due to trace errors
-
     # Add our computed best_overall to the response
     claude_response["best_overall"] = best_overall
     return claude_response
@@ -1948,33 +1820,6 @@ Write a personal best celebration in Darian's coaching voice."""
         else:
             parsed_result = None
             raise HTTPException(status_code=500, detail="Failed to parse personal best response")
-
-    # Write coaching trace (async, non-blocking)
-    try:
-        # Build computed metrics for personal best
-        computed_metrics = {
-            "new_score": request.new_score,
-            "previous_best": request.previous_best,
-            "improvement_points": improvement_points,
-            "is_first_swing": is_first_swing
-        }
-
-        await write_coaching_trace(
-            user_id=request.user_id,
-            swing_id=request.swing_id,
-            call_type="personal_best",
-            experience_level=profile.get("experience_level"),
-            computed_metrics=computed_metrics,
-            full_prompt=full_prompt,
-            raw_response=result_text,
-            parsed_response=parsed_result,
-            latency_ms=latency_ms,
-            model_version="claude-sonnet-4-20250514",
-            prompt_version=PERSONAL_BEST_PROMPT_VERSION
-        )
-    except Exception as e:
-        _log(f"[personal_best] Error writing trace: {e}")
-        # Continue - don't fail the response due to trace errors
 
     return parsed_result
 
