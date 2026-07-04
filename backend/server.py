@@ -362,6 +362,8 @@ async def write_coaching_trace(
             return f"{v[:5]}...{v[-5:]}" if len(v) >= 10 else v[:5] + "..."
         masked_headers = {k: _mask(v) for k, v in headers.items()}
         _log(f"[CoachingTrace] POST {trace_url} headers={masked_headers}")
+        payload_preview = json.dumps(payload)[:200]
+        _log(f"[CoachingTrace] body={payload_preview}")
 
         async with httpx.AsyncClient(timeout=10.0) as http:
             resp = await http.post(
