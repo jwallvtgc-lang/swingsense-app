@@ -42,8 +42,13 @@ _log(
     f"[Startup] SUPABASE_SERVICE_KEY={'set' if os.environ.get('SUPABASE_SERVICE_KEY') else 'NOT SET'}"
 )
 _log(f"[Startup] SUPABASE_ANON_KEY={'set' if os.environ.get('SUPABASE_ANON_KEY') else 'NOT SET'}")
-_trace_key = os.environ.get("SUPABASE_SERVICE_KEY") or os.environ.get("SUPABASE_ANON_KEY") or ""
-_log(f"[Startup] CoachingTrace key: {_trace_key[:20]}...{_trace_key[-5:] if len(_trace_key) >= 5 else '(too short)'}")
+_trace_key = (
+    os.environ.get("SUPABASE_SERVICE_ROLE_KEY") or
+    os.environ.get("SUPABASE_SERVICE_KEY") or
+    os.environ.get("SUPABASE_ANON_KEY") or
+    ""
+)
+_log(f"[Startup] CoachingTrace key resolved: ...{_trace_key[-10:] if len(_trace_key) >= 10 else '(too short)'}")
 
 try:
     from tflite_runtime.interpreter import Interpreter
@@ -284,6 +289,85 @@ def calculate_head_stability(frames: list) -> int | None:
 
     final_score = (range_score * 0.6) + (variance_score * 0.4)
     return round(min(100, max(0, final_score)))
+
+
+async def write_coaching_trace(
+    user_id: str | None,
+    swing_id: str | None,
+    call_type: str,
+    experience_level: str | None,
+    computed_metrics: dict | None,
+    full_prompt: str,
+    raw_response: str,
+    parsed_response: dict | None,
+    latency_ms: int,
+    model_version: str,
+    prompt_version: str,
+) -> None:
+    """Write a coaching trace record to Supabase for quality tracking."""
+    SUPABASE_URL = (os.environ.get("SUPABASE_URL") or "").rstrip("/")
+    SUPABASE_KEY = (
+        os.environ.get("SUPABASE_SERVICE_ROLE_KEY") or
+        os.environ.get("SUPABASE_SERVICE_KEY") or
+        os.environ.get("SUPABASE_ANON_KEY")
+    )
+
+    if not SUPABASE_URL or not SUPABASE_KEY:
+        _log("[CoachingTrace] WARNING: Missing Supabase config, skipping trace write")
+        return
+
+    try:
+        parsed_primary_issue = None
+        parsed_cue = None
+        parsed_drill = None
+        parsed_summary = None
+
+        if parsed_response and isinstance(parsed_response, dict):
+            if call_type == "main_analysis":
+                parsed_primary_issue = parsed_response.get("primary_mechanical_issue", {}).get("title")
+                parsed_drill = parsed_response.get("drill")
+                parsed_summary = parsed_response.get("overall_summary")
+            elif call_type == "drill_coach":
+                parsed_cue = parsed_response.get("response_text")
+                parsed_drill = parsed_response.get("adjusted_drill")
+            elif call_type == "progress_coach":
+                parsed_summary = parsed_response.get("summary")
+
+        payload = {
+            "user_id": user_id,
+            "swing_id": swing_id,
+            "call_type": call_type,
+            "experience_level": experience_level,
+            "computed_metrics": computed_metrics,
+            "full_prompt": full_prompt,
+            "raw_response": raw_response,
+            "parsed_primary_issue": parsed_primary_issue,
+            "parsed_cue": parsed_cue,
+            "parsed_drill": parsed_drill,
+            "parsed_summary": parsed_summary,
+            "latency_ms": latency_ms,
+            "model_version": model_version,
+            "prompt_version": prompt_version,
+        }
+
+        headers = {
+            "apikey": SUPABASE_KEY,
+            "Authorization": f"Bearer {SUPABASE_KEY}",
+            "Content-Type": "application/json",
+            "Prefer": "return=minimal",
+        }
+
+        async with httpx.AsyncClient(timeout=10.0) as http:
+            resp = await http.post(
+                f"{SUPABASE_URL}/rest/v1/coaching_traces",
+                json=payload,
+                headers=headers,
+            )
+            resp.raise_for_status()
+
+        _log(f"[CoachingTrace] Logged {call_type}: {latency_ms}ms model={model_version} prompt={prompt_version}")
+    except Exception as e:
+        _log(f"[CoachingTrace] ERROR writing trace: {e}")
 
 
 # ── Claude Analysis ──────────────────────────────────────────────
@@ -1554,6 +1638,23 @@ Instruction: {tone_instruction}"""
             parsed_result = None
             raise HTTPException(status_code=500, detail="Failed to parse response")
 
+    try:
+        await write_coaching_trace(
+            user_id=profile.get("user_id"),
+            swing_id=request.analysis_id,
+            call_type="drill_coach",
+            experience_level=profile.get("experience_level"),
+            computed_metrics=None,
+            full_prompt=full_prompt,
+            raw_response=result_text,
+            parsed_response=parsed_result,
+            latency_ms=latency_ms,
+            model_version="claude-sonnet-4-20250514",
+            prompt_version=DRILL_COACH_PROMPT_VERSION,
+        )
+    except Exception as e:
+        _log(f"[drill_followup] Error writing trace: {e}")
+
     return parsed_result
 
 
@@ -1725,6 +1826,23 @@ Write a short encouraging progress update in Darian's voice."""
             _log("[ProgressCoach] Failed to parse Claude response as JSON")
             raise HTTPException(status_code=500, detail="Failed to parse response")
 
+    try:
+        await write_coaching_trace(
+            user_id=request.user_id,
+            swing_id=None,
+            call_type="progress_coach",
+            experience_level=profile.get("experience_level"),
+            computed_metrics=None,
+            full_prompt=full_prompt,
+            raw_response=result_text,
+            parsed_response=claude_response,
+            latency_ms=latency_ms,
+            model_version="claude-sonnet-4-20250514",
+            prompt_version=PROGRESS_COACH_PROMPT_VERSION,
+        )
+    except Exception as e:
+        _log(f"[progress_coach] Error writing trace: {e}")
+
     # Add our computed best_overall to the response
     claude_response["best_overall"] = best_overall
     return claude_response
@@ -1820,6 +1938,23 @@ Write a personal best celebration in Darian's coaching voice."""
         else:
             parsed_result = None
             raise HTTPException(status_code=500, detail="Failed to parse personal best response")
+
+    try:
+        await write_coaching_trace(
+            user_id=request.user_id,
+            swing_id=request.swing_id,
+            call_type="personal_best",
+            experience_level=profile.get("experience_level"),
+            computed_metrics=None,
+            full_prompt=full_prompt,
+            raw_response=result_text,
+            parsed_response=parsed_result,
+            latency_ms=latency_ms,
+            model_version="claude-sonnet-4-20250514",
+            prompt_version=PERSONAL_BEST_PROMPT_VERSION,
+        )
+    except Exception as e:
+        _log(f"[personal_best] Error writing trace: {e}")
 
     return parsed_result
 
