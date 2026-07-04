@@ -976,32 +976,59 @@ def compute_core_5(frames: list, head_stability_score: int | None = None) -> dic
         return None
 
     # STANCE — evaluate from setup frames (first 20%)
+    # Note: hip X-width is NOT used — from a side-angle camera, left/right hip X
+    # coordinates are nearly identical (~0.01–0.02), always below any useful threshold.
+    # Knee bend Y-ratio and hip height are viewpoint-independent and reliable from the side.
     setup_frames = frames[: max(2, len(frames) // 5)]
-    hip_widths, knee_bends = [], []
+    knee_bends, hip_crouch = [], []
     for f in setup_frames:
         lh = get_kp(f, "left_hip")
         rh = get_kp(f, "right_hip")
         lk = get_kp(f, "left_knee")
+        rk = get_kp(f, "right_knee")
         la = get_kp(f, "left_ankle")
-        if lh and rh:
-            hip_widths.append(abs(lh[0] - rh[0]))
+        ra = get_kp(f, "right_ankle")
+
+        # Knee bend: (knee_y - hip_y) / (ankle_y - hip_y)
+        # 0 = locked straight, ~0.50 = good athletic flex, >0.80 = extreme bend
+        # Uses Y-axis only — works from any camera angle
         if lk and lh and la:
             total = abs(la[1] - lh[1])
             if total > 0:
                 knee_bends.append(abs(lk[1] - lh[1]) / total)
+        if rk and rh and ra:
+            total = abs(ra[1] - rh[1])
+            if total > 0:
+                knee_bends.append(abs(rk[1] - rh[1]) / total)
+
+        # Hip crouch depth: hip_y / ankle_y
+        # Higher ratio = hips lower in frame = more athletic crouch
+        # Typical batting stance: 0.60–0.80. Below 0.55 = standing too tall.
+        if lh and la and la[1] > 0:
+            hip_crouch.append(lh[1] / la[1])
+        elif rh and ra and ra[1] > 0:
+            hip_crouch.append(rh[1] / ra[1])
+
     stance_score = 65
-    if hip_widths:
-        avg = sum(hip_widths) / len(hip_widths)
-        if 0.04 <= avg <= 0.18:
-            stance_score += 10
-        elif avg < 0.03:
-            stance_score -= 15
+
+    # Primary: knee flex (both legs averaged when available)
     if knee_bends:
         avg = sum(knee_bends) / len(knee_bends)
-        if 0.35 <= avg <= 0.65:
-            stance_score += 8
-        elif avg < 0.2 or avg > 0.8:
-            stance_score -= 10
+        if 0.35 <= avg <= 0.70:
+            stance_score += 12  # good athletic flex
+        elif 0.25 <= avg < 0.35 or 0.70 < avg <= 0.82:
+            stance_score += 4   # some flex present
+        elif avg < 0.20 or avg > 0.85:
+            stance_score -= 12  # legs nearly locked or extreme crouch
+
+    # Secondary: hip height as crouch-depth proxy
+    if hip_crouch:
+        avg = sum(hip_crouch) / len(hip_crouch)
+        if 0.60 <= avg <= 0.80:
+            stance_score += 8   # hips in athletic position
+        elif avg < 0.52:
+            stance_score -= 8   # standing too tall — hips too high
+
     stance_score = max(0, min(100, stance_score))
 
     # LOAD — hip and hand movement in first half
