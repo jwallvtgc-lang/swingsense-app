@@ -422,6 +422,91 @@ GROUND_TRUTH = [
             "conclude the swing. Avoid letting it pull to the sky."
         ),
     },
+    {
+        "swing_id": 8,
+        "age": 9,
+        "level": "rec",
+        "mechanics_context": (
+            "Hip turn present. Knee drive present. Head balanced at contact. Palm up palm down. "
+            "Critical gaps in core mechanics: starting stance missing — feet and elbows not "
+            "set correctly, no bat tip, no diamond shape. No load sequence at all. "
+            "Barrel dipped well below the shoulders creating accuracy issues at contact. "
+            "Front arm locking out as player reaches slot, causing a long rounded swing. "
+            "Wrists rolling over after contact. Slot only half-working (back knee/elbow "
+            "present but front arm lockout undermines it). This is a beginner swing — "
+            "almost no core mechanics present. Darian scored it 20/100."
+        ),
+        "darian_primary_issue": "starting stance — no foundation built; feet, elbows, bat tip all incorrect; without the stance foundation no other mechanic can be built correctly",
+        "darian_grade": "F",
+        "app_primary_issue": "balance at contact — body coming around the ball",
+        "app_summary": (
+            "And that rhythm is real good. The main thing to work on is your balance at "
+            "contact — your body is coming around the ball instead of driving through it. "
+            "Focus on finishing with your belly button facing the pitcher and holding "
+            "that position."
+        ),
+        "app_drill": (
+            "Freeze drill — freeze your finish every single swing. Get that locked in "
+            "and you are going to start hitting the ball harder. Take your normal stance "
+            "and swing at a tee."
+        ),
+    },
+    {
+        "swing_id": 9,
+        "age": 10,
+        "level": "rec/little league",
+        "mechanics_context": (
+            "Load present. Power position present — hands back, stride foot down, fully "
+            "stretched at power position. Slot present. "
+            "Core mechanics with issues: starting stance off, balance at contact weak, "
+            "barrel drops during the swing. Head tilts rather than staying still through "
+            "contact. "
+            "Darian's core score breakdown: stance 40, load 60, power position 70, "
+            "slot 60, balance at contact 30."
+        ),
+        "darian_primary_issue": "starting stance, balance at contact, and barrel drop — starting stance is the foundation that needs correction first",
+        "darian_grade": "B",
+        "app_primary_issue": "balance at contact",
+        "app_summary": (
+            "Your load, power position, and slot are working well — that's a real strength "
+            "for your age. The main adjustment is balance at contact. Your head tilts "
+            "through the swing instead of staying still, which affects where you make "
+            "contact with the ball. Keep your head and torso like a statue."
+        ),
+        "app_drill": (
+            "Post stride drill — load, stride, pause in power position, then swing. "
+            "Do this on the tee at the middle of the plate. Also try dry hack in the "
+            "mirror to watch your head stay still through the swing."
+        ),
+    },
+    {
+        "swing_id": 10,
+        "age": 13,
+        "level": "travel ball",
+        "mechanics_context": (
+            "All core mechanics present and working well: stance ✓, load ✓, power position ✓, "
+            "slot ✓, balance at contact ✓. "
+            "Advanced mechanics also present: bat tip, connected stride, full extension, "
+            "stride foot orientation, knee roll, rebound, hip shift. "
+            "Primary weaknesses: semi-long swing, slight disconnection at power position, "
+            "barrel control issues, over-striding. "
+            "Darian scored this 76/100 — a strong travel ball swing. "
+            "Note: player was NOT spinning off the ball. Balance at contact was solid."
+        ),
+        "darian_primary_issue": "semi-long swing and over-striding — barrel control issues, slight disconnection at power position; swing needs to be more compact to contact",
+        "darian_grade": "F",
+        "app_primary_issue": "balance at contact — spinning away from the ball",
+        "app_summary": (
+            "You have good fundamental mechanics and your lower half is active. The main "
+            "thing to address is your balance at contact — you are spinning away from the "
+            "ball before you finish through it. Keep your belly button tracking to the "
+            "pitcher as you drive through the pitch."
+        ),
+        "app_drill": (
+            "Stay-through drill — focus on keeping your finish pointed at the pitcher "
+            "after contact. Work this on the tee until balance at contact is locked in."
+        ),
+    },
 ]
 
 # ---------------------------------------------------------------------------
