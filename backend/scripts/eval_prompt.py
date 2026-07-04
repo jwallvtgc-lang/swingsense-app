@@ -30,7 +30,7 @@ import anthropic
 
 # Increment when eval prompt changes. Used to track calibration history.
 # v1.0 — Initial prompt calibrated to 7 Darian-labeled swings (June 2026)
-EVAL_PROMPT_VERSION = "v1.0"
+EVAL_PROMPT_VERSION = "v1.1"
 
 # ---------------------------------------------------------------------------
 # Eval prompt
@@ -54,7 +54,9 @@ positives, feel cue connects to physical sensation, drill directly addresses the
 age-appropriate language.
 
 B = Good coaching, minor issues. Right mechanic, right drill, but language slightly \
-generic or summary slightly too long.
+generic or summary slightly too long. If the primary mechanic identified is a correct \
+Tier 1 weakness AND tone is warm AND language is age-appropriate → grade is B, even \
+if the drill does not perfectly match the issue.
 
 C = Not completely off-base but execution poor. This includes:
   - Right mechanic identified but vague language, unnamed drill, or wrong drill
@@ -66,6 +68,9 @@ F = Clearly wrong. Requires at least two of the following:
   - Sounds robotic — same content copy-pasted between sections verbatim
   - Drill has zero connection to any real issue in this swing
   - Language that would confuse or mislead the player
+F requires wrong mechanic PLUS robotic or repetitive language OR drill with zero \
+logical connection to any real issue. Wrong mechanic alone with warm age-appropriate \
+tone = C not F.
 
 ---
 
