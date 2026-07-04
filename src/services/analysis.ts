@@ -478,22 +478,6 @@ export async function startAnalysisPipeline(
 
     await logAnalysisCompleted(userId, analysisId, coachingOutput);
 
-    supabase.from('coaching_traces').insert({
-      user_id: userId,
-      swing_id: analysisId,
-      call_type: 'main_analysis',
-      experience_level: profile?.experience_level ?? null,
-      computed_metrics: result.computed_metrics ?? null,
-      parsed_primary_issue: coachingOutput?.primary_mechanical_issue?.title ?? null,
-      parsed_summary: coachingOutput?.overall_summary ?? null,
-      parsed_drill: coachingOutput?.drill ?? null,
-      latency_ms: result.latency_ms ?? null,
-      model_version: result.model_version ?? null,
-      prompt_version: result.prompt_version ?? null,
-    }).then(({ error: traceError }) => {
-      if (traceError) console.warn('[coaching_traces] insert failed:', traceError.message);
-    });
-
     onStatusChange?.('completed', 'Analysis complete!');
 
     return { analysis: updated as SwingAnalysis, error: null };
