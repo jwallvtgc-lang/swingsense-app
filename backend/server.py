@@ -1311,23 +1311,6 @@ The lowest scoring mechanic above is the most likely primary issue. Use overall 
             parsed_result = None
             raise HTTPException(status_code=500, detail="Failed to parse Claude response as JSON")
 
-    try:
-        await write_coaching_trace(
-            user_id=user_id,
-            swing_id=analysis_id,
-            call_type="main_analysis",
-            experience_level=player_profile.get("experience_level"),
-            computed_metrics=core_5_scores,
-            full_prompt=full_prompt,
-            raw_response=result_text,
-            parsed_response=parsed_result,
-            latency_ms=latency_ms,
-            model_version="claude-sonnet-4-6",
-            prompt_version=MAIN_ANALYSIS_PROMPT_VERSION,
-        )
-    except Exception as e:
-        _log(f"[analyze_with_claude] Error writing trace: {e}")
-
     return parsed_result
 
 
