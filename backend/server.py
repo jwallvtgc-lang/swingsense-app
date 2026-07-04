@@ -1157,39 +1157,50 @@ def compute_core_5(frames: list, head_stability_score: int | None = None) -> dic
 
     slot_score = max(0, min(100, slot_score))
 
-    # BALANCE AT CONTACT — head stability + weight transfer in last third
-    contact_frames = frames[2 * len(frames) // 3 :]
-    nose_ys, hip_xs_c = [], []
+    # BALANCE AT CONTACT — lateral body control through the contact zone
+    # Measures hip weight transfer forward and shoulder stability.
+    # Does NOT use nose vertical movement — head bobs during any swing (that's head_stability).
+    # Darian's definition: "finishing through the ball, not pulling off" = lateral X-axis control.
+    contact_start = int(len(frames) * 0.55)
+    contact_end = int(len(frames) * 0.90)
+    contact_frames = frames[contact_start:contact_end] or frames[2 * len(frames) // 3:]
+
+    hip_xs_c, shoulder_xs_c = [], []
     for f in contact_frames:
-        nose = get_kp(f, "nose")
         lh = get_kp(f, "left_hip")
         rh = get_kp(f, "right_hip")
-        if nose:
-            nose_ys.append(nose[1])
+        ls = get_kp(f, "left_shoulder")
+        rs = get_kp(f, "right_shoulder")
         if lh and rh:
             hip_xs_c.append((lh[0] + rh[0]) / 2)
+        if ls and rs:
+            shoulder_xs_c.append((ls[0] + rs[0]) / 2)
+
     balance_score = 65
-    nose_range = (max(nose_ys) - min(nose_ys)) if nose_ys else None
-    # Also factor in pre-computed head stability if available
-    if head_stability_score is not None and head_stability_score < 30:
-        balance_score = min(balance_score, 45)  # cap at 45 if head stability is very poor
-    elif head_stability_score is not None and head_stability_score < 50:
-        balance_score = min(balance_score, 60)  # cap at 60 if head stability is poor
-    if len(nose_ys) >= 3:
-        if nose_range < 0.04:
-            balance_score += 12
-        elif nose_range < 0.07:
-            balance_score += 0
-        elif nose_range < 0.10:
-            balance_score -= 15
-        else:
-            balance_score -= 25
+
+    # Primary: hip forward drive through contact
+    # Hips moving forward = weight transferring through the ball (good)
+    # Hips stalling or reversing = bailing / pulling off (bad)
     if len(hip_xs_c) >= 3:
         movement = hip_xs_c[-1] - hip_xs_c[0]
-        if movement > 0.01:
-            balance_score += 8
-        elif movement < -0.02:
-            balance_score -= 8
+        if movement > 0.04:
+            balance_score += 15  # strong weight transfer through contact
+        elif movement > 0.015:
+            balance_score += 8   # moderate forward drive
+        elif movement < -0.03:
+            balance_score -= 20  # hips reversing — pulling off the ball
+        elif movement < -0.01:
+            balance_score -= 10
+
+    # Secondary: shoulder lateral stability
+    # Shoulders rotating through = good; front shoulder yanking away = pulling off
+    if len(shoulder_xs_c) >= 3:
+        drift = shoulder_xs_c[-1] - shoulder_xs_c[0]
+        if drift > 0.03:
+            balance_score += 8   # shoulders driving through contact
+        elif drift < -0.04:
+            balance_score -= 12  # front shoulder pulling off early
+
     balance_score = max(0, min(100, balance_score))
 
     # OVERALL — weighted average with drag-down penalty
