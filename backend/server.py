@@ -25,6 +25,7 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from supabase import create_client, Client
 
 load_dotenv()
 
@@ -308,12 +309,6 @@ async def write_coaching_trace(
         return
 
     try:
-        headers = {
-            "apikey": SUPABASE_KEY,
-            "Authorization": f"Bearer {SUPABASE_KEY}",
-            "Content-Type": "application/json",
-        }
-
         # Extract parsed fields for quality tracking
         parsed_primary_issue = None
         parsed_cue = None
@@ -348,14 +343,9 @@ async def write_coaching_trace(
             "prompt_version": prompt_version,
         }
 
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            resp = await client.post(
-                f"{SUPABASE_URL}/rest/v1/coaching_traces",
-                headers=headers,
-                json=payload
-            )
-            resp.raise_for_status()
-            _log(f"[CoachingTrace] Logged {call_type} trace: {latency_ms}ms, model={model_version}, prompt={prompt_version}")
+        sb: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+        sb.table("coaching_traces").insert(payload).execute()
+        _log(f"[CoachingTrace] Logged {call_type} trace: {latency_ms}ms, model={model_version}, prompt={prompt_version}")
     except Exception as e:
         _log(f"[CoachingTrace] ERROR writing trace: {e}")
         # Don't raise - trace logging failures shouldn't break the API
