@@ -1009,7 +1009,7 @@ def compute_core_5(frames: list, head_stability_score: int | None = None) -> dic
         elif rh and ra and ra[1] > 0:
             hip_crouch.append(rh[1] / ra[1])
 
-    stance_score = 65
+    stance_score = 55  # lowered default — stance requires observable setup, not assumed
 
     # Primary: knee flex (both legs averaged when available)
     if knee_bends:
@@ -1020,6 +1020,9 @@ def compute_core_5(frames: list, head_stability_score: int | None = None) -> dic
             stance_score += 4   # some flex present
         elif avg < 0.20 or avg > 0.85:
             stance_score -= 12  # legs nearly locked or extreme crouch
+        # Additional penalty: no proper athletic knee bend at all
+        if avg < 0.25 or avg > 0.75:
+            stance_score -= 15
 
     # Secondary: hip height as crouch-depth proxy
     if hip_crouch:
@@ -1029,111 +1032,118 @@ def compute_core_5(frames: list, head_stability_score: int | None = None) -> dic
         elif avg < 0.52:
             stance_score -= 8   # standing too tall — hips too high
 
+    # Tertiary: head stability at setup — unstable head = no set stance
+    nose_ys = [get_kp(f, "nose")[1] for f in setup_frames if get_kp(f, "nose")]
+    if len(nose_ys) >= 3 and (max(nose_ys) - min(nose_ys)) > 0.05:
+        stance_score -= 10
+
     stance_score = max(0, min(100, stance_score))
 
-    # LOAD — hip and hand movement in first half
+    # LOAD — hip Y movement and hand movement in first half
+    # Hip X range is near-zero from side camera (left/right hips are stacked front-to-back).
+    # Hip Y range measures vertical drop/coil which is viewpoint-independent and reliable.
     load_frames = frames[: len(frames) // 2]
-    hip_xs, wrist_xs = [], []
+    hip_ys, wrist_xs = [], []
     for f in load_frames:
         lh = get_kp(f, "left_hip")
         rh = get_kp(f, "right_hip")
         lw = get_kp(f, "left_wrist")
         rw = get_kp(f, "right_wrist")
         if lh and rh:
-            hip_xs.append((lh[0] + rh[0]) / 2)
+            hip_ys.append((lh[1] + rh[1]) / 2)
         if lw:
             wrist_xs.append(lw[0])
         elif rw:
             wrist_xs.append(rw[0])
-    load_score = 60
-    if len(hip_xs) >= 3:
-        if max(hip_xs) - min(hip_xs) >= 0.03:
-            load_score += 15
-        elif max(hip_xs) - min(hip_xs) < 0.01:
-            load_score -= 10
+    load_score = 30  # low default — a player with no load shouldn't start at 60
+    if len(hip_ys) >= 3:
+        hip_y_range = max(hip_ys) - min(hip_ys)
+        if hip_y_range >= 0.06:
+            load_score += 38   # strong hip drop and coil through load phase
+        elif hip_y_range >= 0.03:
+            load_score += 22   # moderate hip movement
+        elif hip_y_range >= 0.01:
+            load_score += 8    # minimal hip movement
+        else:
+            load_score -= 10   # no hip movement at all
     if len(wrist_xs) >= 3:
-        if max(wrist_xs) - min(wrist_xs) >= 0.05:
-            load_score += 10
-        elif max(wrist_xs) - min(wrist_xs) < 0.02:
-            load_score -= 8
+        wrist_range = max(wrist_xs) - min(wrist_xs)
+        if wrist_range >= 0.05:
+            load_score += 15   # hands actively loading back
+        elif wrist_range >= 0.02:
+            load_score += 6    # some hand movement
     load_score = max(0, min(100, load_score))
 
-    # POWER POSITION — timing: gap between stride landing and hip firing
-    # Short gap = fired too quick = weak power position (Darian's key insight)
-    # Uses timestamp_ms from frame data
+    # POWER POSITION — hip Y drop at stride landing (viewpoint-independent)
+    # Darian: "on your toes, weight loaded, hitter's stretch"
+    # Old approach used hip X delta to detect hip firing — broken for side-angle cameras.
+    # New approach: measure how much the hip center drops (Y increases) by stride landing.
+    # A meaningful hip drop = player coiled into power position. No drop = no load.
 
-    # Step 1: Find stride landing frame
-    # Stride foot (front foot) ankle Y reaches minimum — foot planted
+    # Build ankle Y series for stride detection
     ankle_y_series = []
     for f in frames:
         ts = f.get("timestamp_ms", 0)
-        # Try both ankles — use the one with better confidence
         la = get_kp(f, "left_ankle")
         ra = get_kp(f, "right_ankle")
         if la:
-            ankle_y_series.append((ts, la[1], "left"))
+            ankle_y_series.append((ts, la[1]))
         elif ra:
-            ankle_y_series.append((ts, ra[1], "right"))
+            ankle_y_series.append((ts, ra[1]))
 
-    # Step 2: Find hip firing frame
-    # Hip center X starts sustained movement toward pitcher
-    hip_series = []
+    # Build hip Y series
+    hip_y_series = []
     for f in frames:
         ts = f.get("timestamp_ms", 0)
         lh = get_kp(f, "left_hip")
         rh = get_kp(f, "right_hip")
         if lh and rh:
-            hip_series.append((ts, (lh[0] + rh[0]) / 2))
+            hip_y_series.append((ts, (lh[1] + rh[1]) / 2))
 
-    power_score = 65  # default — not enough data
+    power_score = 30  # default — power position not detected
 
-    if len(hip_series) >= 6 and len(ankle_y_series) >= 4:
-        # Find stride landing: only look AFTER ankle has moved significantly from setup
-        # This prevents detecting 'landed' during the static setup phase
+    if len(hip_y_series) >= 6 and len(ankle_y_series) >= 4:
+        # Find stride landing: wait for ankle to move then stabilize
         stride_ts = None
-        if len(ankle_y_series) >= 4:
-            start_y = ankle_y_series[0][1]
-            mid_idx = len(ankle_y_series) * 6 // 10
-            movement_started = False
-            for i in range(1, mid_idx):
-                curr_y = ankle_y_series[i][1]
-                # Wait until ankle has actually moved (stride is happening)
-                if not movement_started:
-                    if abs(curr_y - start_y) >= 0.05:
-                        movement_started = True
-                    continue
-                # Now look for stabilization — ankle stopped moving
-                prev_y = ankle_y_series[i - 1][1]
-                if abs(curr_y - prev_y) < 0.008:
-                    stride_ts = ankle_y_series[i][0]
-                    break
+        start_ankle_y = ankle_y_series[0][1]
+        mid_idx = len(ankle_y_series) * 6 // 10
+        movement_started = False
+        for i in range(1, mid_idx):
+            curr_y = ankle_y_series[i][1]
+            if not movement_started:
+                if abs(curr_y - start_ankle_y) >= 0.05:
+                    movement_started = True
+                continue
+            prev_y = ankle_y_series[i - 1][1]
+            if abs(curr_y - prev_y) < 0.008:
+                stride_ts = ankle_y_series[i][0]
+                break
 
-        # Find hip firing: sustained hip X movement in second half
-        fire_ts = None
         if stride_ts is not None:
-            for i in range(len(hip_series) - 2):
-                ts, hx = hip_series[i]
-                if ts <= stride_ts:
-                    continue
-                # Check if next 2 frames also show hip moving same direction
-                next_hx = hip_series[min(i + 2, len(hip_series) - 1)][1]
-                if abs(next_hx - hx) >= 0.015:
-                    fire_ts = ts
-                    break
-
-        if stride_ts is not None and fire_ts is not None:
-            gap_ms = fire_ts - stride_ts
-            # Score the gap
-            if gap_ms >= 400:
-                power_score = 85
-            elif gap_ms >= 280:
-                power_score = 72
-            elif gap_ms >= 180:
-                power_score = 58
-            elif gap_ms >= 80:
-                power_score = 48
-            else:
-                power_score = 35  # under 80ms — truly instant firing
+            # Measure hip drop from setup to stride landing
+            setup_hy = hip_y_series[0][1]
+            stride_hy = next((hy for ts, hy in hip_y_series if ts >= stride_ts), None)
+            if stride_hy is not None:
+                hip_drop = stride_hy - setup_hy  # positive = hips dropped (Y↑ = lower in frame)
+                if hip_drop >= 0.06:
+                    power_score = 82  # strong coil into power position
+                elif hip_drop >= 0.04:
+                    power_score = 68  # solid hip load at stride
+                elif hip_drop >= 0.02:
+                    power_score = 52  # slight hip engagement
+                elif hip_drop >= 0.0:
+                    power_score = 36  # barely any hip drop
+                else:
+                    power_score = 25  # hips rose — no power position
+        else:
+            # Stride not detected — fallback: hip Y range through first 60% of swing
+            early_hy = [hy for _, hy in hip_y_series[: len(hip_y_series) * 6 // 10]]
+            if early_hy:
+                hy_range = max(early_hy) - min(early_hy)
+                if hy_range >= 0.05:
+                    power_score = 50
+                elif hy_range >= 0.025:
+                    power_score = 36
 
     power_score = max(0, min(100, power_score))
 
