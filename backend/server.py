@@ -1058,20 +1058,20 @@ def compute_core_5(frames: list, head_stability_score: int | None = None) -> dic
     load_score = 30  # low default — a player with no load shouldn't start at 60
     if len(hip_ys) >= 3:
         hip_y_range = max(hip_ys) - min(hip_ys)
-        if hip_y_range >= 0.06:
-            load_score += 38   # strong hip drop and coil through load phase
-        elif hip_y_range >= 0.03:
-            load_score += 22   # moderate hip movement
-        elif hip_y_range >= 0.01:
-            load_score += 8    # minimal hip movement
+        if hip_y_range >= 0.08:
+            load_score += 32   # strong hip drop and coil
+        elif hip_y_range >= 0.05:
+            load_score += 16   # moderate hip movement
+        elif hip_y_range >= 0.02:
+            load_score += 5    # minimal hip movement
         else:
             load_score -= 10   # no hip movement at all
     if len(wrist_xs) >= 3:
         wrist_range = max(wrist_xs) - min(wrist_xs)
         if wrist_range >= 0.05:
-            load_score += 15   # hands actively loading back
+            load_score += 8    # hands actively loading back
         elif wrist_range >= 0.02:
-            load_score += 6    # some hand movement
+            load_score += 3    # some hand movement
     load_score = max(0, min(100, load_score))
 
     # POWER POSITION — hip Y drop at stride landing (viewpoint-independent)
@@ -1126,15 +1126,13 @@ def compute_core_5(frames: list, head_stability_score: int | None = None) -> dic
             if stride_hy is not None:
                 hip_drop = stride_hy - setup_hy  # positive = hips dropped (Y↑ = lower in frame)
                 if hip_drop >= 0.06:
-                    power_score = 82  # strong coil into power position
-                elif hip_drop >= 0.04:
-                    power_score = 68  # solid hip load at stride
-                elif hip_drop >= 0.02:
-                    power_score = 52  # slight hip engagement
-                elif hip_drop >= 0.0:
-                    power_score = 36  # barely any hip drop
+                    power_score = 70   # strong coil into power position
+                elif hip_drop >= 0.03:
+                    power_score = 58   # solid hip load at stride
+                elif hip_drop >= -0.03:
+                    power_score = 48   # neutral to slight — small hip rise still gets partial credit
                 else:
-                    power_score = 25  # hips rose — no power position
+                    power_score = 30   # hips rose significantly — weak power position
         else:
             # Stride not detected — fallback: hip Y range through first 60% of swing
             early_hy = [hy for _, hy in hip_y_series[: len(hip_y_series) * 6 // 10]]
