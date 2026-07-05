@@ -1009,13 +1009,13 @@ def compute_core_5(frames: list, head_stability_score: int | None = None) -> dic
         elif rh and ra and ra[1] > 0:
             hip_crouch.append(rh[1] / ra[1])
 
-    stance_score = 55  # lowered default — stance requires observable setup, not assumed
+    stance_score = 62
 
     # Primary: knee flex (both legs averaged when available)
     if knee_bends:
         avg = sum(knee_bends) / len(knee_bends)
         if 0.35 <= avg <= 0.70:
-            stance_score += 12  # good athletic flex
+            stance_score += 16  # good athletic flex
         elif 0.25 <= avg < 0.35 or 0.70 < avg <= 0.82:
             stance_score += 4   # some flex present
         elif avg < 0.20 or avg > 0.85:
