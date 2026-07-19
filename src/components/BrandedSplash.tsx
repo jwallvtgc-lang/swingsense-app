@@ -3,13 +3,11 @@ import {
   Animated,
   Dimensions,
   Easing,
+  Image,
+  ImageBackground,
   StyleSheet,
-  Text,
   View,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Svg, { Defs, RadialGradient, Rect, Stop } from 'react-native-svg';
 
 import {
   animation,
@@ -20,246 +18,201 @@ import {
   letterSpacing,
   spacing,
   splashBrand,
-  splashHazeBleed,
-  splashHazeFieldSize,
-  splashLogoWidth,
   typography,
 } from '../../design-system/tokens';
 
-const LOGO_SOURCE = require('../../assets/splash-wordmark.png');
+const BACKGROUND_SOURCE = require('../../assets/splash-background.png');
+const WORDMARK_SOURCE = require('../../assets/splash-wordmark.png');
+
+const AMBER_DOT = '#E8A020';
+const LOGO_VW = 0.66;
+const LOGO_CENTER_VH = 0.415;
 
 type BrandedSplashProps = {
   onComplete: () => void;
 };
 
-/**
- * Diffuse emerald air — gradients + opacity only.
- * Permanent: do not add FeGaussianBlur or other SVG filter blur (iOS whites out).
- */
-function AtmosphericEmeraldHaze({ opacity }: { opacity: Animated.Value }) {
-  const bleed = splashHazeBleed();
-  const field = splashHazeFieldSize();
-  const emerald = colors.brand.emerald;
-  const { layerB, layerC, layerD } = splashBrand.hazeLayerOpacities;
+export default function BrandedSplash({ onComplete }: BrandedSplashProps) {
+  const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+  const logoWidth = Math.min(screenWidth * LOGO_VW, 340);
+  const logoHeight = logoWidth * splashBrand.logoAspect;
+  const logoTop = screenHeight * LOGO_CENTER_VH - logoHeight / 2;
+  const logoLeft = (screenWidth - logoWidth) / 2;
 
-  return (
-    <Animated.View
-      pointerEvents="none"
-      style={[styles.hazeLayer, { width: field, height: field, opacity }]}
-    >
-      <Svg width={field} height={field}>
-        <Defs>
-          <RadialGradient id="splashHazeA" cx="50%" cy="12%" r="115%">
-            <Stop offset="0" stopColor={emerald} stopOpacity="0" />
-            <Stop offset="0.35" stopColor={emerald} stopOpacity="0.012" />
-            <Stop offset="0.5" stopColor={emerald} stopOpacity="0.028" />
-            <Stop offset="0.68" stopColor={emerald} stopOpacity="0.044" />
-            <Stop offset="0.88" stopColor={emerald} stopOpacity="0.01" />
-            <Stop offset="1" stopColor={emerald} stopOpacity="0" />
-          </RadialGradient>
-          <RadialGradient id="splashHazeB" cx="50%" cy="88%" r="112%">
-            <Stop offset="0" stopColor={emerald} stopOpacity="0" />
-            <Stop offset="0.38" stopColor={emerald} stopOpacity="0.01" />
-            <Stop offset="0.55" stopColor={emerald} stopOpacity="0.024" />
-            <Stop offset="0.72" stopColor={emerald} stopOpacity="0.04" />
-            <Stop offset="1" stopColor={emerald} stopOpacity="0" />
-          </RadialGradient>
-          <RadialGradient id="splashHazeC" cx="14%" cy="46%" r="118%">
-            <Stop offset="0" stopColor={emerald} stopOpacity="0" />
-            <Stop offset="0.42" stopColor={emerald} stopOpacity="0.01" />
-            <Stop offset="0.58" stopColor={emerald} stopOpacity="0.022" />
-            <Stop offset="0.78" stopColor={emerald} stopOpacity="0.036" />
-            <Stop offset="1" stopColor={emerald} stopOpacity="0" />
-          </RadialGradient>
-          <RadialGradient id="splashHazeD" cx="86%" cy="50%" r="116%">
-            <Stop offset="0" stopColor={emerald} stopOpacity="0" />
-            <Stop offset="0.4" stopColor={emerald} stopOpacity="0.008" />
-            <Stop offset="0.58" stopColor={emerald} stopOpacity="0.02" />
-            <Stop offset="0.76" stopColor={emerald} stopOpacity="0.032" />
-            <Stop offset="1" stopColor={emerald} stopOpacity="0" />
-          </RadialGradient>
-        </Defs>
-        <Rect x={-bleed} y={-bleed} width={field} height={field} fill="url(#splashHazeA)" />
-        <Rect
-          x={-bleed}
-          y={-bleed}
-          width={field}
-          height={field}
-          fill="url(#splashHazeB)"
-          opacity={layerB}
-        />
-        <Rect
-          x={-bleed}
-          y={-bleed}
-          width={field}
-          height={field}
-          fill="url(#splashHazeC)"
-          opacity={layerC}
-        />
-        <Rect
-          x={-bleed}
-          y={-bleed}
-          width={field}
-          height={field}
-          fill="url(#splashHazeD)"
-          opacity={layerD}
-        />
-      </Svg>
-    </Animated.View>
-  );
-}
+  const onCompleteRef = useRef(onComplete);
+  onCompleteRef.current = onComplete;
 
-function LoadingDots() {
+  const wordmarkOpacity = useRef(new Animated.Value(1)).current;
+  const wordmarkScale = useRef(new Animated.Value(1)).current;
+  const taglineOpacity = useRef(new Animated.Value(0)).current;
+  const taglineTranslateY = useRef(new Animated.Value(8)).current;
+  const dotsOpacity = useRef(new Animated.Value(0)).current;
   const dot1Pulse = useRef(new Animated.Value(0.3)).current;
   const dot2Pulse = useRef(new Animated.Value(0.3)).current;
   const dot3Pulse = useRef(new Animated.Value(0.3)).current;
 
   useEffect(() => {
-    const createDotAnimation = (dotValue: Animated.Value, delay: number) => {
-      return Animated.loop(
-        Animated.sequence([
-          Animated.delay(delay),
-          Animated.timing(dotValue, {
-            toValue: 1,
-            duration: 600,
-            easing: Easing.inOut(Easing.ease),
-            useNativeDriver: true,
-          }),
-          Animated.timing(dotValue, {
-            toValue: 0.3,
-            duration: 600,
-            easing: Easing.inOut(Easing.ease),
-            useNativeDriver: true,
-          }),
-          Animated.delay(300), // Delay before next cycle
-        ])
-      );
-    };
-
-    const dot1Animation = createDotAnimation(dot1Pulse, 0);
-    const dot2Animation = createDotAnimation(dot2Pulse, 150);
-    const dot3Animation = createDotAnimation(dot3Pulse, 300);
-
-    dot1Animation.start();
-    dot2Animation.start();
-    dot3Animation.start();
-
-    return () => {
-      dot1Animation.stop();
-      dot2Animation.stop();
-      dot3Animation.stop();
-    };
-  }, [dot1Pulse, dot2Pulse, dot3Pulse]);
-
-  return (
-    <View style={styles.dotsRow}>
-      <Animated.View style={[styles.dot, styles.dotAnimated, { opacity: dot1Pulse }]} />
-      <Animated.View style={[styles.dot, styles.dotAnimated, { opacity: dot2Pulse }]} />
-      <Animated.View style={[styles.dot, styles.dotAnimated, { opacity: dot3Pulse }]} />
-    </View>
-  );
-}
-
-/**
- * Splash aligned with the Analyze / home visual environment — black base, subtle top tint.
- */
-export default function BrandedSplash({ onComplete }: BrandedSplashProps) {
-  const insets = useSafeAreaInsets();
-  const { width: viewportWidth } = Dimensions.get('window');
-  const logoWidth = splashLogoWidth(viewportWidth);
-  const logoHeight = logoWidth * splashBrand.logoAspect;
-  const hazeField = splashHazeFieldSize();
-  const onCompleteRef = useRef(onComplete);
-  onCompleteRef.current = onComplete;
-
-  const logoOpacity = useRef(new Animated.Value(0)).current;
-  const hazeOpacity = useRef(new Animated.Value(splashBrand.hazeOpacityMin)).current;
-
-  useEffect(() => {
-    const holdMs = animation.splashHold;
-
-    Animated.timing(logoOpacity, {
-      toValue: 1,
-      duration: splashBrand.logoEntranceMs,
-      easing: Easing.out(Easing.cubic),
-      useNativeDriver: true,
-    }).start();
-
-    const hazeBreath = Animated.loop(
+    // Wordmark breathe — opacity + scale, 2s cycle
+    const breathe = Animated.loop(
       Animated.sequence([
-        Animated.timing(hazeOpacity, {
-          toValue: splashBrand.hazeOpacityMax,
-          duration: splashBrand.glowCycleMs / 2,
-          easing: Easing.inOut(Easing.ease),
-          useNativeDriver: true,
-        }),
-        Animated.timing(hazeOpacity, {
-          toValue: splashBrand.hazeOpacityMin,
-          duration: splashBrand.glowCycleMs / 2,
-          easing: Easing.inOut(Easing.ease),
-          useNativeDriver: true,
-        }),
+        Animated.parallel([
+          Animated.timing(wordmarkOpacity, {
+            toValue: 0.92,
+            duration: 1000,
+            easing: Easing.inOut(Easing.ease),
+            useNativeDriver: true,
+          }),
+          Animated.timing(wordmarkScale, {
+            toValue: 1.015,
+            duration: 1000,
+            easing: Easing.inOut(Easing.ease),
+            useNativeDriver: true,
+          }),
+        ]),
+        Animated.parallel([
+          Animated.timing(wordmarkOpacity, {
+            toValue: 1.0,
+            duration: 1000,
+            easing: Easing.inOut(Easing.ease),
+            useNativeDriver: true,
+          }),
+          Animated.timing(wordmarkScale, {
+            toValue: 1.0,
+            duration: 1000,
+            easing: Easing.inOut(Easing.ease),
+            useNativeDriver: true,
+          }),
+        ]),
       ])
     );
-    hazeBreath.start();
+    breathe.start();
+
+    // Tagline entrance at t=200ms — fade + slide up 8px
+    Animated.sequence([
+      Animated.delay(200),
+      Animated.parallel([
+        Animated.timing(taglineOpacity, {
+          toValue: 1,
+          duration: 600,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+        Animated.timing(taglineTranslateY, {
+          toValue: 0,
+          duration: 600,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+      ]),
+    ]).start();
+
+    // Dots container entrance at t=500ms
+    Animated.sequence([
+      Animated.delay(500),
+      Animated.timing(dotsOpacity, {
+        toValue: 1,
+        duration: 400,
+        easing: Easing.out(Easing.ease),
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    // Staggered dot pulses starting at t=500ms, 150ms apart
+    const makeDotLoop = (dotValue: Animated.Value, delay: number) =>
+      Animated.sequence([
+        Animated.delay(delay),
+        Animated.loop(
+          Animated.sequence([
+            Animated.timing(dotValue, {
+              toValue: 1,
+              duration: 600,
+              easing: Easing.inOut(Easing.ease),
+              useNativeDriver: true,
+            }),
+            Animated.timing(dotValue, {
+              toValue: 0.3,
+              duration: 600,
+              easing: Easing.inOut(Easing.ease),
+              useNativeDriver: true,
+            }),
+            Animated.delay(300),
+          ])
+        ),
+      ]);
+
+    const d1 = makeDotLoop(dot1Pulse, 500);
+    const d2 = makeDotLoop(dot2Pulse, 650);
+    const d3 = makeDotLoop(dot3Pulse, 800);
+    d1.start();
+    d2.start();
+    d3.start();
 
     const t = setTimeout(() => {
       onCompleteRef.current();
-    }, holdMs);
+    }, animation.splashHold);
 
     return () => {
       clearTimeout(t);
-      hazeBreath.stop();
+      breathe.stop();
+      d1.stop();
+      d2.stop();
+      d3.stop();
     };
-  }, [logoOpacity, hazeOpacity]);
+  }, [
+    wordmarkOpacity, wordmarkScale,
+    taglineOpacity, taglineTranslateY,
+    dotsOpacity, dot1Pulse, dot2Pulse, dot3Pulse,
+  ]);
 
   return (
-    <LinearGradient
-      colors={[...splashBrand.bgStops]}
-      locations={[...splashBrand.bgLocations]}
-      start={{ x: 0.5, y: 0 }}
-      end={{ x: 0.5, y: 1 }}
-      style={styles.root}
-    >
-      <View
+    <ImageBackground source={BACKGROUND_SOURCE} style={styles.root} resizeMode="cover">
+      {/* Wordmark absolutely centered at 41.5% of screen height */}
+      <Animated.View
         style={[
-          styles.content,
+          styles.wordmark,
           {
-            paddingBottom: insets.bottom + spacing.sectionGap * 2,
+            top: logoTop,
+            left: logoLeft,
+            width: logoWidth,
+            height: logoHeight,
+            opacity: wordmarkOpacity,
+            transform: [{ scale: wordmarkScale }],
           },
         ]}
       >
-        <View style={styles.heroBlock}>
-          <View style={styles.heroVisual}>
-            <View style={[styles.hazeAnchor, { width: hazeField, height: hazeField }]}>
-              <AtmosphericEmeraldHaze opacity={hazeOpacity} />
-            </View>
-            <View style={[styles.logoStage, { width: logoWidth, height: logoHeight }]}>
-              <Animated.Image
-                source={LOGO_SOURCE}
-                resizeMode="contain"
-                style={[
-                  styles.logo,
-                  {
-                    width: logoWidth,
-                    height: logoHeight,
-                    opacity: logoOpacity,
-                  },
-                ]}
-              />
-            </View>
-          </View>
+        <Image
+          source={WORDMARK_SOURCE}
+          style={{ width: logoWidth, height: logoHeight }}
+          resizeMode="contain"
+        />
+      </Animated.View>
 
-          <Animated.Text style={[styles.tagline, { opacity: logoOpacity }]}>
-            {homeHeader.productTagline}
-          </Animated.Text>
+      {/* Tagline and dots in a flex column below the wordmark */}
+      <View
+        style={[
+          styles.labelStack,
+          { top: logoTop + logoHeight + spacing.splashLogoToTagline },
+        ]}
+      >
+        <Animated.Text
+          style={[
+            styles.tagline,
+            {
+              opacity: taglineOpacity,
+              transform: [{ translateY: taglineTranslateY }],
+            },
+          ]}
+        >
+          {homeHeader.productTagline}
+        </Animated.Text>
 
-          <Animated.View style={{ opacity: logoOpacity }}>
-            <LoadingDots />
-          </Animated.View>
-        </View>
+        <Animated.View style={[styles.dotsRow, { opacity: dotsOpacity }]}>
+          <Animated.View style={[styles.dot, { opacity: dot1Pulse }]} />
+          <Animated.View style={[styles.dot, { opacity: dot2Pulse }]} />
+          <Animated.View style={[styles.dot, { opacity: dot3Pulse }]} />
+        </Animated.View>
       </View>
-    </LinearGradient>
+    </ImageBackground>
   );
 }
 
@@ -268,42 +221,16 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#000000',
   },
-  content: {
-    flex: 1,
-    justifyContent: 'center',
+  wordmark: {
+    position: 'absolute',
+  },
+  labelStack: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
     alignItems: 'center',
     paddingHorizontal: spacing.screen,
-  },
-  heroBlock: {
-    alignItems: 'center',
-    alignSelf: 'center',
-    paddingBottom: spacing.sectionGap * 3,
-    overflow: 'visible',
-  },
-  heroVisual: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 0,
-    overflow: 'visible',
-  },
-  hazeAnchor: {
-    position: 'absolute',
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'visible',
-  },
-  logoStage: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'visible',
-    zIndex: 2,
-  },
-  hazeLayer: {
-    position: 'absolute',
-    alignSelf: 'center',
-  },
-  logo: {
-    zIndex: 2,
+    gap: spacing.splashTaglineToDots,
   },
   tagline: {
     fontFamily: typography.body,
@@ -313,8 +240,6 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     color: colors.text.splashTagline,
     textAlign: 'center',
-    marginBottom: spacing.splashTaglineToDots,
-    paddingHorizontal: spacing.card,
   },
   dotsRow: {
     flexDirection: 'row',
@@ -326,14 +251,6 @@ const styles = StyleSheet.create({
     width: splashBrand.dotSize,
     height: splashBrand.dotSize,
     borderRadius: splashBrand.dotSize / 2,
-  },
-  dotAnimated: {
-    backgroundColor: colors.brand.emerald,
-  },
-  dotOuter: {
-    backgroundColor: colors.text.muted,
-  },
-  dotCenter: {
-    backgroundColor: colors.brand.emerald,
+    backgroundColor: AMBER_DOT,
   },
 });
