@@ -106,7 +106,11 @@ export default function DrillDetailScreen() {
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <View style={styles.content}>
-          {/* Video section */}
+          {/* Video section
+              Controls auto-hide is platform-controlled (iOS ~5s, Android ~3s).
+              expo-av useNativeControls and expo-video VideoView both delegate to
+              the native player and expose no timeout prop. Switch to custom
+              controls (expo-video + manual overlay) if tighter timeout is needed. */}
           {drill.videoUrl ? (
             <Video
               source={{ uri: drill.videoUrl }}
@@ -140,9 +144,9 @@ export default function DrillDetailScreen() {
             <Text style={styles.sectionText}>{whyText}</Text>
           </View>
 
-          {/* WHAT YOU NEED section */}
+          {/* EQUIPMENT & SETUP section */}
           <View style={styles.section}>
-            <Text style={styles.sectionHeader}>WHAT YOU NEED</Text>
+            <Text style={styles.sectionHeader}>EQUIPMENT & SETUP</Text>
             <Text style={styles.sectionText}>{drill.setup}</Text>
           </View>
 

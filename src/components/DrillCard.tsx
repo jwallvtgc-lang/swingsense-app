@@ -25,6 +25,10 @@ const MECHANIC_LABELS: Record<DrillMechanic, string> = {
   balance_at_contact: 'Balance at Contact',
 };
 
+// TODO AI-129 Fix 3: video thumbnail background on carousel cards.
+// Deferred — expo-video-thumbnails getThumbnailAsync on remote .mov files requires
+// downloading video bytes per card with no CDN thumbnail service. Wire up once
+// Supabase Storage URLs serve transcoded previews or a thumbnail column is added.
 export default function DrillCard({ drill, isRecommended = false, onPress }: DrillCardProps) {
   return (
     <Pressable
