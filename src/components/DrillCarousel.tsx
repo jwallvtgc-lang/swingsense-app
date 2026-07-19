@@ -4,9 +4,9 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import DrillCard from './DrillCard';
-import { DRILLS, getDrillForMechanic, getRandomDrillsExcluding } from '../data/drillsData';
+import { useDrills } from '../hooks/useDrills';
 import { mapMechanicalIssueToMechanic } from '../constants/drillConstants';
-import type { DrillCard as DrillCardType, DrillMechanic } from '../types/drill';
+import type { DrillCard as DrillCardType } from '../types/drill';
 import { getLastCompletedAnalysis } from '../services/analysis';
 import { useAuth } from '../contexts/AuthContext';
 import type { SwingAnalysis } from '../types';
@@ -31,6 +31,7 @@ export default function DrillCarousel({ title = 'PRACTICE DRILLS' }: DrillCarous
   const navigation = useNavigation<Navigation>();
   const { user } = useAuth();
   const [lastAnalysis, setLastAnalysis] = useState<SwingAnalysis | null>(null);
+  const { drills: allDrills } = useDrills();
 
   useEffect(() => {
     if (!user?.id) return;
@@ -44,32 +45,33 @@ export default function DrillCarousel({ title = 'PRACTICE DRILLS' }: DrillCarous
   }, [user?.id]);
 
   const carouselDrills = useMemo(() => {
-    // Get the primary mechanical issue from last analysis
+    if (allDrills.length === 0) return [];
+
     const primaryIssue = lastAnalysis?.coaching_output?.primary_mechanical_issue;
     const targetMechanic = primaryIssue?.title ? mapMechanicalIssueToMechanic(primaryIssue.title) : null;
 
     const drills: DrillCardType[] = [];
 
     if (targetMechanic) {
-      // Slot 1: Get recommended drill for the primary issue
-      const recommendedDrill = getDrillForMechanic(
-        targetMechanic,
-        // Use user's experience level from profile, or default to beginner
-        (user as any)?.experience_level || 'beginner'
-      );
-      drills.push(recommendedDrill);
-
-      // Slots 2-5: Get random drills from other mechanics
-      const otherDrills = getRandomDrillsExcluding(targetMechanic, 4);
-      drills.push(...otherDrills);
+      const mechanicDrills = allDrills.filter(d => d.mechanic === targetMechanic);
+      if (mechanicDrills.length > 0) {
+        const userLevel = (user as any)?.experience_level || 'beginner';
+        const recommended = mechanicDrills.find(d => d.experience_level === userLevel) || mechanicDrills[0];
+        drills.push(recommended);
+        const others = allDrills.filter(d => d.id !== recommended.id);
+        const shuffled = [...others].sort(() => Math.random() - 0.5);
+        drills.push(...shuffled.slice(0, 4));
+      } else {
+        const shuffled = [...allDrills].sort(() => Math.random() - 0.5);
+        drills.push(...shuffled.slice(0, 5));
+      }
     } else {
-      // No analysis yet - show 5 random drills
-      const shuffled = [...DRILLS].sort(() => Math.random() - 0.5);
+      const shuffled = [...allDrills].sort(() => Math.random() - 0.5);
       drills.push(...shuffled.slice(0, 5));
     }
 
     return drills;
-  }, [lastAnalysis, user]);
+  }, [lastAnalysis, user, allDrills]);
 
   const handleDrillPress = useCallback((drill: DrillCardType) => {
     navigation.navigate('DrillDetail', { drillId: drill.id });
@@ -100,7 +102,7 @@ export default function DrillCarousel({ title = 'PRACTICE DRILLS' }: DrillCarous
           <DrillCard
             key={drill.id}
             drill={drill}
-            isRecommended={index === 0} // First drill is recommended if from analysis
+            isRecommended={index === 0}
             onPress={() => handleDrillPress(drill)}
           />
         ))}

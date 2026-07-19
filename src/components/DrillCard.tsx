@@ -33,7 +33,7 @@ export default function DrillCard({ drill, isRecommended = false, onPress }: Dri
     >
       {/* Row 1: Mechanic badge (left) + "For you" pill (right, slot 1 only) */}
       <View style={styles.row1}>
-        <Text style={styles.mechanicText}>{MECHANIC_LABELS[drill.mechanic]}</Text>
+        <Text style={styles.mechanicText}>{drill.mechanic ? MECHANIC_LABELS[drill.mechanic] : ''}</Text>
         {isRecommended && (
           <View style={styles.forYouPill}>
             <Text style={styles.forYouText}>For you</Text>

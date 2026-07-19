@@ -12,6 +12,7 @@ export const EXPERIENCE_LEVEL_LABELS: Record<ExperienceLevel, string> = {
   beginner: 'Beginner',
   intermediate: 'Intermediate',
   advanced: 'Advanced',
+  all: 'All Levels',
 };
 
 // Helper function to map primary mechanical issue titles to drill mechanics

@@ -16,9 +16,8 @@ import DrillStep from '../components/DrillStep';
 import PrimaryButton from '../components/PrimaryButton';
 import { useAuth } from '../contexts/AuthContext';
 import { getLastCompletedAnalysis } from '../services/analysis';
-import { DRILLS } from '../data/drillsData';
+import { useDrillById } from '../hooks/useDrills';
 import { EXPERIENCE_LEVEL_LABELS, MECHANIC_LABELS, mapMechanicalIssueToMechanic } from '../constants/drillConstants';
-import type { DrillCard } from '../types/drill';
 import type { SwingAnalysis } from '../types';
 import {
   colors,
@@ -42,16 +41,11 @@ export default function DrillDetailScreen() {
   const route = useRoute<DrillDetailRouteProp>();
   const navigation = useNavigation<NativeStackNavigationProp<any>>();
   const { user } = useAuth();
-  const [drill, setDrill] = useState<DrillCard | null>(null);
+  const { drill, loading } = useDrillById(route.params.drillId);
   const [lastAnalysis, setLastAnalysis] = useState<SwingAnalysis | null>(null);
   const [isCompleted, setIsCompleted] = useState(false);
   const [showResetButton, setShowResetButton] = useState(false);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  useEffect(() => {
-    const foundDrill = DRILLS.find(d => d.id === route.params.drillId);
-    setDrill(foundDrill || null);
-  }, [route.params.drillId]);
 
   useEffect(() => {
     if (user) {
@@ -65,7 +59,6 @@ export default function DrillDetailScreen() {
     setIsCompleted(true);
     setShowResetButton(true);
 
-    // Auto-hide the reset button after 3 seconds
     timeoutRef.current = setTimeout(() => {
       setShowResetButton(false);
     }, 3000);
@@ -80,7 +73,6 @@ export default function DrillDetailScreen() {
     }
   }, []);
 
-  // Cleanup timeout on unmount
   useEffect(() => {
     return () => {
       if (timeoutRef.current) {
@@ -89,19 +81,19 @@ export default function DrillDetailScreen() {
     };
   }, []);
 
-  if (!drill) {
+  if (loading || !drill) {
     return (
       <SafeAreaView style={styles.container}>
         <BackNav label="Back" onPress={() => navigation.goBack()} />
         <View style={styles.content}>
-          <Text style={styles.errorText}>Drill not found</Text>
+          {!loading && <Text style={styles.errorText}>Drill not found</Text>}
         </View>
       </SafeAreaView>
     );
   }
 
-  // Check if this drill matches the user's last primary mechanical issue
-  const isPersonalized = lastAnalysis?.coaching_output?.primary_mechanical_issue &&
+  const isPersonalized = drill.mechanic !== null &&
+    !!lastAnalysis?.coaching_output?.primary_mechanical_issue &&
     mapMechanicalIssueToMechanic(lastAnalysis.coaching_output.primary_mechanical_issue.title) === drill.mechanic;
 
   const whyText = isPersonalized
@@ -111,7 +103,6 @@ export default function DrillDetailScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <BackNav label="Back" onPress={() => navigation.goBack()} />
-
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <View style={styles.content}>
@@ -135,7 +126,9 @@ export default function DrillDetailScreen() {
 
           {/* Badges row */}
           <View style={styles.badgesRow}>
-            <Text style={styles.mechanicText}>{MECHANIC_LABELS[drill.mechanic]}</Text>
+            {drill.mechanic && (
+              <Text style={styles.mechanicText}>{MECHANIC_LABELS[drill.mechanic]}</Text>
+            )}
             <View style={styles.levelBadge}>
               <Text style={styles.levelText}>{EXPERIENCE_LEVEL_LABELS[drill.experience_level]}</Text>
             </View>
@@ -203,7 +196,9 @@ const styles = StyleSheet.create({
   },
   video: {
     width: '100%',
-    height: 200,
+    aspectRatio: 16 / 9,
+    backgroundColor: colors.bg.surface,
+    borderRadius: radius.card,
   },
   title: {
     fontFamily: typography.display,
@@ -214,6 +209,7 @@ const styles = StyleSheet.create({
   badgesRow: {
     flexDirection: 'row',
     gap: spacing.iconGap,
+    alignItems: 'center',
   },
   mechanicText: {
     fontFamily: typography.body,

@@ -1,15 +1,51 @@
+export interface SupabaseDrill {
+  id: string
+  name: string
+  mechanic: DrillMechanic | null
+  secondary_mechanics: DrillMechanic[] | null
+  modalities: string[]
+  foundation: string
+  setup: string
+  focus_points: string
+  finish_reminders: string
+  purpose: string
+  video_url: string | null
+  experience_level: ExperienceLevel
+  created_at: string
+}
+
 export interface DrillCard {
   id: string
-  mechanic: 'stance' | 'load' | 'power_position' | 'slot' | 'balance_at_contact'
-  title: string           // short name for carousel card
-  description: string     // ONE sentence, coaching voice, ~80 chars max — for carousel Row 3
-  whyItHelps: string      // 2-3 sentences, Darian's voice — for detail screen
-  setup: string           // one line — what you need and where
-  steps: string[]         // 3-5 steps as array — MUST be array not string
-  reps: string            // full sentence — "Do this 10 times before your next session."
-  experience_level: 'beginner' | 'intermediate' | 'advanced'
-  videoUrl?: string       // optional — null until Darian records
+  mechanic: DrillMechanic | null
+  title: string
+  description: string
+  whyItHelps: string
+  setup: string
+  steps: string[]
+  reps: string
+  experience_level: ExperienceLevel
+  videoUrl?: string
+}
+
+export function mapSupabaseDrillToCard(d: SupabaseDrill): DrillCard {
+  const parts = d.focus_points.split('. ')
+  const steps = parts
+    .map((p, i) => (i < parts.length - 1 ? p + '.' : p))
+    .filter(s => s.trim().length > 0)
+
+  return {
+    id: d.id,
+    mechanic: d.mechanic,
+    title: d.name,
+    description: d.foundation,
+    whyItHelps: d.purpose,
+    setup: d.setup,
+    steps,
+    reps: d.finish_reminders,
+    experience_level: d.experience_level,
+    videoUrl: d.video_url ?? undefined,
+  }
 }
 
 export type DrillMechanic = 'stance' | 'load' | 'power_position' | 'slot' | 'balance_at_contact'
-export type ExperienceLevel = 'beginner' | 'intermediate' | 'advanced'
+export type ExperienceLevel = 'beginner' | 'intermediate' | 'advanced' | 'all'

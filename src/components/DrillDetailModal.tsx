@@ -53,8 +53,8 @@ export default function DrillDetailModal({
         <View style={styles.modal}>
           <View style={styles.header}>
             <View style={styles.headerLeft}>
-              <View style={[styles.mechanicBadge, { backgroundColor: colors.mechanic[drill.mechanic] }]}>
-                <Text style={styles.mechanicText}>{MECHANIC_LABELS[drill.mechanic]}</Text>
+              <View style={[styles.mechanicBadge, { backgroundColor: drill.mechanic ? colors.mechanic[drill.mechanic] : colors.bg.surface }]}>
+                <Text style={styles.mechanicText}>{drill.mechanic ? MECHANIC_LABELS[drill.mechanic] : ''}</Text>
               </View>
               <Text style={styles.level}>{drill.experience_level}</Text>
             </View>

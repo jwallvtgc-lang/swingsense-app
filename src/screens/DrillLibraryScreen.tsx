@@ -12,7 +12,7 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import BackNav from '../components/BackNav';
-import { DRILLS } from '../data/drillsData';
+import { useDrills } from '../hooks/useDrills';
 import { EXPERIENCE_LEVEL_LABELS, MECHANIC_LABELS } from '../constants/drillConstants';
 import type { DrillCard, DrillMechanic } from '../types/drill';
 import type { MainStackParamList } from '../navigation/types';
@@ -48,19 +48,15 @@ function DrillGridCard({ drill, onPress }: DrillGridCardProps) {
       style={({ pressed }) => [styles.gridCard, pressed && styles.gridCardPressed]}
       onPress={onPress}
     >
-      {/* Card content */}
       <View style={styles.gridCardContent}>
-        {/* Mechanic label */}
         <Text style={styles.gridCardMechanic}>
-          {MECHANIC_LABELS[drill.mechanic]}
+          {drill.mechanic ? MECHANIC_LABELS[drill.mechanic] : ''}
         </Text>
 
-        {/* Title */}
         <Text style={styles.gridCardTitle} numberOfLines={2}>
           {drill.title}
         </Text>
 
-        {/* Level badge */}
         <View style={styles.gridCardLevelBadge}>
           <Text style={styles.gridCardLevelText}>
             {EXPERIENCE_LEVEL_LABELS[drill.experience_level]}
@@ -74,16 +70,15 @@ function DrillGridCard({ drill, onPress }: DrillGridCardProps) {
 export default function DrillLibraryScreen() {
   const navigation = useNavigation<DrillLibraryNavigationProp>();
   const [activeFilter, setActiveFilter] = useState<DrillMechanic | 'all'>('all');
+  const { drills: allDrills } = useDrills();
 
-  // Filter drills based on selected mechanic (memoized for performance)
   const filteredDrills = useMemo(() => {
     return activeFilter === 'all'
-      ? DRILLS
-      : DRILLS.filter(drill => drill.mechanic === activeFilter);
-  }, [activeFilter]);
+      ? allDrills
+      : allDrills.filter(drill => drill.mechanic === activeFilter);
+  }, [activeFilter, allDrills]);
 
   const handleDrillPress = (drill: DrillCard) => {
-    // Navigate to drill detail screen
     navigation.navigate('DrillDetail', { drillId: drill.id });
   };
 
@@ -111,10 +106,8 @@ export default function DrillLibraryScreen() {
       <BackNav label="Back" onPress={() => navigation.goBack()} />
 
       <View style={styles.content}>
-        {/* Header */}
         <Text style={styles.header} {...displayTitleProps}>Drill Library</Text>
 
-        {/* Filter tabs */}
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -124,7 +117,6 @@ export default function DrillLibraryScreen() {
           {MECHANIC_FILTERS.map(renderFilterTab)}
         </ScrollView>
 
-        {/* Drill grid */}
         <FlatList
           data={filteredDrills}
           renderItem={renderDrill}
@@ -215,7 +207,7 @@ const styles = StyleSheet.create({
   },
   gridCardMechanic: {
     fontFamily: typography.body,
-    fontSize: fontSizes.caption, // 11px from design system
+    fontSize: fontSizes.caption,
     fontWeight: fontWeights.medium,
     color: colors.text.muted,
     textTransform: 'uppercase',
