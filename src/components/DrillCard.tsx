@@ -18,11 +18,12 @@ interface DrillCardProps {
 
 
 const MECHANIC_LABELS: Record<DrillMechanic, string> = {
-  stance: 'Stance',
-  load: 'Load',
-  power_position: 'Power Position',
-  slot: 'Slot',
-  balance_at_contact: 'Balance at Contact',
+  'Stance': 'Stance',
+  'Load & Stride': 'Load & Stride',
+  'Power Position': 'Power Position',
+  'Slot': 'Slot',
+  'Balance/Extension': 'Balance/Extension',
+  'Multi': 'Multi',
 };
 
 // TODO AI-129 Fix 3: video thumbnail background on carousel cards.

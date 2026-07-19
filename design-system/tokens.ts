@@ -107,11 +107,12 @@ export const colors = {
 
   /** Drill carousel — mechanic identity colors */
   mechanic: {
-    stance: '#4A90D9', // blue
-    load: '#F5A623', // orange
-    power_position: '#639922', // green
-    slot: '#9B59B6', // purple
-    balance_at_contact: '#1ABC9C', // teal
+    'Stance': '#4A90D9', // blue
+    'Load & Stride': '#F5A623', // orange
+    'Power Position': '#639922', // green
+    'Slot': '#9B59B6', // purple
+    'Balance/Extension': '#1ABC9C', // teal
+    'Multi': '#C9A84C', // gold
   },
 
   /** Marketing / UI emerald — tabs, splash haze, Record action icon (distinct from semantic green) */

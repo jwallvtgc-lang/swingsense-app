@@ -30,11 +30,12 @@ type DrillLibraryNavigationProp = NativeStackNavigationProp<MainStackParamList>;
 
 const MECHANIC_FILTERS: Array<{ key: string; label: string; value: DrillMechanic | 'all' }> = [
   { key: 'all', label: 'All', value: 'all' },
-  { key: 'stance', label: 'Stance', value: 'stance' },
-  { key: 'load', label: 'Load', value: 'load' },
-  { key: 'power_position', label: 'Power Position', value: 'power_position' },
-  { key: 'slot', label: 'Slot', value: 'slot' },
-  { key: 'balance_at_contact', label: 'Balance at Contact', value: 'balance_at_contact' },
+  { key: 'Stance', label: 'Stance', value: 'Stance' },
+  { key: 'Load & Stride', label: 'Load & Stride', value: 'Load & Stride' },
+  { key: 'Power Position', label: 'Power Position', value: 'Power Position' },
+  { key: 'Slot', label: 'Slot', value: 'Slot' },
+  { key: 'Balance/Extension', label: 'Balance/Extension', value: 'Balance/Extension' },
+  { key: 'Multi', label: 'Multi', value: 'Multi' },
 ];
 
 interface DrillGridCardProps {
@@ -159,6 +160,7 @@ const styles = StyleSheet.create({
   },
   filterTab: {
     flexShrink: 0,
+    minWidth: 72,
     minHeight: 36,
     paddingHorizontal: spacing.card,
     paddingVertical: spacing.iconGap,

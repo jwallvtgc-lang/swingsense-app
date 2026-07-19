@@ -4,7 +4,7 @@ export const DRILLS: DrillCard[] = [
   // STANCE (3 drills)
   {
     id: 'stance-001',
-    mechanic: 'stance',
+    mechanic: null,
     title: 'Athletic Stance Mirror Drill',
     description: 'Train your body to feel what a balanced, athletic stance actually is.',
     whyItHelps: 'Your stance is the foundation of everything. If your feet are too narrow, too wide, or your weight is in the wrong place, every mechanic after it gets harder. This drill builds the muscle memory for a consistent starting position so you stop thinking about your stance and start thinking about your swing.',
@@ -22,7 +22,7 @@ export const DRILLS: DrillCard[] = [
   },
   {
     id: 'stance-002',
-    mechanic: 'stance',
+    mechanic: null,
     title: 'Feet Width Check Drill',
     description: 'Find your ideal foot width so your hips have room to rotate.',
     whyItHelps: 'Foot width controls how much hip rotation you can generate. Too narrow and your hips get stuck. Too wide and you lose explosiveness. This drill helps you find the width that gives you full rotation without sacrificing balance.',
@@ -40,7 +40,7 @@ export const DRILLS: DrillCard[] = [
   },
   {
     id: 'stance-003',
-    mechanic: 'stance',
+    mechanic: null,
     title: 'Weight Distribution Drill',
     description: 'Train your weight to start in the right place so your load is explosive.',
     whyItHelps: 'Where your weight starts determines where it can go. If you start on your heels or your toes, your load and stride are working against you from the beginning. This drill trains the feeling of balanced weight so your body is ready to explode into the pitch.',
@@ -60,7 +60,7 @@ export const DRILLS: DrillCard[] = [
   // LOAD (3 drills)
   {
     id: 'load-001',
-    mechanic: 'load',
+    mechanic: null,
     title: 'Pause at Load Drill',
     description: 'Hold your load for 2 full counts so your hands learn to stay back.',
     whyItHelps: 'Most timing problems come from the hands starting too early. When you pause at the top of your load, you train your hands to stay back while your hips get ready to fire. This is the single most effective drill for fixing early extension and weak contact.',
@@ -78,7 +78,7 @@ export const DRILLS: DrillCard[] = [
   },
   {
     id: 'load-002',
-    mechanic: 'load',
+    mechanic: null,
     title: 'Tee Load Emphasis Drill',
     description: 'Hit off a tee with exaggerated load to build load timing into muscle memory.',
     whyItHelps: 'The tee removes the variable of the pitch so you can focus entirely on your load. By exaggerating the load movement on tee work, your body learns what a full, controlled load feels like — so when the pitcher throws, you do it automatically.',
@@ -96,7 +96,7 @@ export const DRILLS: DrillCard[] = [
   },
   {
     id: 'load-003',
-    mechanic: 'load',
+    mechanic: null,
     title: 'Hand Path Load Drill',
     description: 'Train your hands to load straight back, not up or around.',
     whyItHelps: 'Where your hands go during the load determines your swing path. Hands that drift up or loop around during the load create a long, inefficient path to the ball. This drill locks in a short, direct hand path so your swing stays compact and powerful.',
@@ -116,7 +116,7 @@ export const DRILLS: DrillCard[] = [
   // POWER POSITION (3 drills)
   {
     id: 'power-001',
-    mechanic: 'power_position',
+    mechanic: null,
     title: 'Hip Hinge Drill',
     description: 'Learn to push your hips back so your body coils properly before contact.',
     whyItHelps: 'The power position is about creating tension between your upper and lower body. When your hips hinge back correctly during the load, you store energy like a spring. This drill trains that hip hinge so you stop losing power before the swing even starts.',
@@ -134,7 +134,7 @@ export const DRILLS: DrillCard[] = [
   },
   {
     id: 'power-002',
-    mechanic: 'power_position',
+    mechanic: null,
     title: 'Separation Drill',
     description: 'Train your hips to fire before your hands so you generate real power.',
     whyItHelps: 'Power in a baseball swing comes from separation — your hips turning while your hands stay back. Most hitters lose power because their hands and hips move at the same time. This drill teaches your body to sequence the movement correctly: hips first, hands second.',
@@ -152,7 +152,7 @@ export const DRILLS: DrillCard[] = [
   },
   {
     id: 'power-003',
-    mechanic: 'power_position',
+    mechanic: null,
     title: 'Power Position Freeze Drill',
     description: 'Freeze at the power position to feel where your body should be at heel strike.',
     whyItHelps: 'The power position is a specific moment — front heel hitting the ground, weight loaded on back hip, hands back, hips closed. Most hitters blow through this position without ever learning what it feels like. Freezing here builds body awareness so you can find it automatically in a game.',
@@ -172,7 +172,7 @@ export const DRILLS: DrillCard[] = [
   // SLOT (3 drills)
   {
     id: 'slot-001',
-    mechanic: 'slot',
+    mechanic: null,
     title: 'Towel Drill',
     description: 'Keep your lead arm close to your body so your bat stays on the right path.',
     whyItHelps: 'Getting your bat into the slot means keeping your lead elbow tight to your body as you start the downswing. When the elbow flies out, your bat goes around the ball instead of through it. The towel creates pressure that forces your elbow to stay in the right position.',
@@ -190,7 +190,7 @@ export const DRILLS: DrillCard[] = [
   },
   {
     id: 'slot-002',
-    mechanic: 'slot',
+    mechanic: null,
     title: 'Inside-Out Path Drill',
     description: 'Train your bat path to go inside the ball so you hit line drives not pop-ups.',
     whyItHelps: 'An inside-out swing path is what produces hard contact to all fields. When your bat comes from the outside or casts around the ball, you get weak contact and pull everything foul. This drill trains the feeling of letting the ball travel and hitting it with an inside-out path.',
@@ -208,7 +208,7 @@ export const DRILLS: DrillCard[] = [
   },
   {
     id: 'slot-003',
-    mechanic: 'slot',
+    mechanic: null,
     title: 'Short Bat Slot Drill',
     description: 'Use a short bat to feel the correct slot position without casting.',
     whyItHelps: 'A shorter bat makes it impossible to cast because the leverage works against you. By training with a short bat or choke up dramatically, your body learns to keep the barrel back and let the hands lead — which is exactly what getting into the slot requires.',
@@ -228,7 +228,7 @@ export const DRILLS: DrillCard[] = [
   // BALANCE AT CONTACT (3 drills)
   {
     id: 'balance-001',
-    mechanic: 'balance_at_contact',
+    mechanic: null,
     title: 'Hold Your Finish Drill',
     description: 'Hold your follow-through for 3 seconds to train balance through contact.',
     whyItHelps: 'If you can\'t hold your finish, you lost your balance somewhere in the swing. Most hitters fall off or lunge forward without realizing it. Holding your finish for 3 seconds forces your body to find balance — and over time, you find it earlier and earlier in the swing.',
@@ -246,7 +246,7 @@ export const DRILLS: DrillCard[] = [
   },
   {
     id: 'balance-002',
-    mechanic: 'balance_at_contact',
+    mechanic: null,
     title: 'One-Legged Finish Drill',
     description: 'Balance on your front leg after contact to build rotational stability.',
     whyItHelps: 'The best hitters in the world can hold a one-legged finish because their weight transfer is controlled and their rotation is complete. This drill exposes any lunging, early weight shift, or loss of posture immediately — and fixes it by making balance a requirement, not a suggestion.',
@@ -264,7 +264,7 @@ export const DRILLS: DrillCard[] = [
   },
   {
     id: 'balance-003',
-    mechanic: 'balance_at_contact',
+    mechanic: null,
     title: 'Soft Toss Balance Drill',
     description: 'Stay balanced through a real pitch by focusing on your finish, not the ball.',
     whyItHelps: 'It\'s easy to stay balanced in slow-motion drills. The real test is when someone\'s tossing you a ball and your instinct is to lunge at it. This drill puts you in a real hitting situation while keeping balance as the primary focus — which is how balance becomes automatic in a game.',
@@ -287,7 +287,7 @@ export const DRILLS: DrillCard[] = [
 /**
  * Get all drills for a specific mechanic
  */
-export function getDrillsByMechanic(mechanic: DrillMechanic): DrillCard[] {
+export function getDrillsByMechanic(mechanic: DrillMechanic | null): DrillCard[] {
   return DRILLS.filter(drill => drill.mechanic === mechanic)
 }
 
@@ -302,7 +302,7 @@ export function getDrillsByExperienceLevel(level: ExperienceLevel): DrillCard[] 
  * Get the best drill for carousel slot 1 (matches mechanic + experience level)
  * Returns the first drill found that matches both criteria, or the first drill for the mechanic if no level match
  */
-export function getDrillForMechanic(mechanic: DrillMechanic, level: ExperienceLevel): DrillCard {
+export function getDrillForMechanic(mechanic: DrillMechanic | null, level: ExperienceLevel): DrillCard {
   const mechanicDrills = getDrillsByMechanic(mechanic)
   const matchingDrill = mechanicDrills.find(drill => drill.experience_level === level)
 
@@ -313,7 +313,7 @@ export function getDrillForMechanic(mechanic: DrillMechanic, level: ExperienceLe
 /**
  * Get random drills from mechanics OTHER than the specified one (for carousel slots 2-5)
  */
-export function getRandomDrillsExcluding(mechanic: DrillMechanic, count: number): DrillCard[] {
+export function getRandomDrillsExcluding(mechanic: DrillMechanic | null, count: number): DrillCard[] {
   const otherDrills = DRILLS.filter(drill => drill.mechanic !== mechanic)
 
   // Shuffle the array using Fisher-Yates algorithm

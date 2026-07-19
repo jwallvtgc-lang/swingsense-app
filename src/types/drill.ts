@@ -47,5 +47,5 @@ export function mapSupabaseDrillToCard(d: SupabaseDrill): DrillCard {
   }
 }
 
-export type DrillMechanic = 'stance' | 'load' | 'power_position' | 'slot' | 'balance_at_contact'
+export type DrillMechanic = 'Stance' | 'Load & Stride' | 'Power Position' | 'Slot' | 'Balance/Extension' | 'Multi'
 export type ExperienceLevel = 'beginner' | 'intermediate' | 'advanced' | 'all'
