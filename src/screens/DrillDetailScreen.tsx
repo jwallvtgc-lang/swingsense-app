@@ -144,18 +144,19 @@ export default function DrillDetailScreen() {
             <Text style={styles.sectionText}>{whyText}</Text>
           </View>
 
-          {/* EQUIPMENT & SETUP section */}
+          {/* EQUIPMENT & SETUP section — shows foundation field (equipment info) */}
           <View style={styles.section}>
             <Text style={styles.sectionHeader}>EQUIPMENT & SETUP</Text>
-            <Text style={styles.sectionText}>{drill.setup}</Text>
+            <Text style={styles.sectionText}>{drill.description}</Text>
           </View>
 
-          {/* HOW TO DO IT section */}
+          {/* HOW TO DO IT section — setup (positioning) as step 1, then focus points */}
           <View style={styles.section}>
             <Text style={styles.sectionHeader}>HOW TO DO IT</Text>
             <View style={styles.stepsContainer}>
+              <DrillStep key="setup" step={1} text={drill.setup} />
               {drill.steps.map((step, index) => (
-                <DrillStep key={index} step={index + 1} text={step} />
+                <DrillStep key={index} step={index + 2} text={step} />
               ))}
             </View>
           </View>
