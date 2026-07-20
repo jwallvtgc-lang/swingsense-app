@@ -1403,29 +1403,39 @@ async def _query_candidate_drills(mechanic: str | None) -> list[dict]:
         or ""
     )
     if not SUPABASE_URL or not SUPABASE_KEY:
-        _log("[DrillSelector] WARNING: Missing Supabase config, skipping drill query")
+        _log("[DrillSelector] WARNING: Missing Supabase URL or key — skipping drill query")
         return []
 
+    _log(f"[DrillSelector] Querying drills table mechanic={mechanic!r}")
     headers = {
         "apikey": SUPABASE_KEY,
         "Authorization": f"Bearer {SUPABASE_KEY}",
         "Content-Type": "application/json",
     }
+    # When mechanic is specified, accept drills that match OR have null mechanic (general purpose).
+    # PostgREST OR filter syntax: ?or=(col.op.val,col.op.val)
     params: dict[str, str] = {"select": "id,name,mechanic,purpose,focus_points"}
     if mechanic:
-        params["mechanic"] = f"eq.{mechanic}"
+        params["or"] = f"(mechanic.eq.{mechanic},mechanic.is.null)"
 
     try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
+        async with httpx.AsyncClient(timeout=15.0) as client:
             resp = await client.get(
                 f"{SUPABASE_URL}/rest/v1/drills",
                 headers=headers,
                 params=params,
             )
-            resp.raise_for_status()
-            return resp.json()  # type: ignore[no-any-return]
+            if not resp.is_success:
+                _log(f"[DrillSelector] HTTP {resp.status_code} querying drills: {resp.text[:500]}")
+                return []
+            rows = resp.json()
+            if not isinstance(rows, list):
+                _log(f"[DrillSelector] Unexpected response type {type(rows).__name__}: {str(rows)[:300]}")
+                return []
+            _log(f"[DrillSelector] Found {len(rows)} candidate drills (mechanic={mechanic!r})")
+            return rows
     except Exception as e:
-        _log(f"[DrillSelector] ERROR querying candidate drills: {e}")
+        _log(f"[DrillSelector] ERROR querying drills: {type(e).__name__}: {e}")
         return []
 
 
@@ -1439,15 +1449,17 @@ async def _fetch_full_drill(drill_id: str) -> dict | None:
         or ""
     )
     if not SUPABASE_URL or not SUPABASE_KEY:
+        _log("[DrillSelector] WARNING: Missing Supabase config in _fetch_full_drill")
         return None
 
+    _log(f"[DrillSelector] Fetching full drill id={drill_id}")
     headers = {
         "apikey": SUPABASE_KEY,
         "Authorization": f"Bearer {SUPABASE_KEY}",
         "Content-Type": "application/json",
     }
     try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
+        async with httpx.AsyncClient(timeout=15.0) as client:
             resp = await client.get(
                 f"{SUPABASE_URL}/rest/v1/drills",
                 headers=headers,
@@ -1457,11 +1469,20 @@ async def _fetch_full_drill(drill_id: str) -> dict | None:
                     "limit": "1",
                 },
             )
-            resp.raise_for_status()
+            if not resp.is_success:
+                _log(f"[DrillSelector] HTTP {resp.status_code} fetching drill {drill_id}: {resp.text[:300]}")
+                return None
             rows = resp.json()
-            return rows[0] if rows else None
+            if not isinstance(rows, list):
+                _log(f"[DrillSelector] Unexpected fetch response: {str(rows)[:300]}")
+                return None
+            if not rows:
+                _log(f"[DrillSelector] No drill found for id={drill_id}")
+                return None
+            _log(f"[DrillSelector] Fetched drill: {rows[0].get('name')!r}")
+            return rows[0]
     except Exception as e:
-        _log(f"[DrillSelector] ERROR fetching full drill {drill_id}: {e}")
+        _log(f"[DrillSelector] ERROR fetching full drill {drill_id}: {type(e).__name__}: {e}")
         return None
 
 
@@ -1496,17 +1517,19 @@ async def _run_drill_selector(
 
     full_prompt = f"SYSTEM:\n{system_prompt}\n\nUSER:\n{user_message}"
     client = Anthropic(api_key=api_key)
+    _log(f"[DrillSelector] Calling Claude with {len(candidates)} candidates")
 
     start_time = time.time()
     try:
         response = client.messages.create(
-            model="claude-sonnet-4-6",
-            max_tokens=64,
+            model="claude-sonnet-4-20250514",
+            max_tokens=128,
             system=system_prompt,
             messages=[{"role": "user", "content": user_message}],
         )
         latency_ms = round((time.time() - start_time) * 1000)
         result_text = response.content[0].text.strip()
+        _log(f"[DrillSelector] Claude raw response ({latency_ms}ms): {result_text[:200]}")
 
         parsed: dict | None = None
         try:
@@ -1515,14 +1538,18 @@ async def _run_drill_selector(
             start = result_text.find("{")
             end = result_text.rfind("}") + 1
             if start >= 0 and end > start:
-                parsed = json.loads(result_text[start:end])
+                try:
+                    parsed = json.loads(result_text[start:end])
+                except json.JSONDecodeError:
+                    _log(f"[DrillSelector] Could not parse JSON from: {result_text[:200]}")
 
         drill_id = parsed.get("drill_id") if parsed else None
+        _log(f"[DrillSelector] Parsed drill_id={drill_id!r}")
 
         # Validate returned ID is in the candidate list
         valid_ids = {d["id"] for d in candidates}
         if drill_id not in valid_ids:
-            _log(f"[DrillSelector] Returned id {drill_id!r} not in candidates — falling back to first")
+            _log(f"[DrillSelector] drill_id {drill_id!r} not in {len(valid_ids)} candidates — using first")
             drill_id = candidates[0]["id"] if candidates else None
 
         try:
@@ -1809,6 +1836,7 @@ async def analyze(request: AnalyzeRequest):
         primary_issue = coaching_output.get("primary_mechanical_issue") or {}
         issue_title = primary_issue.get("title", "")
         issue_desc = primary_issue.get("description", "")
+        _log(f"[DrillSelector] primary_issue_title={issue_title!r}")
         if issue_title:
             try:
                 selected_drill = await select_drill_for_analysis(
@@ -1819,10 +1847,12 @@ async def analyze(request: AnalyzeRequest):
                     player_profile=profile,
                 )
                 coaching_output["selected_drill"] = selected_drill
+                _log(f"[DrillSelector] Result: {selected_drill.get('name') if selected_drill else None!r}")
             except Exception as e:
-                _log(f"[Analyze] drill_selector failed (non-fatal): {e}")
+                _log(f"[Analyze] drill_selector failed (non-fatal): {type(e).__name__}: {e}")
                 coaching_output["selected_drill"] = None
         else:
+            _log("[DrillSelector] No primary issue title — skipping drill selector")
             coaching_output["selected_drill"] = None
 
         elapsed = time.time() - start_time
@@ -2263,6 +2293,63 @@ Write a personal best celebration in Darian's coaching voice."""
         _log(f"[personal_best] Error writing trace: {e}")
 
     return parsed_result
+
+
+@app.get("/debug/drill-selector")
+async def debug_drill_selector():
+    """
+    Smoke-test the drill selector without running a full analysis.
+    Calls the real Supabase query and Claude drill_selector with a dummy issue.
+    Returns diagnostic info — safe to call from browser or curl.
+    """
+    SUPABASE_URL = (os.environ.get("SUPABASE_URL") or "").rstrip("/")
+    SUPABASE_KEY = (
+        os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+        or os.environ.get("SUPABASE_SERVICE_KEY")
+        or os.environ.get("SUPABASE_ANON_KEY")
+        or ""
+    )
+    diag: dict = {
+        "supabase_url_set": bool(SUPABASE_URL),
+        "supabase_key_set": bool(SUPABASE_KEY),
+        "supabase_url_prefix": SUPABASE_URL[:40] if SUPABASE_URL else None,
+        "supabase_key_tail": SUPABASE_KEY[-8:] if len(SUPABASE_KEY) >= 8 else "(too short)",
+    }
+
+    # Test: query all drills
+    all_drills = await _query_candidate_drills(None)
+    diag["total_drills_in_table"] = len(all_drills)
+    diag["sample_drill_keys"] = list(all_drills[0].keys()) if all_drills else []
+
+    # Test: mechanic-filtered query
+    slot_drills = await _query_candidate_drills("Slot")
+    diag["slot_drill_count"] = len(slot_drills)
+
+    # Test: drill_selector with a dummy issue
+    dummy_issue = "Power position is weak — hands are firing before hips load"
+    test_drill_id: str | None = None
+    if all_drills:
+        test_drill_id = await _run_drill_selector(
+            issue_description=dummy_issue,
+            mechanic="Power Position",
+            candidates=all_drills[:5],  # limit to 5 for speed
+            user_id=None,
+            swing_id=None,
+            player_profile={},
+        )
+    diag["drill_selector_returned_id"] = test_drill_id
+
+    # Test: fetch full drill
+    full_drill = None
+    if test_drill_id:
+        full_drill = await _fetch_full_drill(test_drill_id)
+    diag["full_drill_name"] = full_drill.get("name") if full_drill else None
+    diag["full_drill_has_required_fields"] = (
+        all(k in (full_drill or {}) for k in ["foundation", "setup", "focus_points", "finish_reminders", "purpose"])
+        if full_drill else False
+    )
+
+    return diag
 
 
 @app.on_event("startup")
