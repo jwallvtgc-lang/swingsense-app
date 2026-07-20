@@ -35,7 +35,7 @@ import {
   submitDrillFeedback,
 } from '../services/analysis';
 import { trackEvent } from '../services/analytics';
-import type { CoachingOutput, SwingAnalysis } from '../types';
+import type { CoachingOutput, SelectedDrill, SwingAnalysis } from '../types';
 import {
   colors,
   displayTitleProps,
@@ -267,6 +267,115 @@ function formatAnalysisDate(iso: string | undefined): string {
     return iso;
   }
 }
+
+function LibraryDrillCard({
+  drill,
+  onStartDrill,
+}: {
+  drill: SelectedDrill;
+  onStartDrill: () => void;
+}) {
+  const focusSteps = drill.focus_points
+    .split('. ')
+    .map((p, i, arr) => (i < arr.length - 1 ? p + '.' : p))
+    .filter((s) => s.trim().length > 0);
+
+  return (
+    <View style={libraryDrillStyles.container}>
+      <Text style={libraryDrillStyles.drillName} maxFontSizeMultiplier={1.35}>
+        {drill.name}
+      </Text>
+
+      <View style={libraryDrillStyles.section}>
+        <Text style={libraryDrillStyles.sectionHeader}>WHY THIS DRILL</Text>
+        <Text style={libraryDrillStyles.sectionText} maxFontSizeMultiplier={1.35}>
+          {drill.purpose}
+        </Text>
+      </View>
+
+      <View style={libraryDrillStyles.section}>
+        <Text style={libraryDrillStyles.sectionHeader}>EQUIPMENT & SETUP</Text>
+        <Text style={libraryDrillStyles.sectionText} maxFontSizeMultiplier={1.35}>
+          {drill.foundation}
+        </Text>
+      </View>
+
+      <View style={libraryDrillStyles.section}>
+        <Text style={libraryDrillStyles.sectionHeader}>HOW TO DO IT</Text>
+        <View style={libraryDrillStyles.steps}>
+          <DrillStep step={1} text={drill.setup} />
+          {focusSteps.map((text, i) => (
+            <DrillStep key={i} step={i + 2} text={text} />
+          ))}
+        </View>
+      </View>
+
+      <Text style={libraryDrillStyles.reps} maxFontSizeMultiplier={1.35}>
+        {drill.finish_reminders}
+      </Text>
+
+      <Pressable
+        style={({ pressed }) => [libraryDrillStyles.startButton, pressed && { opacity: 0.8 }]}
+        onPress={onStartDrill}
+      >
+        <Text style={libraryDrillStyles.startButtonText}>Start drill →</Text>
+      </Pressable>
+    </View>
+  );
+}
+
+const libraryDrillStyles = StyleSheet.create({
+  container: {
+    gap: spacing.sectionGap,
+  },
+  drillName: {
+    fontFamily: typography.body,
+    fontSize: fontSizes.sectionTitle,
+    fontWeight: fontWeights.bold,
+    color: colors.text.primary,
+  },
+  section: {
+    gap: spacing.iconGap,
+  },
+  sectionHeader: {
+    fontFamily: typography.body,
+    fontSize: fontSizes.caption,
+    fontWeight: fontWeights.bold,
+    color: colors.text.primary,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+  },
+  sectionText: {
+    fontFamily: typography.body,
+    fontSize: fontSizes.body,
+    color: colors.text.secondary,
+    lineHeight: Math.round(fontSizes.body * 1.4),
+  },
+  steps: {
+    gap: spacing.drillGap,
+  },
+  reps: {
+    fontFamily: typography.body,
+    fontSize: fontSizes.body,
+    color: colors.text.secondary,
+    fontStyle: 'italic',
+  },
+  startButton: {
+    alignSelf: 'flex-start',
+    paddingVertical: spacing.pillGap,
+    paddingHorizontal: spacing.cardSm,
+    backgroundColor: colors.bg.goldDim,
+    borderRadius: radius.badge,
+    borderWidth: 1,
+    borderColor: colors.text.gold,
+  },
+  startButtonText: {
+    fontFamily: typography.body,
+    fontSize: fontSizes.body,
+    fontWeight: fontWeights.medium,
+    color: colors.text.gold,
+  },
+});
 
 export default function AnalysisScreen() {
   const insets = useSafeAreaInsets();
@@ -698,7 +807,14 @@ export default function AnalysisScreen() {
               )}
             </SectionCard>
             <SectionCard title="Action Plan">
-              {actionPlanDrill?.kind === 'structured' ? (
+              {co?.selected_drill ? (
+                <LibraryDrillCard
+                  drill={co.selected_drill}
+                  onStartDrill={() =>
+                    navigation.navigate('DrillDetail', { drillId: co.selected_drill!.id })
+                  }
+                />
+              ) : actionPlanDrill?.kind === 'structured' ? (
                 <View style={styles.drillList}>
                   {actionPlanDrill.data.title.length > 0 ? (
                     <Text style={styles.drillPlanTitle} maxFontSizeMultiplier={1.35}>

@@ -1371,6 +1371,226 @@ The lowest scoring mechanic above is the most likely primary issue. Use overall 
     return parsed_result
 
 
+# ── Drill Selector ────────────────────────────────────────────────
+
+DRILL_SELECTOR_PROMPT_VERSION = "drill_selector_v1.0"
+# v1.0: Initial drill selector — picks best library drill for player's specific mechanical issue
+
+_MECHANIC_KEYWORDS: list[tuple[str, list[str]]] = [
+    ("Stance", ["stance", "setup", "posture", "athletic position", "foot width"]),
+    ("Load & Stride", ["load", "stride", "timing", "hand load", "hip load"]),
+    ("Power Position", ["power position", "hip", "coil", "lower half", "hamstring"]),
+    ("Slot", ["slot", "path", "barrel", "elbow", "back knee", "knob"]),
+    ("Balance/Extension", ["balance", "contact", "finish", "extension", "falling off", "head"]),
+]
+
+def _map_issue_to_mechanic(issue_title: str) -> str | None:
+    """Map primary_mechanical_issue.title to a Supabase drills.mechanic value."""
+    t = issue_title.lower()
+    for mechanic, keywords in _MECHANIC_KEYWORDS:
+        if any(kw in t for kw in keywords):
+            return mechanic
+    return None
+
+
+async def _query_candidate_drills(mechanic: str | None) -> list[dict]:
+    """Fetch candidate drills from Supabase. If mechanic is None, returns all drills."""
+    SUPABASE_URL = (os.environ.get("SUPABASE_URL") or "").rstrip("/")
+    SUPABASE_KEY = (
+        os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+        or os.environ.get("SUPABASE_SERVICE_KEY")
+        or os.environ.get("SUPABASE_ANON_KEY")
+        or ""
+    )
+    if not SUPABASE_URL or not SUPABASE_KEY:
+        _log("[DrillSelector] WARNING: Missing Supabase config, skipping drill query")
+        return []
+
+    headers = {
+        "apikey": SUPABASE_KEY,
+        "Authorization": f"Bearer {SUPABASE_KEY}",
+        "Content-Type": "application/json",
+    }
+    params: dict[str, str] = {"select": "id,name,mechanic,purpose,focus_points"}
+    if mechanic:
+        params["mechanic"] = f"eq.{mechanic}"
+
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.get(
+                f"{SUPABASE_URL}/rest/v1/drills",
+                headers=headers,
+                params=params,
+            )
+            resp.raise_for_status()
+            return resp.json()  # type: ignore[no-any-return]
+    except Exception as e:
+        _log(f"[DrillSelector] ERROR querying candidate drills: {e}")
+        return []
+
+
+async def _fetch_full_drill(drill_id: str) -> dict | None:
+    """Fetch a full drill record by ID from Supabase."""
+    SUPABASE_URL = (os.environ.get("SUPABASE_URL") or "").rstrip("/")
+    SUPABASE_KEY = (
+        os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+        or os.environ.get("SUPABASE_SERVICE_KEY")
+        or os.environ.get("SUPABASE_ANON_KEY")
+        or ""
+    )
+    if not SUPABASE_URL or not SUPABASE_KEY:
+        return None
+
+    headers = {
+        "apikey": SUPABASE_KEY,
+        "Authorization": f"Bearer {SUPABASE_KEY}",
+        "Content-Type": "application/json",
+    }
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.get(
+                f"{SUPABASE_URL}/rest/v1/drills",
+                headers=headers,
+                params={
+                    "select": "id,name,mechanic,purpose,foundation,setup,focus_points,finish_reminders,video_url",
+                    "id": f"eq.{drill_id}",
+                    "limit": "1",
+                },
+            )
+            resp.raise_for_status()
+            rows = resp.json()
+            return rows[0] if rows else None
+    except Exception as e:
+        _log(f"[DrillSelector] ERROR fetching full drill {drill_id}: {e}")
+        return None
+
+
+async def _run_drill_selector(
+    issue_description: str,
+    mechanic: str | None,
+    candidates: list[dict],
+    user_id: str | None,
+    swing_id: str | None,
+    player_profile: dict,
+) -> str | None:
+    """Call Claude to select the best drill from candidates. Returns drill_id or None."""
+    api_key = os.environ.get("ANTHROPIC_API_KEY")
+    if not api_key or not candidates:
+        return None
+
+    drill_list_text = "\n".join(
+        f"- id: {d['id']}\n  name: {d['name']}\n  purpose: {d.get('purpose', '')}\n  focus_points: {d.get('focus_points', '')}"
+        for d in candidates
+    )
+
+    system_prompt = "You are a baseball coaching assistant. Respond only with valid JSON."
+    user_message = (
+        f"A player's swing analysis identified this specific issue:\n\n"
+        f"\"{issue_description}\"\n\n"
+        f"The primary mechanic affected is: {mechanic or 'general'}\n\n"
+        f"Here are the available drills for this mechanic:\n\n{drill_list_text}\n\n"
+        f"Select the single drill that best addresses the player's specific issue. "
+        f"Consider the purpose and focus points of each drill against the issue description. "
+        f"Return only a JSON object: {{\"drill_id\": \"uuid\"}}"
+    )
+
+    full_prompt = f"SYSTEM:\n{system_prompt}\n\nUSER:\n{user_message}"
+    client = Anthropic(api_key=api_key)
+
+    start_time = time.time()
+    try:
+        response = client.messages.create(
+            model="claude-sonnet-4-6",
+            max_tokens=64,
+            system=system_prompt,
+            messages=[{"role": "user", "content": user_message}],
+        )
+        latency_ms = round((time.time() - start_time) * 1000)
+        result_text = response.content[0].text.strip()
+
+        parsed: dict | None = None
+        try:
+            parsed = json.loads(result_text)
+        except json.JSONDecodeError:
+            start = result_text.find("{")
+            end = result_text.rfind("}") + 1
+            if start >= 0 and end > start:
+                parsed = json.loads(result_text[start:end])
+
+        drill_id = parsed.get("drill_id") if parsed else None
+
+        # Validate returned ID is in the candidate list
+        valid_ids = {d["id"] for d in candidates}
+        if drill_id not in valid_ids:
+            _log(f"[DrillSelector] Returned id {drill_id!r} not in candidates — falling back to first")
+            drill_id = candidates[0]["id"] if candidates else None
+
+        try:
+            await write_coaching_trace(
+                user_id=user_id,
+                swing_id=swing_id,
+                call_type="drill_selector",
+                experience_level=player_profile.get("experience_level"),
+                computed_metrics=None,
+                full_prompt=full_prompt,
+                raw_response=result_text,
+                parsed_response=parsed,
+                latency_ms=latency_ms,
+                model_version="claude-sonnet-4-6",
+                prompt_version=DRILL_SELECTOR_PROMPT_VERSION,
+            )
+        except Exception as e:
+            _log(f"[DrillSelector] ERROR writing trace: {e}")
+
+        return drill_id
+    except Exception as e:
+        _log(f"[DrillSelector] ERROR calling Claude: {e}")
+        return None
+
+
+async def select_drill_for_analysis(
+    primary_issue_title: str,
+    primary_issue_description: str,
+    user_id: str | None,
+    swing_id: str | None,
+    player_profile: dict,
+) -> dict | None:
+    """
+    Full drill selection flow: map mechanic → query candidates → call drill_selector → fetch full drill.
+    Returns the selected drill record, or None on any failure.
+    """
+    mechanic = _map_issue_to_mechanic(primary_issue_title)
+    _log(f"[DrillSelector] mechanic={mechanic!r} for issue={primary_issue_title!r}")
+
+    candidates = await _query_candidate_drills(mechanic)
+    if not candidates:
+        _log("[DrillSelector] No candidates found, falling back to all drills")
+        candidates = await _query_candidate_drills(None)
+
+    if not candidates:
+        _log("[DrillSelector] No drills in library, skipping")
+        return None
+
+    drill_id = await _run_drill_selector(
+        issue_description=primary_issue_description,
+        mechanic=mechanic,
+        candidates=candidates,
+        user_id=user_id,
+        swing_id=swing_id,
+        player_profile=player_profile,
+    )
+
+    if not drill_id:
+        # Fall back to first candidate
+        drill_id = candidates[0]["id"]
+        _log(f"[DrillSelector] No drill_id from Claude, using fallback {drill_id}")
+
+    full_drill = await _fetch_full_drill(drill_id)
+    if full_drill:
+        _log(f"[DrillSelector] Selected drill: {full_drill.get('name')!r}")
+    return full_drill
+
+
 # ── API Endpoints ────────────────────────────────────────────────
 
 class PreviousSwingPayload(BaseModel):
@@ -1585,6 +1805,26 @@ async def analyze(request: AnalyzeRequest):
                 coaching_output["similarity_scores"] = ss
             ss["head_stability"] = head_stability
 
+        # Select a vetted library drill for the primary mechanical issue
+        primary_issue = coaching_output.get("primary_mechanical_issue") or {}
+        issue_title = primary_issue.get("title", "")
+        issue_desc = primary_issue.get("description", "")
+        if issue_title:
+            try:
+                selected_drill = await select_drill_for_analysis(
+                    primary_issue_title=issue_title,
+                    primary_issue_description=issue_desc,
+                    user_id=request.user_id,
+                    swing_id=request.analysis_id,
+                    player_profile=profile,
+                )
+                coaching_output["selected_drill"] = selected_drill
+            except Exception as e:
+                _log(f"[Analyze] drill_selector failed (non-fatal): {e}")
+                coaching_output["selected_drill"] = None
+        else:
+            coaching_output["selected_drill"] = None
+
         elapsed = time.time() - start_time
         _log(f"[Analyze] Done in {elapsed:.1f}s")
 
@@ -1613,7 +1853,8 @@ async def analyze(request: AnalyzeRequest):
         Path(tmp_path).unlink(missing_ok=True)
 
 
-# Increment on every prompt change. Logged in coaching_traces for quality tracking.
+# DEPRECATED: The initial drill recommendation is now handled by drill_selector (AI-132).
+# This endpoint remains for "Did you try this drill?" feedback responses only.
 DRILL_COACH_PROMPT_VERSION = "v1.0"
 # v1.0: Initial drill follow-up prompt with Darian's coaching voice and feedback response patterns
 

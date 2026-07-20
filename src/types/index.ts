@@ -63,9 +63,23 @@ export interface FrameKeypoints {
   keypoints: Record<string, { x: number; y: number; confidence: number }>;
 }
 
+export interface SelectedDrill {
+  id: string;
+  name: string;
+  mechanic: string | null;
+  purpose: string;
+  foundation: string;
+  setup: string;
+  focus_points: string;
+  finish_reminders: string;
+  video_url: string | null;
+}
+
 export interface CoachingOutput {
   primary_mechanical_issue: PrimaryMechanicalIssue | null;
   drill: string | null;
+  /** Vetted library drill selected by drill_selector (AI-132). Supersedes free-form `drill` field. */
+  selected_drill?: SelectedDrill | null;
   bat_speed_estimate: BatSpeedEstimate;
   similarity_scores: SimilarityBreakdown;
   overall_summary: string;
