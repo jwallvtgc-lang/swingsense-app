@@ -2299,9 +2299,10 @@ Write a personal best celebration in Darian's coaching voice."""
 async def debug_drill_selector():
     """
     Smoke-test the drill selector without running a full analysis.
-    Calls the real Supabase query and Claude drill_selector with a dummy issue.
-    Returns diagnostic info — safe to call from browser or curl.
+    Exposes every intermediate value so failures are visible in the response body.
+    Safe to call from browser or curl.
     """
+    api_key = os.environ.get("ANTHROPIC_API_KEY")
     SUPABASE_URL = (os.environ.get("SUPABASE_URL") or "").rstrip("/")
     SUPABASE_KEY = (
         os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
@@ -2310,39 +2311,79 @@ async def debug_drill_selector():
         or ""
     )
     diag: dict = {
+        "anthropic_key_set": bool(api_key),
         "supabase_url_set": bool(SUPABASE_URL),
         "supabase_key_set": bool(SUPABASE_KEY),
         "supabase_url_prefix": SUPABASE_URL[:40] if SUPABASE_URL else None,
         "supabase_key_tail": SUPABASE_KEY[-8:] if len(SUPABASE_KEY) >= 8 else "(too short)",
     }
 
-    # Test: query all drills
+    # Step 1: query all drills
     all_drills = await _query_candidate_drills(None)
     diag["total_drills_in_table"] = len(all_drills)
     diag["sample_drill_keys"] = list(all_drills[0].keys()) if all_drills else []
+    diag["sample_drill_ids"] = [d["id"] for d in all_drills[:3]]
 
-    # Test: mechanic-filtered query
+    # Step 2: mechanic-filtered query (OR null)
     slot_drills = await _query_candidate_drills("Slot")
     diag["slot_drill_count"] = len(slot_drills)
 
-    # Test: drill_selector with a dummy issue
-    dummy_issue = "Power position is weak — hands are firing before hips load"
-    test_drill_id: str | None = None
-    if all_drills:
-        test_drill_id = await _run_drill_selector(
-            issue_description=dummy_issue,
-            mechanic="Power Position",
-            candidates=all_drills[:5],  # limit to 5 for speed
-            user_id=None,
-            swing_id=None,
-            player_profile={},
-        )
-    diag["drill_selector_returned_id"] = test_drill_id
+    # Step 3: Claude call — done inline so we can capture raw response + any error
+    candidates = all_drills[:5]
+    diag["candidates_sent_to_claude"] = len(candidates)
+    diag["candidate_ids"] = [d["id"] for d in candidates]
+    diag["claude_raw_response"] = None
+    diag["claude_exception"] = None
+    diag["claude_parsed"] = None
+    drill_id_from_claude: str | None = None
 
-    # Test: fetch full drill
-    full_drill = None
-    if test_drill_id:
-        full_drill = await _fetch_full_drill(test_drill_id)
+    if candidates and api_key:
+        drill_list_text = "\n".join(
+            f"- id: {d['id']}\n  name: {d['name']}\n  purpose: {d.get('purpose', '')}"
+            for d in candidates
+        )
+        system_prompt = "You are a baseball coaching assistant. Respond only with valid JSON."
+        user_message = (
+            "A player's swing analysis identified this specific issue:\n\n"
+            "\"Hands are dropping before the swing fires, losing power at contact\"\n\n"
+            "The primary mechanic affected is: Power Position\n\n"
+            f"Here are the available drills:\n\n{drill_list_text}\n\n"
+            "Return only a JSON object: {\"drill_id\": \"<one of the ids above>\"}"
+        )
+        try:
+            claude_client = Anthropic(api_key=api_key)
+            resp = claude_client.messages.create(
+                model="claude-sonnet-4-20250514",
+                max_tokens=128,
+                system=system_prompt,
+                messages=[{"role": "user", "content": user_message}],
+            )
+            raw = resp.content[0].text.strip()
+            diag["claude_raw_response"] = raw
+
+            parsed: dict | None = None
+            try:
+                parsed = json.loads(raw)
+            except json.JSONDecodeError:
+                s = raw.find("{")
+                e = raw.rfind("}") + 1
+                if s >= 0 and e > s:
+                    try:
+                        parsed = json.loads(raw[s:e])
+                    except json.JSONDecodeError:
+                        pass
+            diag["claude_parsed"] = parsed
+            drill_id_from_claude = parsed.get("drill_id") if parsed else None
+            diag["drill_id_from_claude"] = drill_id_from_claude
+            valid_ids = {d["id"] for d in candidates}
+            diag["drill_id_in_candidate_list"] = drill_id_from_claude in valid_ids
+        except Exception as exc:
+            diag["claude_exception"] = f"{type(exc).__name__}: {exc}"
+
+    # Step 4: fetch full drill (use first candidate as fallback if Claude failed)
+    fetch_id = drill_id_from_claude or (candidates[0]["id"] if candidates else None)
+    diag["fetch_drill_id"] = fetch_id
+    full_drill = await _fetch_full_drill(fetch_id) if fetch_id else None
     diag["full_drill_name"] = full_drill.get("name") if full_drill else None
     diag["full_drill_has_required_fields"] = (
         all(k in (full_drill or {}) for k in ["foundation", "setup", "focus_points", "finish_reminders", "purpose"])
