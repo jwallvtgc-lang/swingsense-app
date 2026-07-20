@@ -1522,7 +1522,7 @@ async def _run_drill_selector(
     start_time = time.time()
     try:
         response = client.messages.create(
-            model="claude-sonnet-4-20250514",
+            model="claude-sonnet-4-6",
             max_tokens=128,
             system=system_prompt,
             messages=[{"role": "user", "content": user_message}],
@@ -1954,7 +1954,7 @@ Instruction: {tone_instruction}"""
     # Time the Claude API call
     start_time = time.time()
     response = client.messages.create(
-        model="claude-sonnet-4-20250514",
+        model="claude-sonnet-4-6",
         max_tokens=1000,
         system=system_prompt,
         messages=[{"role": "user", "content": user_message}],
@@ -1985,7 +1985,7 @@ Instruction: {tone_instruction}"""
             raw_response=result_text,
             parsed_response=parsed_result,
             latency_ms=latency_ms,
-            model_version="claude-sonnet-4-20250514",
+            model_version="claude-sonnet-4-6",
             prompt_version=DRILL_COACH_PROMPT_VERSION,
         )
     except Exception as e:
@@ -2141,7 +2141,7 @@ Write a short encouraging progress update in Darian's voice."""
     # Time the Claude API call
     start_time = time.time()
     response = client.messages.create(
-        model="claude-sonnet-4-20250514",
+        model="claude-sonnet-4-6",
         max_tokens=500,
         system=system_prompt,
         messages=[{"role": "user", "content": user_message}],
@@ -2173,7 +2173,7 @@ Write a short encouraging progress update in Darian's voice."""
             raw_response=result_text,
             parsed_response=claude_response,
             latency_ms=latency_ms,
-            model_version="claude-sonnet-4-20250514",
+            model_version="claude-sonnet-4-6",
             prompt_version=PROGRESS_COACH_PROMPT_VERSION,
         )
     except Exception as e:
@@ -2255,7 +2255,7 @@ Write a personal best celebration in Darian's coaching voice."""
     # Time the Claude API call
     start_time = time.time()
     response = client.messages.create(
-        model="claude-sonnet-4-20250514",
+        model="claude-sonnet-4-6",
         max_tokens=600,
         system=system_prompt,
         messages=[{"role": "user", "content": user_message}],
@@ -2286,7 +2286,7 @@ Write a personal best celebration in Darian's coaching voice."""
             raw_response=result_text,
             parsed_response=parsed_result,
             latency_ms=latency_ms,
-            model_version="claude-sonnet-4-20250514",
+            model_version="claude-sonnet-4-6",
             prompt_version=PERSONAL_BEST_PROMPT_VERSION,
         )
     except Exception as e:
@@ -2353,7 +2353,7 @@ async def debug_drill_selector():
         try:
             claude_client = Anthropic(api_key=api_key)
             resp = claude_client.messages.create(
-                model="claude-sonnet-4-20250514",
+                model="claude-sonnet-4-6",
                 max_tokens=128,
                 system=system_prompt,
                 messages=[{"role": "user", "content": user_message}],
