@@ -1015,34 +1015,44 @@ def compute_core_5(frames: list, head_stability_score: int | None = None) -> dic
         elif rh and ra and ra[1] > 0:
             hip_crouch.append(rh[1] / ra[1])
 
-    stance_score = 62
+    # AI-136: lower base — points are earned through bonuses, not given by default
+    stance_score = 50
 
-    # Primary: knee flex (both legs averaged when available)
+    # Primary: knee flex — single clean if/elif, no overlapping penalty blocks.
+    # AI-136: the old code had a standalone `if avg > 0.75: -15` that fired regardless
+    # of which branch above matched, causing deep athletic bends to score 62-12-15=35.
+    # Deep knee bend in baseball is athletic; it must not be penalized.
     if knee_bends:
         avg = sum(knee_bends) / len(knee_bends)
-        if 0.35 <= avg <= 0.70:
-            stance_score += 16  # good athletic flex
-        elif 0.25 <= avg < 0.35 or 0.70 < avg <= 0.82:
-            stance_score += 4   # some flex present
-        elif avg < 0.20 or avg > 0.85:
-            stance_score -= 12  # legs nearly locked or extreme crouch
-        # Additional penalty: no proper athletic knee bend at all
-        if avg < 0.25 or avg > 0.75:
-            stance_score -= 15
+        _log(f"[StanceScore] knee_bend_avg={avg:.3f} samples={len(knee_bends)}")
+        if 0.28 <= avg <= 0.84:
+            stance_score += 38   # solid athletic flex → 88 pre-hip
+        elif 0.84 < avg <= 0.92:
+            stance_score += 34   # deep/wide stance — still athletic → 84 pre-hip
+        elif avg > 0.92:
+            stance_score += 22   # extreme — detection noise, benefit of doubt → 72 pre-hip
+        elif 0.18 <= avg < 0.28:
+            stance_score += 12   # marginal flex → 62 pre-hip
+        else:                    # avg < 0.18 — legs nearly locked
+            stance_score -= 20   # locked legs → 30 pre-hip
 
     # Secondary: hip height as crouch-depth proxy
     if hip_crouch:
-        avg = sum(hip_crouch) / len(hip_crouch)
-        if 0.60 <= avg <= 0.80:
-            stance_score += 8   # hips in athletic position
-        elif avg < 0.52:
-            stance_score -= 8   # standing too tall — hips too high
+        avg_hip = sum(hip_crouch) / len(hip_crouch)
+        _log(f"[StanceScore] hip_crouch_avg={avg_hip:.3f} samples={len(hip_crouch)}")
+        if 0.62 <= avg_hip <= 0.82:
+            stance_score += 12   # athletic position
+        elif 0.52 <= avg_hip < 0.62:
+            stance_score += 4    # borderline — some crouch present
+        elif avg_hip < 0.50:
+            stance_score -= 12   # standing too tall
 
     # Tertiary: head stability at setup — unstable head = no set stance
     nose_ys = [get_kp(f, "nose")[1] for f in setup_frames if get_kp(f, "nose")]
     if len(nose_ys) >= 3 and (max(nose_ys) - min(nose_ys)) > 0.05:
         stance_score -= 10
 
+    _log(f"[StanceScore] pre-clamp={stance_score}")
     stance_score = max(0, min(100, stance_score))
 
     # LOAD — hip and hand movement in first half
