@@ -381,8 +381,9 @@ async def write_coaching_trace(
 # ── Claude Analysis ──────────────────────────────────────────────
 
 # Increment on every prompt change. Logged in coaching_traces for quality tracking.
+# v1.3 — balance at contact rule
 # v1.2 — Darian scoring rubric, disrupters, mechanic language
-MAIN_ANALYSIS_PROMPT_VERSION = "v1.2"
+MAIN_ANALYSIS_PROMPT_VERSION = "v1.3"
 # v1.1: mechanic hierarchy, drill library, score calibration, leads with positives
 # v1.0: Initial production prompt with Darian's Core 5 mechanics framework
 
@@ -514,6 +515,11 @@ IMPORTANT: Evaluate balance AT the moment of contact only — not what happens a
 A player who is balanced at contact but falls off in the follow-through should NOT \
 be penalized for balance. Freeze the player at contact — are the feet in line \
 (toe to toe from starting stance to stride landing)? If yes, balance at contact is solid.
+BALANCE AT CONTACT RULE: Only identify balance at contact as the primary issue if the \
+player's feet are visibly moving or sliding after the swing completes. A player whose \
+weight transfers forward or whose momentum carries them is NOT losing balance at contact \
+— that is normal swing momentum. Balance at contact is only broken when the stride foot \
+slides, the back foot drags, or the player visibly stumbles after contact.
 
 ---
 
