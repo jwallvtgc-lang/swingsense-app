@@ -112,7 +112,7 @@ export default function ProcessingScreen() {
 
       if (analysis) {
         await incrementAnalysisCount(user.id);
-        const newScore = analysis.similarity_score ?? 0;
+        const newScore = analysis.core5_overall ?? analysis.similarity_score ?? 0;
         const previousBest = await getPreviousBestScore(user.id, analysis.id);
 
         const isFirstSwing = previousBest === null;

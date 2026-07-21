@@ -85,18 +85,18 @@ export async function getAllCompletedAnalyses(userId: string): Promise<SwingAnal
   return (data as SwingAnalysis[]) ?? [];
 }
 
-/** Highest `similarity_score` among other completed analyses (excludes current row). */
+/** Highest core5_overall among other completed analyses (excludes current row). */
 export async function getPreviousBestScore(
   userId: string,
   excludeAnalysisId: string
 ): Promise<number | null> {
   const { data, error } = await supabase
     .from('swing_analyses')
-    .select('similarity_score')
+    .select('core5_overall, similarity_score')
     .eq('user_id', userId)
     .eq('status', 'completed')
     .neq('id', excludeAnalysisId)
-    .order('similarity_score', { ascending: false, nullsFirst: false })
+    .order('core5_overall', { ascending: false, nullsFirst: false })
     .limit(1)
     .maybeSingle();
 
@@ -105,7 +105,7 @@ export async function getPreviousBestScore(
     return null;
   }
   if (!data) return null;
-  return data.similarity_score ?? null;
+  return data.core5_overall ?? data.similarity_score ?? null;
 }
 
 export const SCORE_DELTA_THRESHOLD = 2;
@@ -276,7 +276,7 @@ export async function fetchProgressCoach(params: {
           power_position_score: s.power_position_score,
           slot_score: s.slot_score,
           balance_at_contact_score: s.balance_at_contact_score,
-          overall_score: s.coaching_output?.similarity_scores?.overall ?? s.similarity_score ?? 0,
+          overall_score: s.core5_overall ?? s.coaching_output?.similarity_scores?.overall ?? s.similarity_score ?? 0,
         })),
         player_profile: params.playerProfile,
       }),

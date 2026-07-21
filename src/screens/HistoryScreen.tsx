@@ -47,6 +47,7 @@ const LOADING_MIN_HEIGHT = 120; // Prevents layout jump while fetching
 
 function listScore(analysis: SwingAnalysis): number {
   return (
+    analysis.core5_overall ??
     analysis.coaching_output?.similarity_scores?.overall ??
     analysis.similarity_score ??
     0
@@ -326,10 +327,10 @@ export default function HistoryScreen() {
     if (swings.length === 0) return null;
 
     let bestSwing = swings[0];
-    let bestScore = bestSwing.coaching_output?.similarity_scores?.overall ?? bestSwing.similarity_score ?? 0;
+    let bestScore = bestSwing.core5_overall ?? bestSwing.coaching_output?.similarity_scores?.overall ?? bestSwing.similarity_score ?? 0;
 
     for (const swing of swings) {
-      const score = swing.coaching_output?.similarity_scores?.overall ?? swing.similarity_score ?? 0;
+      const score = swing.core5_overall ?? swing.coaching_output?.similarity_scores?.overall ?? swing.similarity_score ?? 0;
       if (score > bestScore) {
         bestScore = score;
         bestSwing = swing;

@@ -70,11 +70,13 @@ function swingVideosStoragePathFromUrl(url: string): string | null {
 type Nav = NativeStackNavigationProp<MainStackParamList, 'Analysis'>;
 type Route = RouteProp<MainStackParamList, 'Analysis'>;
 
-/** Same source order as HistoryScreen `listScore` — coaching overall, then row `similarity_score`. */
 function heroOverallScore(a: SwingAnalysis | null): number {
   if (!a) return 0;
   const raw =
-    a.coaching_output?.similarity_scores?.overall ?? a.similarity_score ?? 0;
+    a.core5_overall ??
+    a.coaching_output?.similarity_scores?.overall ??
+    a.similarity_score ??
+    0;
   return Math.round(raw);
 }
 
@@ -497,8 +499,8 @@ export default function AnalysisScreen() {
     const rows: { key: string; label: string; diff: number }[] = [];
 
     const overallDiff = deltaIfBoth(
-      analysis.similarity_score,
-      previousAnalysis.similarity_score
+      analysis.core5_overall ?? analysis.similarity_score,
+      previousAnalysis.core5_overall ?? previousAnalysis.similarity_score
     );
     if (overallDiff !== null) {
       rows.push({ key: 'overall', label: 'Overall', diff: overallDiff });

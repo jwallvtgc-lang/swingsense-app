@@ -23,6 +23,7 @@ export function getISOWeek(date: Date): { year: number; week: number } {
  */
 export function getOverallScore(swing: SwingAnalysis): number {
   return (
+    swing.core5_overall ??
     swing.coaching_output?.similarity_scores?.overall ??
     swing.similarity_score ??
     0

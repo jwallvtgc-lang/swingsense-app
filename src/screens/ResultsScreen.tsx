@@ -286,10 +286,12 @@ export default function ResultsScreen() {
         let prev: number | null | undefined;
         if (key === 'overall') {
           curr =
+            analysis.core5_overall ??
             analysis.similarity_score ??
             breakdown?.overall ??
             coaching?.similarity_scores?.overall;
           prev =
+            previousAnalysis.core5_overall ??
             previousAnalysis.similarity_score ??
             prevBreakdown?.overall ??
             prevCoaching?.similarity_scores?.overall;
@@ -342,11 +344,11 @@ export default function ResultsScreen() {
       </View>
 
       {/* 1. Swing Score */}
-      {analysis.similarity_score != null && (
+      {(analysis.core5_overall ?? analysis.similarity_score) != null && (
         <SectionCard title="Swing Score" icon="trophy">
           <View style={styles.overallScoreRow}>
             <ScoreRing
-              score={analysis.similarity_score}
+              score={analysis.core5_overall ?? analysis.similarity_score ?? 0}
               label="Overall"
               size={overallRingSize}
             />
