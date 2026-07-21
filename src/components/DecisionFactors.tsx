@@ -78,11 +78,28 @@ function normalize(s: string): string {
   return s.trim().toLowerCase().replace(/\s+/g, ' ');
 }
 
-function matchesPrimaryIssue(factorLabel: string, primaryIssue?: string): boolean {
-  if (!primaryIssue?.trim()) return false;
-  const p = normalize(primaryIssue);
-  const l = normalize(factorLabel);
-  return p === l || p.includes(l) || l.includes(p);
+function findPrimaryKey(rows: FactorRow[], primaryIssue?: string): string | null {
+  if (primaryIssue?.trim()) {
+    const p = normalize(primaryIssue);
+    // Pass 1 — exact match or prefix match (most specific wins, first row match returned)
+    for (const row of rows) {
+      const l = normalize(row.label);
+      if (p === l || p.startsWith(l) || l.startsWith(p)) {
+        return row.key;
+      }
+    }
+    // Pass 2 — whole-label substring (e.g. "Power Position" inside a longer title)
+    for (const row of rows) {
+      const l = normalize(row.label);
+      if (p.includes(l)) {
+        return row.key;
+      }
+    }
+  }
+  // Fallback — badge goes on the lowest-scoring mechanic with a score
+  const withScores = rows.filter((r): r is FactorRow & { score: number } => r.score != null);
+  if (withScores.length === 0) return null;
+  return withScores.reduce((min, r) => (r.score < min.score ? r : min)).key;
 }
 
 function buildSummary(scores: number[]): string {
@@ -132,6 +149,8 @@ export default function DecisionFactors({
     () => rows.map((r) => r.score).filter((s): s is number => s != null),
     [rows]
   );
+
+  const primaryKey = useMemo(() => findPrimaryKey(rows, primaryIssue), [rows, primaryIssue]);
 
   if (numericScores.length === 0) {
     return null;
@@ -223,7 +242,7 @@ export default function DecisionFactors({
           {rows.map((row) => {
             const hasScore = row.score != null;
             const scoreVal = row.score ?? 0;
-            const isPrimary = matchesPrimaryIssue(row.label, primaryIssue);
+            const isPrimary = row.key === primaryKey;
 
             return (
               <View key={row.key} style={styles.factorBlock}>
