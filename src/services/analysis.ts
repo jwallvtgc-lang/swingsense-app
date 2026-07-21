@@ -519,8 +519,7 @@ export async function pollAnalysisStatus(
 }
 
 export async function getUserAnalyses(
-  userId: string,
-  limit = 100
+  userId: string
 ): Promise<SwingAnalysis[]> {
   const { data } = await supabase
     .from('swing_analyses')
@@ -528,7 +527,7 @@ export async function getUserAnalyses(
     .eq('user_id', userId)
     .eq('status', 'completed')
     .order('created_at', { ascending: false })
-    .limit(limit);
+    .limit(1000);
 
   const rows = (data as SwingAnalysis[]) ?? [];
   if (__DEV__ && rows.length > 0) {
