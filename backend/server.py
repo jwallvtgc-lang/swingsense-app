@@ -62,6 +62,14 @@ except ImportError:
         _log(f"[Startup] FATAL: Neither tflite_runtime nor tensorflow available: {e}")
         raise
 
+try:
+    import mediapipe as mp
+    _mediapipe_available = True
+    _log("[Startup] mediapipe available")
+except ImportError:
+    _mediapipe_available = False
+    _log("[Startup] WARNING: mediapipe not available — BlazePose benchmarking disabled")
+
 app = FastAPI(title="SwingSense Analysis API", version="0.1.0")
 
 app.add_middleware(
@@ -189,6 +197,100 @@ def extract_keypoints(video_path: str, sample_rate: int = 2) -> dict:
         "total_frames": total_frames,
         "frames_processed": len(frames_data),
         "sample_rate": sample_rate,
+        "frames": frames_data,
+    }
+
+
+# ── MediaPipe BlazePose Setup (AI-124 Session 1) ─────────────────
+
+MEDIAPIPE_KEYPOINT_NAMES = [
+    "nose", "left_eye_inner", "left_eye", "left_eye_outer",
+    "right_eye_inner", "right_eye", "right_eye_outer",
+    "left_ear", "right_ear", "mouth_left", "mouth_right",
+    "left_shoulder", "right_shoulder",
+    "left_elbow", "right_elbow",
+    "left_wrist", "right_wrist",
+    "left_pinky", "right_pinky",
+    "left_index", "right_index",
+    "left_thumb", "right_thumb",
+    "left_hip", "right_hip",
+    "left_knee", "right_knee",
+    "left_ankle", "right_ankle",
+    "left_heel", "right_heel",
+    "left_foot_index", "right_foot_index",
+]
+
+_mp_pose = None
+
+
+def get_mp_pose():
+    global _mp_pose
+    if _mp_pose is not None:
+        return _mp_pose
+    if not _mediapipe_available:
+        return None
+    _log("[MediaPipe] Initializing BlazePose (model_complexity=1)...")
+    _mp_pose = mp.solutions.pose.Pose(
+        static_image_mode=True,   # per-frame, no cross-frame tracking state
+        model_complexity=1,        # 0=Lite, 1=Full, 2=Heavy
+        smooth_landmarks=False,
+        enable_segmentation=False,
+        min_detection_confidence=0.5,
+    )
+    _log("[MediaPipe] BlazePose ready")
+    return _mp_pose
+
+
+def run_mediapipe(video_path: str, sample_rate: int = 2) -> dict:
+    """
+    Run MediaPipe BlazePose on a video, returning 33 keypoints per sampled frame.
+    Returns empty dict if mediapipe is unavailable.
+    Session 1 (AI-124): benchmarking and integration only — not used in compute_swing_metrics.
+    """
+    pose = get_mp_pose()
+    if pose is None:
+        return {"error": "mediapipe_unavailable", "frames": []}
+
+    cap = cv2.VideoCapture(video_path)
+    fps = cap.get(cv2.CAP_PROP_FPS) or 30.0
+
+    frames_data = []
+    frames_with_landmarks = 0
+    frame_number = 0
+
+    while True:
+        ret, frame = cap.read()
+        if not ret:
+            break
+
+        if frame_number % sample_rate == 0:
+            img_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            results = pose.process(img_rgb)
+
+            keypoints = {}
+            if results.pose_landmarks:
+                frames_with_landmarks += 1
+                for i, name in enumerate(MEDIAPIPE_KEYPOINT_NAMES):
+                    lm = results.pose_landmarks.landmark[i]
+                    keypoints[name] = {
+                        "x": round(float(lm.x), 4),
+                        "y": round(float(lm.y), 4),
+                        "confidence": round(float(lm.visibility), 4),
+                    }
+
+            frames_data.append({
+                "frame_number": frame_number,
+                "timestamp_ms": round((frame_number / fps) * 1000, 1),
+                "keypoints": keypoints,
+            })
+
+        frame_number += 1
+
+    cap.release()
+
+    return {
+        "frames_processed": len(frames_data),
+        "frames_with_landmarks": frames_with_landmarks,
         "frames": frames_data,
     }
 
@@ -1796,8 +1898,39 @@ async def analyze(request: AnalyzeRequest):
         else:
             sample_rate = max(2, total_frames_check // 150)  # cap at ~150 frames
         _log(f"[Analyze] total_frames={total_frames_check} using sample_rate={sample_rate}")
+
+        t_movenet_start = time.time()
         keypoint_data = extract_keypoints(tmp_path, sample_rate=sample_rate)
-        _log(f"[Analyze] Extracted {len(keypoint_data['frames'])} frames")
+        t_movenet_ms = int((time.time() - t_movenet_start) * 1000)
+        _log(f"[Analyze] MoveNet: {len(keypoint_data['frames'])} frames in {t_movenet_ms}ms")
+
+        # AI-124 Session 1: run MediaPipe BlazePose alongside MoveNet for benchmarking.
+        # Results are logged only — compute_swing_metrics is not modified in Session 1.
+        if _mediapipe_available:
+            t_mp_start = time.time()
+            mp_data = run_mediapipe(tmp_path, sample_rate=sample_rate)
+            t_mp_ms = int((time.time() - t_mp_start) * 1000)
+            mp_frames = mp_data.get("frames_processed", 0)
+            mp_landmarks = mp_data.get("frames_with_landmarks", 0)
+            _log(
+                f"[AI-124] MediaPipe: {mp_frames} frames in {t_mp_ms}ms "
+                f"({mp_landmarks} with landmarks, "
+                f"{round(mp_landmarks/mp_frames*100) if mp_frames else 0}% detection rate)"
+            )
+            _log(f"[AI-124] Total pose extraction: {t_movenet_ms + t_mp_ms}ms")
+            # Log a sample frame's BlazePose keypoints (first frame with landmarks)
+            for f in mp_data.get("frames", []):
+                if f["keypoints"]:
+                    sample_kps = {
+                        k: f["keypoints"][k]
+                        for k in ["left_heel", "right_heel", "left_foot_index", "right_foot_index",
+                                  "left_shoulder", "right_shoulder", "nose"]
+                        if k in f["keypoints"]
+                    }
+                    _log(f"[AI-124] Sample BlazePose frame {f['frame_number']}: {sample_kps}")
+                    break
+        else:
+            _log("[AI-124] MediaPipe not available — skipping BlazePose benchmark")
 
         # Mirror X coordinates for front-facing camera
         if request.front_facing:
@@ -2411,7 +2544,7 @@ async def debug_drill_selector():
 
 @app.on_event("startup")
 async def startup():
-    """Pre-load the MoveNet model on server start."""
+    """Pre-load MoveNet and MediaPipe BlazePose models on server start."""
     _log("[Startup] Loading MoveNet model...")
     try:
         get_interpreter()
@@ -2420,6 +2553,14 @@ async def startup():
         _log(f"[Startup] WARNING: Could not pre-load MoveNet model: {e}")
         import traceback
         traceback.print_exc()
+
+    if _mediapipe_available:
+        _log("[Startup] Loading MediaPipe BlazePose model...")
+        try:
+            get_mp_pose()
+            _log("[Startup] MediaPipe BlazePose loaded successfully")
+        except Exception as e:
+            _log(f"[Startup] WARNING: Could not pre-load MediaPipe model: {e}")
 
 
 if __name__ == "__main__":
