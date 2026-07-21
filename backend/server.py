@@ -1227,43 +1227,31 @@ def compute_core_5(frames: list, head_stability_score: int | None = None) -> dic
         if ls and rs:
             shoulder_xs_c.append((ls[0] + rs[0]) / 2)
 
-    # AI-138: lower base — bonuses must be earned. Old base of 65 was also the ceiling
-    # because the positive thresholds (0.04, 0.015) were never reached from a side-view
-    # camera where hip X movement in the contact zone is typically 0.005–0.025.
-    balance_score = 55
+    balance_score = 65
 
     # Primary: hip forward drive through contact
     # Hips moving forward = weight transferring through the ball (good)
     # Hips stalling or reversing = bailing / pulling off (bad)
     if len(hip_xs_c) >= 3:
         movement = hip_xs_c[-1] - hip_xs_c[0]
-        _log(f"[BalanceScore] hip_movement={movement:.4f} samples={len(hip_xs_c)}")
-        if movement > 0.020:
-            balance_score += 35   # strong forward drive → 90 pre-shoulder
-        elif movement > 0.006:
-            balance_score += 22   # solid forward drive → 77 pre-shoulder
-        elif movement > 0.001:
-            balance_score += 8    # slight forward → 63 pre-shoulder
-        elif movement < -0.020:
-            balance_score -= 20   # hips reversing — pulling off the ball
-        elif movement < -0.006:
-            balance_score -= 10   # moderate pulloff
+        if movement > 0.04:
+            balance_score += 15  # strong weight transfer through contact
+        elif movement > 0.015:
+            balance_score += 8   # moderate forward drive
+        elif movement < -0.03:
+            balance_score -= 20  # hips reversing — pulling off the ball
+        elif movement < -0.01:
+            balance_score -= 10
 
     # Secondary: shoulder lateral stability
     # Shoulders rotating through = good; front shoulder yanking away = pulling off
     if len(shoulder_xs_c) >= 3:
         drift = shoulder_xs_c[-1] - shoulder_xs_c[0]
-        _log(f"[BalanceScore] shoulder_drift={drift:.4f} samples={len(shoulder_xs_c)}")
-        if drift > 0.015:
-            balance_score += 15   # shoulders driving through contact
-        elif drift > 0.004:
-            balance_score += 8    # moderate shoulder rotation through
-        elif drift < -0.025:
-            balance_score -= 12   # front shoulder pulling off early
-        elif drift < -0.008:
-            balance_score -= 6    # mild shoulder drift
+        if drift > 0.03:
+            balance_score += 8   # shoulders driving through contact
+        elif drift < -0.04:
+            balance_score -= 12  # front shoulder pulling off early
 
-    _log(f"[BalanceScore] pre-clamp={balance_score}")
     balance_score = max(0, min(100, balance_score))
 
     # OVERALL — weighted average with drag-down penalty
