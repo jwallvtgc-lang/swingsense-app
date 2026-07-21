@@ -220,35 +220,59 @@ MEDIAPIPE_KEYPOINT_NAMES = [
     "left_foot_index", "right_foot_index",
 ]
 
-_mp_pose = None
+# Tasks API (mediapipe>=0.10) — mp.solutions was removed in 0.10 which dropped Python <3.11.
+# Model file is downloaded once and cached alongside the MoveNet model.
+_MP_MODEL_URL = (
+    "https://storage.googleapis.com/mediapipe-models/pose_landmarker/"
+    "pose_landmarker_full/float16/latest/pose_landmarker_full.task"
+)
+_MP_MODEL_FILENAME = "pose_landmarker_full.task"
+
+_mp_landmarker = None
 
 
 def get_mp_pose():
-    global _mp_pose
-    if _mp_pose is not None:
-        return _mp_pose
+    global _mp_landmarker
+    if _mp_landmarker is not None:
+        return _mp_landmarker
     if not _mediapipe_available:
         return None
-    _log("[MediaPipe] Initializing BlazePose (model_complexity=1)...")
-    _mp_pose = mp.solutions.pose.Pose(
-        static_image_mode=True,   # per-frame, no cross-frame tracking state
-        model_complexity=1,        # 0=Lite, 1=Full, 2=Heavy
-        smooth_landmarks=False,
-        enable_segmentation=False,
-        min_detection_confidence=0.5,
+
+    MODEL_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    model_path = MODEL_CACHE_DIR / _MP_MODEL_FILENAME
+    if not model_path.exists():
+        _log(f"[MediaPipe] Downloading pose_landmarker_full.task...")
+        urllib.request.urlretrieve(_MP_MODEL_URL, str(model_path))
+        _log(f"[MediaPipe] Model saved to {model_path}")
+
+    _log("[MediaPipe] Initializing PoseLandmarker (Tasks API, IMAGE mode)...")
+    BaseOptions = mp.tasks.BaseOptions
+    PoseLandmarkerOptions = mp.tasks.vision.PoseLandmarkerOptions
+    RunningMode = mp.tasks.vision.RunningMode
+
+    options = PoseLandmarkerOptions(
+        base_options=BaseOptions(model_asset_path=str(model_path)),
+        running_mode=RunningMode.IMAGE,
+        num_poses=1,
+        min_pose_detection_confidence=0.5,
+        min_pose_presence_confidence=0.5,
+        min_tracking_confidence=0.5,
+        output_segmentation_masks=False,
     )
-    _log("[MediaPipe] BlazePose ready")
-    return _mp_pose
+    _mp_landmarker = mp.tasks.vision.PoseLandmarker.create_from_options(options)
+    _log("[MediaPipe] PoseLandmarker ready")
+    return _mp_landmarker
 
 
 def run_mediapipe(video_path: str, sample_rate: int = 2) -> dict:
     """
     Run MediaPipe BlazePose on a video, returning 33 keypoints per sampled frame.
-    Returns empty dict if mediapipe is unavailable.
+    Uses the Tasks API (mediapipe>=0.10, Python 3.11 compatible).
+    Returns empty result if mediapipe is unavailable.
     Session 1 (AI-124): benchmarking and integration only — not used in compute_swing_metrics.
     """
-    pose = get_mp_pose()
-    if pose is None:
+    landmarker = get_mp_pose()
+    if landmarker is None:
         return {"error": "mediapipe_unavailable", "frames": []}
 
     cap = cv2.VideoCapture(video_path)
@@ -265,13 +289,15 @@ def run_mediapipe(video_path: str, sample_rate: int = 2) -> dict:
 
         if frame_number % sample_rate == 0:
             img_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            results = pose.process(img_rgb)
+            mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=img_rgb)
+            result = landmarker.detect(mp_image)
 
             keypoints = {}
-            if results.pose_landmarks:
+            if result.pose_landmarks:
                 frames_with_landmarks += 1
+                landmarks = result.pose_landmarks[0]  # first (only) person
                 for i, name in enumerate(MEDIAPIPE_KEYPOINT_NAMES):
-                    lm = results.pose_landmarks.landmark[i]
+                    lm = landmarks[i]
                     keypoints[name] = {
                         "x": round(float(lm.x), 4),
                         "y": round(float(lm.y), 4),
