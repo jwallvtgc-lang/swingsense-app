@@ -6,6 +6,8 @@ FastAPI server that runs the analysis pipeline:
   2. Extract keypoints with MoveNet Thunder (TFLite)
   3. Analyze mechanics with Claude
   4. Return structured coaching output
+
+MediaPipe reverted — libGLESv2 not available on Render (AI-124).
 """
 
 import hashlib
