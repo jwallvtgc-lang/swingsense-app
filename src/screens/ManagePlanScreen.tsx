@@ -96,7 +96,14 @@ function FeatureList({ items }: { items: FeatureItem[] }) {
         return (
           <View key={i} style={styles.featureRow}>
             <Checkmark color={item.check} />
-            <Text style={styles.featureText}>{item.text}</Text>
+            <Text
+              style={styles.featureText}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.78}
+            >
+              {item.text}
+            </Text>
           </View>
         );
       })}
