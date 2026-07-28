@@ -61,25 +61,25 @@ type FeatureItem =
 
 const FREE_FEATURES: FeatureItem[] = [
   { text: '3 AI-enabled swing analyses / week', check: 'muted' },
-  { text: 'Swing metrics for each swing', check: 'muted' },
-  { text: '1 drill with action plan / week', check: 'muted' },
+  { text: '1 personalized drill tied to a swing / week', check: 'muted' },
+  { text: 'Key performance metrics for each swing', check: 'muted' },
   { text: 'Group chat with your team', check: 'muted' },
 ];
 
 const SILVER_FEATURES: FeatureItem[] = [
+  { includedNote: 'Everything in Free, plus' },
   { text: '60 AI-enabled swing analyses / month', check: 'green' },
-  { text: 'Metrics & drill plan for every swing', check: 'green' },
-  { text: '10-drill library — 2 per core mechanic', check: 'green' },
-  { text: 'Replayable video walkthrough per drill', check: 'green' },
-  { includedNote: 'Everything in Free, included' },
+  { text: 'Personalized drills tied to every swing', check: 'green' },
+  { text: '10 always-available drills tied to core swing mechanics', check: 'green' },
+  { text: 'Replayable video walkthroughs for all drills', check: 'green' },
 ];
 
 const GOLD_FEATURES: FeatureItem[] = [
+  { includedNote: 'Everything in Silver, plus' },
   { text: 'Unlimited AI-enabled swing analyses', check: 'gold' },
-  { text: 'Exoskeleton & heat map diagnostics', check: 'gold' },
-  { text: 'Full access to 25+ video drill library', check: 'gold' },
-  { text: 'Real human coach consultation access', check: 'gold' },
-  { includedNote: 'Everything in Silver, included' },
+  { text: 'Swing exoskeleton and heat map diagnostics', check: 'gold' },
+  { text: '30+ always-available drills tied to core swing mechanics', check: 'gold' },
+  { text: 'Chat with a real human coach', check: 'gold' },
 ];
 
 function FeatureList({ items }: { items: FeatureItem[] }) {
@@ -347,7 +347,7 @@ const styles = StyleSheet.create({
   // Plan card base
   planCard: {
     backgroundColor: colors.bg.surface,
-    borderRadius: 20,
+    borderRadius: radius.pill,
     padding: spacing.card + 4,
     paddingBottom: spacing.card,
     position: 'relative',
@@ -375,8 +375,8 @@ const styles = StyleSheet.create({
     left: spacing.card,
     backgroundColor: colors.bg.surfaceHover,
     borderRadius: radius.pill,
-    paddingHorizontal: spacing.iconGap + 2,
-    paddingVertical: 3,
+    paddingHorizontal: spacing.oauthMethodGap,
+    paddingVertical: spacing.tabPad,
   },
   badgeCurrentText: {
     fontFamily: typography.body,
@@ -392,8 +392,8 @@ const styles = StyleSheet.create({
     right: spacing.card,
     backgroundColor: colors.bg.gold,
     borderRadius: radius.pill,
-    paddingHorizontal: spacing.iconGap + 2,
-    paddingVertical: 3,
+    paddingHorizontal: spacing.oauthMethodGap,
+    paddingVertical: spacing.tabPad,
   },
   badgeComingSoonText: {
     fontFamily: typography.body,
@@ -458,7 +458,7 @@ const styles = StyleSheet.create({
     fontSize: fontSizes.drillInstruction,
     color: colors.text.secondary,
     fontStyle: 'italic',
-    marginLeft: 24,
+    marginLeft: spacing.premiumActionCardPadH,
   },
 
   // Plan buttons
