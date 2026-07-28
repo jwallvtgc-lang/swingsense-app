@@ -171,7 +171,7 @@ export default function AnalyzeScreen() {
                 )}
                 <View style={styles.scoreBadge}>
                   <Text style={styles.scoreBadgeText} allowFontScaling={false}>
-                    {Math.round(lastAnalysis.similarity_score ?? 0)}
+                    {Math.round(lastAnalysis.core5_overall ?? lastAnalysis.similarity_score ?? 0)}
                   </Text>
                 </View>
               </View>
@@ -187,13 +187,14 @@ export default function AnalyzeScreen() {
                   {lastAnalysis.coaching_output?.primary_mechanical_issue?.title ??
                     'Tap to review'}
                 </Text>
-                {lastAnalysis.coaching_output?.drill && (
+                {(lastAnalysis.coaching_output?.selected_drill?.name ?? lastAnalysis.coaching_output?.drill) && (
                   <View style={styles.recommendationBlock}>
                     <Text style={styles.recommendationLabel} numberOfLines={1} allowFontScaling={false}>
                       Primary Recommendation
                     </Text>
                     <Text style={styles.recommendationDrill} numberOfLines={1}>
-                      {lastAnalysis.coaching_output.drill.split('.')[0]}
+                      {lastAnalysis.coaching_output?.selected_drill?.name ??
+                        lastAnalysis.coaching_output!.drill!.split('.')[0]}
                     </Text>
                   </View>
                 )}
