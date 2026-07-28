@@ -30,6 +30,7 @@ export type MainStackParamList = {
   TermsOfService: undefined;
   DrillDetail: { drillId: string };
   DrillLibrary: undefined;
+  ManagePlan: undefined;
 };
 
 export type TabParamList = {

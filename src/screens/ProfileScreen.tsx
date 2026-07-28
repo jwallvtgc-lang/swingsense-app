@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
 import Constants from 'expo-constants';
-import { Ionicons } from '@expo/vector-icons';
 import { Alert, Linking, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -11,7 +10,6 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import BottomTabBar from '../components/BottomTabBar';
 import DataRow from '../components/DataRow';
 import EditButton from '../components/EditButton';
-import PrimaryButton from '../components/PrimaryButton';
 import ProfileHeader from '../components/ProfileHeader';
 import SectionCard from '../components/SectionCard';
 import { useAuth } from '../contexts/AuthContext';
@@ -164,31 +162,11 @@ export default function ProfileScreen() {
               value={analysesThisMonth === null ? '—' : String(analysesThisMonth)}
               valueWeight="normal"
             />
-            <View style={styles.membershipCta}>
-              <PrimaryButton
-                label="Upgrade to Pro"
-                onPress={() =>
-                  Alert.alert(
-                    'SwingSense Pro',
-                    'Pro features are coming soon — unlimited analyses, advanced metrics, and more. Stay tuned.',
-                    [{ text: 'Got it' }]
-                  )
-                }
-                icon={<Ionicons name="star" size={18} color={colors.text.onGold} />}
-              />
-            </View>
             <DataRow
               label="Manage Plan"
-              value="Coming soon"
               valueWeight="normal"
               showChevron
-              onPress={() =>
-                Alert.alert(
-                  'SwingSense Pro',
-                  'Pro features are coming soon — unlimited analyses, advanced metrics, and more. Stay tuned.',
-                  [{ text: 'Got it' }]
-                )
-              }
+              onPress={() => navigation.navigate('ManagePlan')}
             />
             <DataRow
               label="Notifications"
@@ -270,9 +248,5 @@ const styles = StyleSheet.create({
   },
   afterCard: {
     marginTop: spacing.cardGap,
-  },
-  membershipCta: {
-    marginVertical: spacing.cardGap,
-    alignSelf: 'stretch',
   },
 });
