@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import {
   Alert,
   Dimensions,
+  Image,
   KeyboardAvoidingView,
   LayoutAnimation,
   Platform,
@@ -22,21 +23,23 @@ import Svg, { Path } from 'react-native-svg';
 
 import PrimaryButton from '../components/PrimaryButton';
 import TextInput from '../components/TextInput';
-import Wordmark from '../components/Wordmark';
 import { supabase } from '../config/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import type { AuthStackParamList } from '../navigation/types';
 import {
   colors,
-  displayTitleProps,
   fontSizes,
   fontWeights,
+  letterSpacing,
   radius,
   spacing,
   typography,
 } from '../../design-system/tokens';
 
 const OAUTH_ICON_SIZE = 18;
+const WORDMARK_SOURCE = require('../../assets/splash-wordmark.png');
+// Actual exported PNG dimensions: 1128 × 598
+const AUTH_LOGO_ASPECT = 598 / 1128;
 
 /** Reserve bottom inset for scroll content so it clears the pinned terms footer. */
 const TERMS_FOOTER_RESERVE = 88;
@@ -84,6 +87,10 @@ function alertAuthError(error: Error, isSignIn: boolean) {
 type EmailFormMode = 'none' | 'login' | 'signup';
 
 export default function AuthScreen() {
+  const { width: screenWidth } = Dimensions.get('window');
+  const authLogoWidth = Math.min(screenWidth * 0.58, 240);
+  const authLogoHeight = Math.round(authLogoWidth * AUTH_LOGO_ASPECT);
+
   const isExpoGo =
     Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
   const GoogleSignin = !isExpoGo
@@ -282,11 +289,14 @@ export default function AuthScreen() {
           >
             <View style={styles.mainColumn}>
               <View style={styles.wordmarkSection}>
-                <Wordmark
-                  size="md"
-                  tagline="AI Feedback for your swing"
-                  titleTextProps={displayTitleProps}
+                <Image
+                  source={WORDMARK_SOURCE}
+                  style={{ width: authLogoWidth, height: authLogoHeight }}
+                  resizeMode="contain"
                 />
+                <Text style={styles.authTagline} maxFontSizeMultiplier={1.35}>
+                  AI FEEDBACK FOR YOUR SWING
+                </Text>
               </View>
 
               <View style={styles.authMiddle}>
@@ -479,6 +489,14 @@ const styles = StyleSheet.create({
     marginTop: spacing.sectionGap * 2,
     paddingTop: spacing.sectionGap,
   },
+  authTagline: {
+    marginTop: spacing.pillGap,
+    fontFamily: typography.body,
+    fontSize: fontSizes.micro,
+    color: colors.text.muted,
+    letterSpacing: letterSpacing.tagline,
+    textAlign: 'center',
+  },
   authMiddle: {
     flex: 1,
     justifyContent: 'center',
@@ -575,8 +593,8 @@ const styles = StyleSheet.create({
   },
   createAccountLabel: {
     fontFamily: typography.body,
-    fontSize: fontSizes.body,
-    fontWeight: fontWeights.medium,
+    fontSize: fontSizes.oauthMethodLabel,
+    fontWeight: fontWeights.bold,
     color: colors.text.gold,
   },
   termsFooter: {
