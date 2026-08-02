@@ -64,9 +64,12 @@ function AuthNavigator() {
   );
 }
 
-function OnboardingNavigator() {
+function OnboardingNavigator({ showAccountType }: { showAccountType: boolean }) {
   return (
-    <OnboardingStack.Navigator screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
+    <OnboardingStack.Navigator
+      initialRouteName={showAccountType ? 'AccountType' : 'Onboarding'}
+      screenOptions={{ headerShown: false, animation: 'slide_from_right' }}
+    >
       <OnboardingStack.Screen name="AccountType" component={AccountTypeScreen} />
       <OnboardingStack.Screen name="Onboarding" component={OnboardingScreen} />
     </OnboardingStack.Navigator>
@@ -124,7 +127,7 @@ function SessionBranchNavigator() {
   }
   const needsOnboarding = !hasProfile || profile?.onboarding_completed !== true;
   if (needsOnboarding) {
-    return <OnboardingNavigator />;
+    return <OnboardingNavigator showAccountType={!hasProfile} />;
   }
   return <MainNavigator />;
 }

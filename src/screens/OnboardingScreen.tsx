@@ -11,9 +11,11 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRoute } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
+import BackNav from '../components/BackNav';
 import LogoTile from '../components/LogoTile';
 import PrimaryButton from '../components/PrimaryButton';
 import ScoreRing from '../components/ScoreRing';
@@ -34,7 +36,6 @@ import {
   colors,
   fontSizes,
   fontWeights,
-  letterSpacing,
   radius,
   spacing,
 } from '../../design-system/tokens';
@@ -98,12 +99,14 @@ const SCORE_CARDS: {
 ];
 
 type OnboardingRoute = RouteProp<OnboardStackParamList, 'Onboarding'>;
+type Nav = NativeStackNavigationProp<OnboardStackParamList, 'Onboarding'>;
 
 export default function OnboardingScreen() {
   const { height } = Dimensions.get('window');
   const insets = useSafeAreaInsets();
+  const navigation = useNavigation<Nav>();
   const route = useRoute<OnboardingRoute>();
-  const { accountType } = route.params;
+  const accountType = route.params?.accountType ?? 'myself';
   const { profile, hasProfile, createProfile, updateProfile } = useAuth();
 
   // step 1 = Player Profile, step 2 = Your Scores, step 3 = CTA
@@ -232,10 +235,10 @@ export default function OnboardingScreen() {
     <>
       {step === 1 ? (
         <>
-          <ScreenHeader
-            title="PLAYER PROFILE"
-            subtitle="We use this to calibrate scores and coaching"
-          />
+          {navigation.canGoBack() ? (
+            <BackNav label="Who's Playing?" onPress={() => navigation.goBack()} />
+          ) : null}
+          <ScreenHeader title="PLAYER PROFILE" />
           {accountType === 'parent' ? (
             <View style={styles.field}>
               <Text style={styles.label}>Parent Name</Text>

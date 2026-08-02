@@ -111,7 +111,7 @@ export default function AccountTypeScreen() {
           <TypeCard
             icon={<FamilyIcon />}
             title="I'm a parent"
-            subtitle="Setting up a profile for my child"
+            subtitle="Setting up a profile for myself and my child"
             onPress={() => navigation.navigate('Onboarding', { accountType: 'parent' })}
           />
         </View>
@@ -163,7 +163,7 @@ const styles = StyleSheet.create({
     fontFamily: typography.body,
     fontSize: fontSizes.body,
     fontWeight: fontWeights.bold,
-    color: colors.text.primary,
+    color: colors.text.gold,
   },
   cardSubtitle: {
     fontFamily: typography.body,
