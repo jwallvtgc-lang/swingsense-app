@@ -65,11 +65,11 @@ export default function AnalyzeScreen() {
       }
       let cancelled = false;
       (async () => {
-        const analysis = await getLastCompletedAnalysis(user.id);
+        const analysis = await getLastCompletedAnalysis(profile?.id ?? '');
         if (cancelled) return;
         setLastAnalysis(analysis ?? null);
         if (analysis) {
-          const allAnalyses = await getAllCompletedAnalyses(user.id);
+          const allAnalyses = await getAllCompletedAnalyses(profile?.id ?? '');
           if (cancelled) return;
           const { currentStreak } = computeStreak(
             allAnalyses.map((a) => a.created_at)
@@ -108,7 +108,7 @@ export default function AnalyzeScreen() {
       return () => {
         cancelled = true;
       };
-    }, [user?.id])
+    }, [profile?.id])
   );
 
   const dynamicGreeting = useMemo(() => {

@@ -2,12 +2,12 @@ import { uploadAsync, getInfoAsync, FileSystemUploadType } from 'expo-file-syste
 import { supabase, SUPABASE_URL, SUPABASE_ANON_KEY } from '../config/supabase';
 
 async function attemptUpload(
-  userId: string,
+  authUserId: string,
   videoUri: string,
   analysisId: string
 ): Promise<{ url: string; error: Error | null }> {
   const extension = videoUri.split('.').pop()?.toLowerCase() ?? 'mp4';
-  const storagePath = `${userId}/${analysisId}.${extension}`;
+  const storagePath = `${authUserId}/${analysisId}.${extension}`;
 
   const fileInfo = await getInfoAsync(videoUri);
   if (!fileInfo.exists) {
@@ -34,6 +34,7 @@ async function attemptUpload(
   });
 
   if (uploadResult.status < 200 || uploadResult.status >= 300) {
+    console.error('[storage] upload HTTP error — status:', uploadResult.status, '| path:', storagePath, '| body:', uploadResult.body);
     return { url: '', error: new Error('Upload failed — check your connection and try again.') };
   }
 
@@ -55,7 +56,7 @@ async function attemptUpload(
 }
 
 export async function uploadSwingVideo(
-  userId: string,
+  authUserId: string,
   videoUri: string,
   analysisId: string,
   onStatusChange?: (message: string) => void
@@ -71,7 +72,7 @@ export async function uploadSwingVideo(
         onStatusChange?.('Retrying upload...');
       }
 
-      const result = await attemptUpload(userId, videoUri, analysisId);
+      const result = await attemptUpload(authUserId, videoUri, analysisId);
 
       if (result.error === null) {
         return result; // Success

@@ -54,20 +54,20 @@ export default function ProfileScreen() {
   const [analysesThisMonth, setAnalysesThisMonth] = useState<number | null>(null);
 
   useEffect(() => {
-    const userId = user?.id;
-    if (!userId) {
+    const profileId = profile?.id;
+    if (!profileId) {
       setAnalysesThisMonth(null);
       return;
     }
     let cancelled = false;
     (async () => {
-      const n = await getCompletedAnalysesCountThisMonth(userId);
+      const n = await getCompletedAnalysesCountThisMonth(profileId);
       if (!cancelled) setAnalysesThisMonth(n);
     })();
     return () => {
       cancelled = true;
     };
-  }, [user?.id]);
+  }, [profile?.id]);
 
   const displayName = useMemo(
     () => displayNameFromUser(profile?.first_name, user),

@@ -308,7 +308,8 @@ export async function fetchProgressCoach(params: {
 }
 
 export async function startAnalysisPipeline(
-  userId: string,
+  profileId: string,
+  authUserId: string,
   videoUri: string,
   onStatusChange?: (status: string, message: string) => void,
   profile?: Profile | null,
@@ -318,13 +319,13 @@ export async function startAnalysisPipeline(
     onStatusChange?.('uploading', 'Creating analysis record...');
 
     const { id: analysisId, created_at: analysisCreatedAt, error: createError } =
-      await createAnalysisRecord(userId, 'pending');
+      await createAnalysisRecord(profileId, 'pending');
 
     if (createError) {
       return { analysis: null, error: createError };
     }
 
-    const previousAnalysis = await getPreviousCompletedAnalysis(userId, analysisCreatedAt);
+    const previousAnalysis = await getPreviousCompletedAnalysis(profileId, analysisCreatedAt);
     let previous_swing: {
       created_at: string;
       similarity_scores: SimilarityBreakdown | null;
@@ -346,7 +347,7 @@ export async function startAnalysisPipeline(
     onStatusChange?.('uploading', 'Uploading video...');
 
     const { url: videoUrl, error: uploadError } = await uploadSwingVideo(
-      userId,
+      authUserId,
       videoUri,
       analysisId,
       (message) => onStatusChange?.('uploading', message)
@@ -379,7 +380,7 @@ export async function startAnalysisPipeline(
         body: JSON.stringify({
           analysis_id: analysisId,
           video_url: videoUrl,
-          user_id: userId,
+          user_id: authUserId,
           player_profile: profile
             ? {
                 first_name: profile.first_name,
@@ -471,7 +472,7 @@ export async function startAnalysisPipeline(
     }
 
     supabase.from('coaching_traces').insert({
-      user_id: userId,
+      user_id: authUserId,
       swing_id: analysisId,
       call_type: 'main_analysis',
       experience_level: profile?.experience_level ?? null,
@@ -493,7 +494,7 @@ export async function startAnalysisPipeline(
     });
 
     try {
-      await logAnalysisCompleted(userId, analysisId, coachingOutput);
+      await logAnalysisCompleted(profileId, analysisId, coachingOutput);
     } catch (logErr) {
       console.warn('[logAnalysisCompleted] failed:', logErr);
     }

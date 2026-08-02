@@ -12,15 +12,15 @@ const ICLOUD_ERROR_MSG =
   'This video may be in iCloud and not fully downloaded. Try again (ensure Wi‑Fi), or use a video saved on this device.';
 
 export function useVideoPicker() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
 
   const checkQuota = useCallback(async (): Promise<boolean> => {
-    if (!user) {
+    if (!user || !profile?.id) {
       Alert.alert('Not signed in', 'Please sign in to analyze swings.');
       return false;
     }
     try {
-      const result = await canUserAnalyze(user.id);
+      const result = await canUserAnalyze(profile.id);
       if (!result.allowed) {
         Alert.alert('Limit Reached', result.reason ?? 'Upgrade to continue.');
         return false;
@@ -30,7 +30,7 @@ export function useVideoPicker() {
       console.warn('[Quota] Check failed, allowing anyway:', err);
       return true;
     }
-  }, [user]);
+  }, [user, profile]);
 
   const pickFromLibrary = useCallback(async (): Promise<string | null> => {
     const tryPick = async (): Promise<string | null> => {

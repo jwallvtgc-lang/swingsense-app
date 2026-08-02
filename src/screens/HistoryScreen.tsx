@@ -225,8 +225,9 @@ export default function HistoryScreen() {
       let cancelled = false;
 
       async function load() {
-        const userId = user?.id;
-        if (!userId) {
+        const authUserId = user?.id;
+        const profileId = profile?.id;
+        if (!authUserId || !profileId) {
           if (!cancelled) {
             setSwings([]);
             setLoading(false);
@@ -238,17 +239,17 @@ export default function HistoryScreen() {
           return;
         }
 
-        if (progressUserIdRef.current !== userId) {
-          progressUserIdRef.current = userId;
+        if (progressUserIdRef.current !== profileId) {
+          progressUserIdRef.current = profileId;
           progressFetchedRef.current = false;
         }
 
-        // Check if progress coach is dismissed for current week
-        const isWeeklyDismissed = await checkProgressDismissal(userId);
+        // AsyncStorage dismissal key uses auth user id for stable identity across profile model changes
+        const isWeeklyDismissed = await checkProgressDismissal(authUserId);
         if (!cancelled) setProgressDismissed(isWeeklyDismissed);
 
         if (!cancelled) setLoading(true);
-        const list = await getUserAnalyses(userId);
+        const list = await getUserAnalyses(profileId);
         if (!cancelled) {
           setSwings(list);
           setLoading(false);
@@ -261,7 +262,7 @@ export default function HistoryScreen() {
             progressFetchedRef.current = true;
             if (!cancelled) setProgressLoading(true);
             const result = await fetchProgressCoach({
-              userId,
+              userId: profileId,
               swings: list.slice(0, 5),
               playerProfile: {
                 first_name: profile?.first_name,
@@ -290,7 +291,7 @@ export default function HistoryScreen() {
       return () => {
         cancelled = true;
       };
-    }, [user?.id, profile?.first_name, profile?.age, profile?.experience_level, checkProgressDismissal])
+    }, [user?.id, profile?.id, profile?.first_name, profile?.age, profile?.experience_level, checkProgressDismissal])
   );
 
   const listBottomPad = useMemo(
@@ -342,16 +343,16 @@ export default function HistoryScreen() {
 
   const handleDelete = useCallback(
     async (analysisId: string) => {
-      const userId = user?.id;
-      if (!userId) return;
-      const { error } = await deleteAnalysis(userId, analysisId);
+      const profileId = profile?.id;
+      if (!profileId) return;
+      const { error } = await deleteAnalysis(profileId, analysisId);
       if (error) {
         console.warn('[HistoryScreen] deleteAnalysis:', error.message);
         return;
       }
       setSwings((prev) => prev.filter((s) => s.id !== analysisId));
     },
-    [user?.id]
+    [profile?.id]
   );
 
   const renderItem: SectionListRenderItem<SwingAnalysis> = useCallback(

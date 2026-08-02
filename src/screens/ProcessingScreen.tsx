@@ -73,7 +73,7 @@ export default function ProcessingScreen() {
   }, [progressAnim]);
 
   const runPipeline = useCallback(async () => {
-    if (!user) return;
+    if (!user || !profile) return;
     setError(null);
     setCurrentStep(0);
     animateProgress(0);
@@ -81,6 +81,7 @@ export default function ProcessingScreen() {
 
     try {
       const { analysis, error: pipelineError } = await startAnalysisPipeline(
+        profile.id,
         user.id,
         videoUri,
         (status, message) => {
@@ -111,9 +112,9 @@ export default function ProcessingScreen() {
       }
 
       if (analysis) {
-        await incrementAnalysisCount(user.id);
+        await incrementAnalysisCount(profile!.id);
         const newScore = analysis.core5_overall ?? analysis.similarity_score ?? 0;
-        const previousBest = await getPreviousBestScore(user.id, analysis.id);
+        const previousBest = await getPreviousBestScore(profile!.id, analysis.id);
 
         const isFirstSwing = previousBest === null;
         const isPersonalBest =

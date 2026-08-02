@@ -40,7 +40,7 @@ type DrillDetailRouteProp = RouteProp<DrillDetailRouteParams, 'DrillDetail'>;
 export default function DrillDetailScreen() {
   const route = useRoute<DrillDetailRouteProp>();
   const navigation = useNavigation<NativeStackNavigationProp<any>>();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const { drill, loading } = useDrillById(route.params.drillId);
   const [lastAnalysis, setLastAnalysis] = useState<SwingAnalysis | null>(null);
   const [isCompleted, setIsCompleted] = useState(false);
@@ -48,12 +48,12 @@ export default function DrillDetailScreen() {
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    if (user) {
-      getLastCompletedAnalysis(user.id)
+    if (user && profile?.id) {
+      getLastCompletedAnalysis(profile.id)
         .then(analysis => setLastAnalysis(analysis))
         .catch(error => console.warn('[DrillDetailScreen] Failed to get last analysis:', error));
     }
-  }, [user]);
+  }, [user, profile?.id]);
 
   const handleComplete = useCallback(() => {
     setIsCompleted(true);

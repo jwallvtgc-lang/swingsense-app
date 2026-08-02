@@ -67,7 +67,7 @@ export default function UploadScreen() {
       return false;
     }
     try {
-      const result = await canUserAnalyze(user.id);
+      const result = await canUserAnalyze(profile!.id);
       if (!result.allowed) {
         Alert.alert('Limit Reached', result.reason ?? 'Upgrade to continue.');
         return false;
