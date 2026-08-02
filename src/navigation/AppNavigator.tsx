@@ -118,7 +118,7 @@ function MainNavigator() {
  * Signed-in users without a profile still see onboarding before tabs.
  */
 function SessionBranchNavigator() {
-  const { session, hasProfile, profile, profileResolved } = useAuth();
+  const { session, hasProfile, profile, profileResolved, isNewSignup } = useAuth();
   if (!session) {
     return <AuthNavigator />;
   }
@@ -127,7 +127,10 @@ function SessionBranchNavigator() {
   }
   const needsOnboarding = !hasProfile || profile?.onboarding_completed !== true;
   if (needsOnboarding) {
-    return <OnboardingNavigator showAccountType={!hasProfile} />;
+    // Only show AccountTypeScreen when the user just created a new account this session.
+    // Returning users whose profile is missing (interrupted onboarding, network failure, etc.)
+    // go straight to the Player Profile form — never see AccountTypeScreen on cold launch.
+    return <OnboardingNavigator showAccountType={isNewSignup && !hasProfile} />;
   }
   return <MainNavigator />;
 }

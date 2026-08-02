@@ -5,6 +5,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Svg, { Path } from 'react-native-svg';
 
 import ScreenHeader from '../components/ScreenHeader';
+import { useAuth } from '../contexts/AuthContext';
 import type { OnboardStackParamList } from '../navigation/types';
 import {
   colors,
@@ -93,6 +94,12 @@ function TypeCard({ icon, title, subtitle, onPress }: CardProps) {
 
 export default function AccountTypeScreen() {
   const navigation = useNavigation<Nav>();
+  const { clearNewSignup } = useAuth();
+
+  const navigate = (accountType: 'parent' | 'myself') => {
+    clearNewSignup();
+    navigation.navigate('Onboarding', { accountType });
+  };
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
@@ -106,13 +113,13 @@ export default function AccountTypeScreen() {
             icon={<PersonIcon />}
             title="I'm the player"
             subtitle="Setting up my own profile"
-            onPress={() => navigation.navigate('Onboarding', { accountType: 'myself' })}
+            onPress={() => navigate('myself')}
           />
           <TypeCard
             icon={<FamilyIcon />}
             title="I'm a parent"
             subtitle="Setting up a profile for myself and my child"
-            onPress={() => navigation.navigate('Onboarding', { accountType: 'parent' })}
+            onPress={() => navigate('parent')}
           />
         </View>
       </View>

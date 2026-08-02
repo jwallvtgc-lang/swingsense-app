@@ -13,6 +13,12 @@ interface AuthState {
   hasProfile: boolean;
   /** False while the first `profiles` fetch for the current session is in flight; avoids onboarding flash for returning users. */
   profileResolved: boolean;
+  /**
+   * True only when a brand-new account was created THIS app session (in-memory, never persisted).
+   * Resets to false on every cold launch. Used to gate AccountTypeScreen so it never appears
+   * for returning users or on normal cold start — only immediately after account creation.
+   */
+  isNewSignup: boolean;
 }
 
 type ProfileUpdateData = Partial<
@@ -32,6 +38,8 @@ type ProfileUpdateData = Partial<
 interface AuthContextValue extends AuthState {
   /** True when `session` is non-null; updates with the same `setState` path as `session`. */
   isAuthenticated: boolean;
+  /** Clears the isNewSignup flag (call after AccountTypeScreen is no longer needed). */
+  clearNewSignup: () => void;
   signUp: (
     email: string,
     password: string
@@ -77,6 +85,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     loading: true,
     hasProfile: false,
     profileResolved: false,
+    isNewSignup: false,
   });
 
   const fetchProfile = useCallback(async (userId: string) => {
@@ -119,7 +128,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   /** Keep React state in sync with Supabase (listener can fire after the signIn promise resolves). */
   const applyAuthSession = useCallback(
-    (session: Session | null) => {
+    (session: Session | null, isNewUser = false) => {
       // Single setState so session/user never get wiped by a batched follow-up update.
       const hasUser = Boolean(session?.user);
       setState((s) => ({
@@ -128,6 +137,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         user: session?.user ?? null,
         loading: false,
         profileResolved: !hasUser,
+        // isNewSignup is only ever set to true, never cleared here — it resets on cold launch
+        isNewSignup: isNewUser ? true : s.isNewSignup,
         ...(hasUser ? {} : { profile: null, hasProfile: false }),
       }));
       if (session?.user) {
@@ -142,6 +153,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await fetchProfile(state.user.id);
     }
   }, [state.user, fetchProfile]);
+
+  const clearNewSignup = useCallback(() => {
+    setState((s) => ({ ...s, isNewSignup: false }));
+  }, []);
 
   useEffect(() => {
     const SESSION_TIMEOUT_MS = 8_000;
@@ -195,8 +210,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         event,
         session ? 'session: yes' : 'session: no'
       );
-      // SIGNED_IN, SIGNED_OUT, INITIAL_SESSION, TOKEN_REFRESHED, etc.
-      applyAuthSession(session ?? null);
+      // SIGNED_IN with a user created <60 s ago → brand-new account (email or OAuth).
+      // INITIAL_SESSION / TOKEN_REFRESHED / SIGNED_OUT → isNewUser stays false.
+      const isNewUser =
+        event === 'SIGNED_IN' &&
+        session?.user?.created_at != null &&
+        Date.now() - new Date(session.user.created_at).getTime() < 60_000;
+      applyAuthSession(session ?? null, isNewUser);
     });
 
     return () => {
@@ -215,7 +235,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } else {
         trackEvent('user_signed_up');
         if (data.session) {
-          applyAuthSession(data.session);
+          applyAuthSession(data.session, true);
+        } else {
+          // Email confirmation required — set flag now so AccountTypeScreen shows after confirm
+          setState((s) => ({ ...s, isNewSignup: true }));
         }
       }
       return {
@@ -316,6 +339,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         createProfile,
         updateProfile,
         refreshProfile,
+        clearNewSignup,
       }}
     >
       {children}
