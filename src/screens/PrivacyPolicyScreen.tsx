@@ -19,7 +19,7 @@ const SECTIONS = [
   },
   {
     heading: 'Information We Collect',
-    body: 'Account information: email address, first name, age, position, batting side, and experience level provided during signup. Swing videos you upload for analysis. Usage data: swing scores, coaching outputs, and app activity.',
+    body: "Account information: email address. Player information: first name, age, position, batting side, and experience level provided during signup. For players under 13, we also collect a parent or guardian's name as part of the required consent process. Swing videos you upload for analysis. Usage data: swing scores, coaching outputs, and app activity.",
   },
   {
     heading: 'How We Use Your Information',
@@ -31,7 +31,7 @@ const SECTIONS = [
   },
   {
     heading: "Children's Privacy (COPPA)",
-    body: 'SwingSense is intended for use by individuals of all ages including children under 13, with parental supervision. We do not knowingly collect personal information from children under 13 without verifiable parental consent. If you are a parent and believe your child has provided us with personal information without your consent, contact us at swingsenseapp@gmail.com and we will delete it promptly.',
+    body: "For players under 13, a parent or legal guardian must create the player's profile and directly provide consent before any swing video or activity data is collected. During setup, we clearly disclose what is collected (swing video and movement data, used to generate coaching feedback) and require an explicit confirmation that you are the child's parent or legal guardian before continuing. We do not collect any personal information from a player under 13 whose profile was set up without this consent.\n\nIf a player identifies themselves as under 13 while setting up their own profile, we do not collect any information and instead direct them to have a parent or guardian complete setup.\n\nWe do not use information collected from children under 13 for advertising, and we do not share it with any coach, team, or other user unless a parent separately enables that sharing.\n\nIf you are a parent and believe your child has provided us with personal information outside of this process, or you'd like to review, correct, or delete your child's data, contact us at swingsenseapp@gmail.com and we will address it promptly.",
   },
   {
     heading: 'Data Sharing',
@@ -70,7 +70,7 @@ export default function PrivacyPolicyScreen() {
         <Text style={styles.title} {...displayTitleProps}>
           Privacy Policy
         </Text>
-        <Text style={styles.updated}>Last updated: April 18, 2026</Text>
+        <Text style={styles.updated}>Last updated: August 2, 2026</Text>
         {SECTIONS.map((section) => (
           <View key={section.heading} style={styles.section}>
             {section.heading ? <Text style={styles.heading}>{section.heading}</Text> : null}
