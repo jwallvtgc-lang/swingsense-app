@@ -4,6 +4,7 @@ import {
   Dimensions,
   Image,
   ImageBackground,
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -145,6 +146,14 @@ export default function OnboardingScreen() {
     setBattingSide(profile.batting_side ?? null);
     setExperienceLevel(profile.experience_level ?? null);
   }, [profile]);
+
+  // Dismiss the keyboard as soon as the COPPA consent gate appears so the
+  // checkbox and Continue button are immediately visible without manual dismissal.
+  useEffect(() => {
+    if (isUnder13 && accountType === 'parent' && !coppaConsentConfirmed) {
+      Keyboard.dismiss();
+    }
+  }, [isUnder13, accountType, coppaConsentConfirmed]);
 
   const validateProfileFields = useCallback((skipPosition = false) => {
     if (!firstName.trim()) {
@@ -551,23 +560,23 @@ export default function OnboardingScreen() {
             {scrollInner}
           </ScrollView>
         )}
+        {!showPlayerBlock ? (
+          <View
+            style={
+              step === 2
+                ? [styles.footerPinned, { bottom: insets.bottom + spacing.screen }]
+                : [styles.footer, { paddingBottom: footerPaddingBottom }]
+            }
+          >
+            <PrimaryButton
+              label={primaryLabel}
+              onPress={primaryAction}
+              loading={saving && (step === 1 || step === 3)}
+              disabled={showConsentGate && !coppaConsented}
+            />
+          </View>
+        ) : null}
       </KeyboardAvoidingView>
-      {!showPlayerBlock ? (
-        <View
-          style={
-            step === 2
-              ? [styles.footerPinned, { bottom: insets.bottom + spacing.screen }]
-              : [styles.footer, { paddingBottom: footerPaddingBottom }]
-          }
-        >
-          <PrimaryButton
-            label={primaryLabel}
-            onPress={primaryAction}
-            loading={saving && (step === 1 || step === 3)}
-            disabled={showConsentGate && !coppaConsented}
-          />
-        </View>
-      ) : null}
     </SafeAreaView>
   );
 }
