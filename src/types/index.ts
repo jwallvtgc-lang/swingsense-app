@@ -8,6 +8,8 @@ export interface Profile {
   batting_side: BattingSide;
   experience_level?: string | null;
   onboarding_completed?: boolean | null;
+  gave_coppa_consent?: boolean | null;
+  consent_given_at?: string | null;
   role: 'player' | 'coach' | 'team_admin';
   leaderboard_opt_in: boolean;
   created_at: string;

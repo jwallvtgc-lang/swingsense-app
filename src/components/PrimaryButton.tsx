@@ -17,17 +17,19 @@ export type PrimaryButtonProps = {
   onPress: () => void;
   icon?: ReactNode;
   loading?: boolean;
+  disabled?: boolean;
 };
 
-export default function PrimaryButton({ label, onPress, icon, loading }: PrimaryButtonProps) {
+export default function PrimaryButton({ label, onPress, icon, loading, disabled }: PrimaryButtonProps) {
+  const isDisabled = loading || disabled;
   return (
     <Pressable
       onPress={onPress}
-      disabled={loading}
+      disabled={isDisabled}
       style={({ pressed }) => [
         styles.pressable,
-        loading && styles.pressableDisabled,
-        pressed && !loading && styles.pressed,
+        isDisabled && styles.pressableDisabled,
+        pressed && !isDisabled && styles.pressed,
       ]}
     >
       <View style={styles.inner}>

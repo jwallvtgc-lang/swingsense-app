@@ -8,6 +8,7 @@ export type AuthStackParamList = {
 export type OnboardStackParamList = {
   AccountType: undefined;
   Onboarding: { accountType?: 'player' | 'parent' } | undefined;
+  PrivacyPolicy: undefined;
 };
 
 /** Switches between auth, onboarding, and main app (session-driven). */

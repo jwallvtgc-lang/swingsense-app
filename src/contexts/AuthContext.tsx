@@ -26,6 +26,8 @@ type ProfileUpdateData = Partial<
     | 'height_inches'
     | 'experience_level'
     | 'onboarding_completed'
+    | 'gave_coppa_consent'
+    | 'consent_given_at'
   >
 >;
 
@@ -81,11 +83,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const fetchProfile = useCallback(async (userId: string) => {
     try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
+      // getUser() fetches fresh from the server — ensures user_metadata (e.g. account_type
+      // written by updateUser() in a prior session) is current before routing evaluates it.
+      // Runs in parallel with the profile row fetch so there's no added latency.
+      const [freshUserResult, { data, error }] = await Promise.all([
+        supabase.auth.getUser().then((r) => r.data?.user ?? null).catch(() => null),
+        supabase.from('profiles').select('*').eq('id', userId).single(),
+      ]);
 
       if (!error && data) {
         identifyUser(userId, {
@@ -99,11 +103,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       setState((s) => {
         if (s.user?.id !== userId) return s;
+        const userPatch = freshUserResult?.id === userId ? { user: freshUserResult } : {};
         if (error || !data) {
-          return { ...s, profile: null, hasProfile: false, profileResolved: true };
+          return { ...s, ...userPatch, profile: null, hasProfile: false, profileResolved: true };
         }
         return {
           ...s,
+          ...userPatch,
           profile: data as Profile,
           hasProfile: true,
           profileResolved: true,

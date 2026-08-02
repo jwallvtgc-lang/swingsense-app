@@ -40,6 +40,7 @@ import {
   radius,
   spacing,
   splashBrand,
+  tipRow,
 } from '../../design-system/tokens';
 
 const DISPLAY_FONT = 'BebasNeue_400Regular';
@@ -129,6 +130,12 @@ export default function OnboardingScreen() {
   const [battingSide, setBattingSide] = useState<BattingSide | null>(null);
   const [experienceLevel, setExperienceLevel] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [coppaConsented, setCoppaConsented] = useState(false);
+  const [coppaConsentConfirmed, setCoppaConsentConfirmed] = useState(false);
+
+  const parsedAge = Number(age);
+  const isValidAge = age.trim() !== '' && !isNaN(parsedAge) && parsedAge >= 5 && parsedAge <= 99;
+  const isUnder13 = isValidAge && parsedAge < 13;
 
   useEffect(() => {
     if (!profile) return;
@@ -139,20 +146,20 @@ export default function OnboardingScreen() {
     setExperienceLevel(profile.experience_level ?? null);
   }, [profile]);
 
-  const validateProfileFields = useCallback(() => {
+  const validateProfileFields = useCallback((skipPosition = false) => {
     if (!firstName.trim()) {
-      Alert.alert('Missing name', 'Please enter the player\'s first name.');
+      Alert.alert('Missing name', "Please enter the player's first name.");
       return false;
     }
     if (!age.trim() || isNaN(Number(age)) || Number(age) < 5 || Number(age) > 99) {
       Alert.alert('Invalid age', 'Please enter a valid age (5-99).');
       return false;
     }
-    if (!position) {
+    if (!skipPosition && !position) {
       Alert.alert('Missing position', 'Please select a primary position.');
       return false;
     }
-    if (!battingSide) {
+    if (!skipPosition && !battingSide) {
       Alert.alert('Missing batting side', 'Please select a batting side.');
       return false;
     }
@@ -160,11 +167,31 @@ export default function OnboardingScreen() {
   }, [firstName, age, position, battingSide]);
 
   const handleProfileContinue = useCallback(async () => {
+    const parsed = Number(age);
+    const validAge = age.trim() !== '' && !isNaN(parsed) && parsed >= 5 && parsed <= 99;
+    const under13 = validAge && parsed < 13;
+
+    // Phase A: COPPA consent gate — validate name+age only, then reveal position fields
+    if (under13 && accountType === 'parent' && !coppaConsentConfirmed) {
+      if (!validateProfileFields(true)) return;
+      setCoppaConsentConfirmed(true);
+      return;
+    }
+
+    // Safety guard for the player-path block (button is hidden, but be defensive)
+    if (under13 && accountType === 'player') return;
+
+    // Phase B or normal path: full validation + submit
     if (!validateProfileFields()) return;
+
     setSaving(true);
+    const consentPatch = (under13 && accountType === 'parent' && coppaConsentConfirmed)
+      ? { gave_coppa_consent: true as const, consent_given_at: new Date().toISOString() }
+      : {};
+
     const payload = {
       first_name: firstName.trim(),
-      age: Number(age),
+      age: parsed,
       primary_position: position!,
       batting_side: battingSide!,
       height_feet: null,
@@ -173,13 +200,14 @@ export default function OnboardingScreen() {
     };
     const { error } =
       !hasProfile || !profile
-        ? await createProfile({ ...payload, onboarding_completed: false })
+        ? await createProfile({ ...payload, onboarding_completed: false, ...consentPatch })
         : await updateProfile({
             first_name: payload.first_name,
             age: payload.age,
             primary_position: payload.primary_position,
             batting_side: payload.batting_side,
             experience_level: payload.experience_level,
+            ...consentPatch,
           });
     if (error) {
       setSaving(false);
@@ -193,8 +221,8 @@ export default function OnboardingScreen() {
     setStep(2);
   }, [
     validateProfileFields,
-    firstName,
     age,
+    firstName,
     position,
     battingSide,
     experienceLevel,
@@ -204,6 +232,7 @@ export default function OnboardingScreen() {
     updateProfile,
     accountType,
     parentName,
+    coppaConsentConfirmed,
   ]);
 
   const handleFinishOnboarding = useCallback(async () => {
@@ -236,6 +265,11 @@ export default function OnboardingScreen() {
       : step === 2
         ? 'Got It'
         : 'Analyze My First Swing';
+
+  // Consent gate is active when age < 13, parent path, and consent not yet confirmed
+  const showConsentGate = step === 1 && isUnder13 && accountType === 'parent' && !coppaConsentConfirmed;
+  // Hard block: player-path, under 13 — no Continue button
+  const showPlayerBlock = step === 1 && isUnder13 && accountType === 'player';
 
   const scrollContentStyle = [
     styles.scrollContent,
@@ -312,91 +346,134 @@ export default function OnboardingScreen() {
               style={styles.inputShort}
             />
           </View>
-          <View style={styles.field}>
-            <Text style={styles.label}>Primary Position *</Text>
-            <View style={styles.chipGrid}>
-              {POSITIONS.map((pos) => {
-                const selected = position === pos;
-                return (
-                  <Pressable
-                    key={pos}
-                    onPress={() => setPosition(pos)}
-                    style={({ pressed }) => [
-                      styles.chip,
-                      selected ? styles.chipActive : styles.chipInactive,
-                      pressed && styles.chipPressed,
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        styles.chipLabel,
-                        selected ? styles.chipLabelActive : styles.chipLabelInactive,
-                      ]}
-                    >
-                      {POSITION_LABELS[pos]}
-                    </Text>
-                  </Pressable>
-                );
-              })}
+          {showConsentGate ? (
+            <View style={styles.consentSection}>
+              <Text style={styles.consentHeading}>
+                Before {firstName.trim() || 'your child'} continues
+              </Text>
+              <Text style={styles.consentBody}>
+                {firstName.trim() || 'This player'} is under 13. Here's exactly what we'll collect and why:
+              </Text>
+              <View style={styles.bulletList}>
+                <Text style={styles.bullet}>• Swing video & movement data, for coaching feedback</Text>
+                <Text style={styles.bullet}>• Not shared with any coach or team unless separately enabled</Text>
+                <Text style={styles.bullet}>• Not sold or shared for advertising</Text>
+              </View>
+              <Pressable
+                onPress={() => navigation.navigate('PrivacyPolicy')}
+                style={({ pressed }) => pressed && styles.linkPressed}
+              >
+                <Text style={styles.policyLink}>Read our full Privacy Policy →</Text>
+              </Pressable>
+              <Pressable
+                style={styles.checkboxRow}
+                onPress={() => setCoppaConsented((v) => !v)}
+                accessibilityRole="checkbox"
+                accessibilityState={{ checked: coppaConsented }}
+              >
+                <View style={[styles.checkbox, coppaConsented && styles.checkboxChecked]}>
+                  {coppaConsented ? <Text style={styles.checkmark}>✓</Text> : null}
+                </View>
+                <Text style={styles.checkboxLabel}>
+                  I am {firstName.trim() || 'this player'}'s parent or legal guardian, and I consent to this data collection.
+                </Text>
+              </Pressable>
             </View>
-          </View>
-          <View style={styles.field}>
-            <Text style={styles.label}>Batting Side *</Text>
-            <View style={styles.chipRow}>
-              {BATTING_SIDES.map((side) => {
-                const selected = battingSide === side;
-                return (
-                  <Pressable
-                    key={side}
-                    onPress={() => setBattingSide(side)}
-                    style={({ pressed }) => [
-                      styles.chip,
-                      styles.chipWide,
-                      selected ? styles.chipActive : styles.chipInactive,
-                      pressed && styles.chipPressed,
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        styles.chipLabel,
-                        selected ? styles.chipLabelActive : styles.chipLabelInactive,
-                      ]}
-                    >
-                      {BATTING_SIDE_LABELS[side]}
-                    </Text>
-                  </Pressable>
-                );
-              })}
+          ) : showPlayerBlock ? (
+            <View style={styles.blockingSection}>
+              <Text style={styles.blockingText}>
+                SwingSense needs a parent or guardian to set this up. Please continue on a parent's device, or ask a parent to create your profile.
+              </Text>
             </View>
-          </View>
-          <View style={styles.field}>
-            <Text style={styles.label}>Experience Level</Text>
-            <View style={styles.chipGrid}>
-              {EXPERIENCE_LEVELS.map((level) => {
-                const selected = experienceLevel === level;
-                return (
-                  <Pressable
-                    key={level}
-                    onPress={() => setExperienceLevel(level)}
-                    style={({ pressed }) => [
-                      styles.chip,
-                      selected ? styles.chipActive : styles.chipInactive,
-                      pressed && styles.chipPressed,
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        styles.chipLabel,
-                        selected ? styles.chipLabelActive : styles.chipLabelInactive,
-                      ]}
-                    >
-                      {level}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-          </View>
+          ) : (
+            <>
+              <View style={styles.field}>
+                <Text style={styles.label}>Primary Position *</Text>
+                <View style={styles.chipGrid}>
+                  {POSITIONS.map((pos) => {
+                    const selected = position === pos;
+                    return (
+                      <Pressable
+                        key={pos}
+                        onPress={() => setPosition(pos)}
+                        style={({ pressed }) => [
+                          styles.chip,
+                          selected ? styles.chipActive : styles.chipInactive,
+                          pressed && styles.chipPressed,
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.chipLabel,
+                            selected ? styles.chipLabelActive : styles.chipLabelInactive,
+                          ]}
+                        >
+                          {POSITION_LABELS[pos]}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              </View>
+              <View style={styles.field}>
+                <Text style={styles.label}>Batting Side *</Text>
+                <View style={styles.chipRow}>
+                  {BATTING_SIDES.map((side) => {
+                    const selected = battingSide === side;
+                    return (
+                      <Pressable
+                        key={side}
+                        onPress={() => setBattingSide(side)}
+                        style={({ pressed }) => [
+                          styles.chip,
+                          styles.chipWide,
+                          selected ? styles.chipActive : styles.chipInactive,
+                          pressed && styles.chipPressed,
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.chipLabel,
+                            selected ? styles.chipLabelActive : styles.chipLabelInactive,
+                          ]}
+                        >
+                          {BATTING_SIDE_LABELS[side]}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              </View>
+              <View style={styles.field}>
+                <Text style={styles.label}>Experience Level</Text>
+                <View style={styles.chipGrid}>
+                  {EXPERIENCE_LEVELS.map((level) => {
+                    const selected = experienceLevel === level;
+                    return (
+                      <Pressable
+                        key={level}
+                        onPress={() => setExperienceLevel(level)}
+                        style={({ pressed }) => [
+                          styles.chip,
+                          selected ? styles.chipActive : styles.chipInactive,
+                          pressed && styles.chipPressed,
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.chipLabel,
+                            selected ? styles.chipLabelActive : styles.chipLabelInactive,
+                          ]}
+                        >
+                          {level}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              </View>
+            </>
+          )}
         </>
       ) : null}
 
@@ -475,19 +552,22 @@ export default function OnboardingScreen() {
           </ScrollView>
         )}
       </KeyboardAvoidingView>
-      <View
-        style={
-          step === 2
-            ? [styles.footerPinned, { bottom: insets.bottom + spacing.screen }]
-            : [styles.footer, { paddingBottom: footerPaddingBottom }]
-        }
-      >
-        <PrimaryButton
-          label={primaryLabel}
-          onPress={primaryAction}
-          loading={saving && (step === 1 || step === 3)}
-        />
-      </View>
+      {!showPlayerBlock ? (
+        <View
+          style={
+            step === 2
+              ? [styles.footerPinned, { bottom: insets.bottom + spacing.screen }]
+              : [styles.footer, { paddingBottom: footerPaddingBottom }]
+          }
+        >
+          <PrimaryButton
+            label={primaryLabel}
+            onPress={primaryAction}
+            loading={saving && (step === 1 || step === 3)}
+            disabled={showConsentGate && !coppaConsented}
+          />
+        </View>
+      ) : null}
     </SafeAreaView>
   );
 }
@@ -617,6 +697,90 @@ const styles = StyleSheet.create({
     marginTop: spacing.iconGap,
   },
   scoreExplainer: {
+    fontFamily: FONT_INTER,
+    fontSize: fontSizes.body,
+    fontWeight: fontWeights.regular,
+    color: colors.text.secondary,
+    textAlign: 'center',
+  },
+  consentSection: {
+    gap: spacing.cardGap,
+    marginBottom: spacing.sectionGap,
+  },
+  consentHeading: {
+    fontFamily: FONT_INTER,
+    fontSize: fontSizes.sectionTitle,
+    fontWeight: fontWeights.bold,
+    color: colors.text.primary,
+  },
+  consentBody: {
+    fontFamily: FONT_INTER,
+    fontSize: fontSizes.body,
+    fontWeight: fontWeights.regular,
+    color: colors.text.secondary,
+  },
+  bulletList: {
+    gap: spacing.iconGap,
+  },
+  bullet: {
+    fontFamily: FONT_INTER,
+    fontSize: fontSizes.body,
+    fontWeight: fontWeights.regular,
+    color: colors.text.secondary,
+  },
+  policyLink: {
+    fontFamily: FONT_INTER,
+    fontSize: fontSizes.body,
+    fontWeight: fontWeights.medium,
+    color: colors.text.gold,
+  },
+  linkPressed: {
+    opacity: 0.7,
+  },
+  checkboxRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.iconGap,
+    marginTop: spacing.pillGap,
+  },
+  checkbox: {
+    width: tipRow.bullet,
+    height: tipRow.bullet,
+    borderRadius: radius.xs,
+    borderWidth: 1,
+    borderColor: colors.border.dim,
+    backgroundColor: colors.bg.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+    marginTop: 1,
+  },
+  checkboxChecked: {
+    backgroundColor: colors.bg.gold,
+    borderColor: colors.bg.gold,
+  },
+  checkmark: {
+    fontFamily: FONT_INTER,
+    fontSize: fontSizes.caption,
+    fontWeight: fontWeights.bold,
+    color: colors.text.onGold,
+  },
+  checkboxLabel: {
+    flex: 1,
+    fontFamily: FONT_INTER,
+    fontSize: fontSizes.body,
+    fontWeight: fontWeights.regular,
+    color: colors.text.secondary,
+  },
+  blockingSection: {
+    backgroundColor: colors.bg.surface,
+    borderRadius: radius.card,
+    padding: spacing.card,
+    borderWidth: 1,
+    borderColor: colors.border.dim,
+    marginBottom: spacing.sectionGap,
+  },
+  blockingText: {
     fontFamily: FONT_INTER,
     fontSize: fontSizes.body,
     fontWeight: fontWeights.regular,

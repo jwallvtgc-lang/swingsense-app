@@ -72,6 +72,7 @@ function OnboardingNavigator({ showAccountType }: { showAccountType: boolean }) 
     >
       <OnboardingStack.Screen name="AccountType" component={AccountTypeScreen} />
       <OnboardingStack.Screen name="Onboarding" component={OnboardingScreen} />
+      <OnboardingStack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />
     </OnboardingStack.Navigator>
   );
 }
