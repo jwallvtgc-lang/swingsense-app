@@ -2,6 +2,8 @@ import React, { useCallback, useEffect, useState } from 'react';
 import {
   Alert,
   Dimensions,
+  Image,
+  ImageBackground,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -16,7 +18,6 @@ import type { RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import BackNav from '../components/BackNav';
-import LogoTile from '../components/LogoTile';
 import PrimaryButton from '../components/PrimaryButton';
 import ScoreRing from '../components/ScoreRing';
 import ScreenHeader from '../components/ScreenHeader';
@@ -38,10 +39,15 @@ import {
   fontWeights,
   radius,
   spacing,
+  splashBrand,
 } from '../../design-system/tokens';
 
 const DISPLAY_FONT = 'BebasNeue_400Regular';
 const FONT_INTER = 'Inter_400Regular';
+
+const SPLASH_BG_SOURCE = require('../../assets/splash-background.png');
+const SPLASH_WORDMARK_SOURCE = require('../../assets/splash-wordmark.png');
+const LOGO_VW = 0.66;
 
 const POSITIONS: Position[] = [
   'catcher',
@@ -102,7 +108,7 @@ type OnboardingRoute = RouteProp<OnboardStackParamList, 'Onboarding'>;
 type Nav = NativeStackNavigationProp<OnboardStackParamList, 'Onboarding'>;
 
 export default function OnboardingScreen() {
-  const { height } = Dimensions.get('window');
+  const { width, height } = Dimensions.get('window');
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<Nav>();
   const route = useRoute<OnboardingRoute>();
@@ -236,6 +242,37 @@ export default function OnboardingScreen() {
     step === 3 && styles.scrollContentCta,
   ];
 
+  if (step === 3) {
+    const wordmarkWidth = Math.min(width * LOGO_VW, 340);
+    const wordmarkHeight = wordmarkWidth * splashBrand.logoAspect;
+    return (
+      <ImageBackground
+        source={SPLASH_BG_SOURCE}
+        style={styles.splashBg}
+        resizeMode="cover"
+      >
+        <View style={styles.splashContent}>
+          <Image
+            source={SPLASH_WORDMARK_SOURCE}
+            style={{ width: wordmarkWidth, height: wordmarkHeight }}
+            resizeMode="contain"
+          />
+          <Text style={styles.ctaTitle}>READY TO ANALYZE</Text>
+          <Text style={styles.ctaBody}>
+            Upload your first swing and get your AI coaching report in under 60 seconds.
+          </Text>
+        </View>
+        <View style={[styles.footer, { paddingBottom: insets.bottom + spacing.screen }]}>
+          <PrimaryButton
+            label="Analyze My First Swing"
+            onPress={primaryAction}
+            loading={saving}
+          />
+        </View>
+      </ImageBackground>
+    );
+  }
+
   const scrollInner = (
     <>
       {step === 1 ? (
@@ -363,15 +400,6 @@ export default function OnboardingScreen() {
         </>
       ) : null}
 
-      {step === 3 ? (
-        <View style={styles.ctaBlock}>
-          <LogoTile size="lg" />
-          <Text style={styles.ctaTitle}>READY TO ANALYZE</Text>
-          <Text style={styles.ctaBody}>
-            Upload your first swing and get your AI coaching report in under 60 seconds.
-          </Text>
-        </View>
-      ) : null}
     </>
   );
 
@@ -595,16 +623,22 @@ const styles = StyleSheet.create({
     color: colors.text.secondary,
     textAlign: 'center',
   },
-  ctaBlock: {
+  splashBg: {
+    flex: 1,
+    backgroundColor: colors.bg.splashBase,
+  },
+  splashContent: {
+    flex: 1,
     alignItems: 'center',
-    alignSelf: 'stretch',
+    justifyContent: 'center',
+    paddingHorizontal: spacing.screen,
+    gap: spacing.sectionGap,
   },
   ctaTitle: {
     fontFamily: DISPLAY_FONT,
     fontSize: fontSizes.displaySm,
     color: colors.text.primary,
     textAlign: 'center',
-    marginTop: spacing.sectionGap,
   },
   ctaBody: {
     fontFamily: FONT_INTER,
@@ -612,6 +646,5 @@ const styles = StyleSheet.create({
     fontWeight: fontWeights.regular,
     color: colors.text.secondary,
     textAlign: 'center',
-    marginTop: spacing.cardGap,
   },
 });
