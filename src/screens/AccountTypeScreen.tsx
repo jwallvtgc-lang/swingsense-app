@@ -5,7 +5,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Svg, { Path } from 'react-native-svg';
 
 import ScreenHeader from '../components/ScreenHeader';
-import { useAuth } from '../contexts/AuthContext';
+import { supabase } from '../config/supabase';
 import type { OnboardStackParamList } from '../navigation/types';
 import {
   colors,
@@ -94,10 +94,15 @@ function TypeCard({ icon, title, subtitle, onPress }: CardProps) {
 
 export default function AccountTypeScreen() {
   const navigation = useNavigation<Nav>();
-  const { clearNewSignup } = useAuth();
 
-  const navigate = (accountType: 'parent' | 'myself') => {
-    clearNewSignup();
+  const navigate = async (accountType: 'player' | 'parent') => {
+    // Persist the choice to user_metadata before navigating so it survives any subsequent
+    // app kill or reload. Routing logic reads this value on every cold launch.
+    try {
+      await supabase.auth.updateUser({ data: { account_type: accountType } });
+    } catch (e) {
+      console.warn('[AccountTypeScreen] updateUser failed:', e);
+    }
     navigation.navigate('Onboarding', { accountType });
   };
 
@@ -113,13 +118,13 @@ export default function AccountTypeScreen() {
             icon={<PersonIcon />}
             title="I'm the player"
             subtitle="Setting up my own profile"
-            onPress={() => navigate('myself')}
+            onPress={() => void navigate('player')}
           />
           <TypeCard
             icon={<FamilyIcon />}
             title="I'm a parent"
             subtitle="Setting up a profile for myself and my child"
-            onPress={() => navigate('parent')}
+            onPress={() => void navigate('parent')}
           />
         </View>
       </View>

@@ -106,8 +106,13 @@ export default function OnboardingScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<Nav>();
   const route = useRoute<OnboardingRoute>();
-  const accountType = route.params?.accountType ?? 'myself';
-  const { profile, hasProfile, createProfile, updateProfile } = useAuth();
+  const { user, profile, hasProfile, createProfile, updateProfile } = useAuth();
+  // Route param is set when navigating from AccountTypeScreen this session.
+  // user_metadata.account_type is the durable fallback (survives kill/reload).
+  const accountType: 'player' | 'parent' =
+    route.params?.accountType ??
+    (user?.user_metadata?.account_type as 'player' | 'parent' | undefined) ??
+    'player';
 
   // step 1 = Player Profile, step 2 = Your Scores, step 3 = CTA
   const [step, setStep] = useState(1);

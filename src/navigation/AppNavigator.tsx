@@ -6,7 +6,6 @@ import { View } from 'react-native';
 
 import { useAuth } from '../contexts/AuthContext';
 import { rootNavigationRef } from './rootNavigationRef';
-import { COLORS, SPLASH_BACKGROUND } from '../config/constants';
 import AuthScreen from '../screens/AuthScreen';
 import AccountTypeScreen from '../screens/AccountTypeScreen';
 import OnboardingScreen from '../screens/OnboardingScreen';
@@ -29,6 +28,7 @@ import DrillLibraryScreen from '../screens/DrillLibraryScreen';
 import ManagePlanScreen from '../screens/ManagePlanScreen';
 
 import type { AuthStackParamList, MainStackParamList, OnboardStackParamList, TabParamList } from './types';
+import { colors } from '../../design-system/tokens';
 
 const Stack = createNativeStackNavigator<MainStackParamList>();
 const SplashAuthStack = createNativeStackNavigator<AuthStackParamList>();
@@ -81,7 +81,7 @@ function MainNavigator() {
     <Stack.Navigator
       screenOptions={{
         headerShown: false,
-        contentStyle: { backgroundColor: COLORS.background },
+        contentStyle: { backgroundColor: colors.bg.base },
         animation: 'slide_from_right',
       }}
     >
@@ -118,21 +118,23 @@ function MainNavigator() {
  * Signed-in users without a profile still see onboarding before tabs.
  */
 function SessionBranchNavigator() {
-  const { session, hasProfile, profile, profileResolved, isNewSignup } = useAuth();
+  const { session, user, hasProfile, profile, profileResolved } = useAuth();
   if (!session) {
     return <AuthNavigator />;
   }
   if (!profileResolved) {
-    return <View style={{ flex: 1, backgroundColor: SPLASH_BACKGROUND }} />;
+    return <View style={{ flex: 1, backgroundColor: colors.bg.splashBase }} />;
   }
-  const needsOnboarding = !hasProfile || profile?.onboarding_completed !== true;
-  if (needsOnboarding) {
-    // Only show AccountTypeScreen when the user just created a new account this session.
-    // Returning users whose profile is missing (interrupted onboarding, network failure, etc.)
-    // go straight to the Player Profile form — never see AccountTypeScreen on cold launch.
-    return <OnboardingNavigator showAccountType={isNewSignup && !hasProfile} />;
+  if (hasProfile && profile?.onboarding_completed === true) {
+    return <MainNavigator />;
   }
-  return <MainNavigator />;
+  // account_type is written to user_metadata when the user selects on AccountTypeScreen.
+  // If it's absent AND there's no profile row, the user hasn't chosen yet → AccountTypeScreen.
+  // If either is set (account_type OR a profile row exists), skip AccountTypeScreen.
+  // This is purely durable state — survives kills, reloads, and Fast Refresh.
+  const accountType = user?.user_metadata?.account_type as 'player' | 'parent' | undefined;
+  const needsAccountType = !accountType && !hasProfile;
+  return <OnboardingNavigator showAccountType={needsAccountType} />;
 }
 
 export default function AppNavigator() {
@@ -140,7 +142,7 @@ export default function AppNavigator() {
 
   if (loading) {
     // Same edge color as native splash so there’s no black flash before the first screen
-    return <View style={{ flex: 1, backgroundColor: SPLASH_BACKGROUND }} />;
+    return <View style={{ flex: 1, backgroundColor: colors.bg.splashBase }} />;
   }
 
   return (
