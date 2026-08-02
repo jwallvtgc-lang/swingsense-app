@@ -245,24 +245,35 @@ export default function OnboardingScreen() {
   ]);
 
   const handleFinishOnboarding = useCallback(async () => {
+    console.log('[handleFinishOnboarding] ENTERED');
     setSaving(true);
-    const { error } = await updateProfile({ onboarding_completed: true });
-    setSaving(false);
-    if (error) {
-      Alert.alert('Error', error.message);
-      return;
+    try {
+      const { error } = await updateProfile({ onboarding_completed: true });
+      console.log('[handleFinishOnboarding] updateProfile resolved — error:', error?.message ?? null);
+      if (error) {
+        Alert.alert('Error saving progress', error.message);
+        return;
+      }
+      trackEvent('onboarding_completed', {
+        experience_level: experienceLevel,
+        primary_position: position,
+        batting_side: battingSide,
+        account_type: accountType,
+      });
+      console.log('[handleFinishOnboarding] trackEvent done');
+    } catch (e) {
+      console.log('[handleFinishOnboarding] CAUGHT:', e instanceof Error ? e.message : String(e));
+      Alert.alert('Error', e instanceof Error ? e.message : String(e));
+    } finally {
+      setSaving(false);
+      console.log('[handleFinishOnboarding] finally — saving reset');
     }
-    trackEvent('onboarding_completed', {
-      experience_level: experienceLevel,
-      primary_position: position,
-      batting_side: battingSide,
-      account_type: accountType,
-    });
   }, [updateProfile, experienceLevel, position, battingSide, accountType]);
 
   const footerPaddingBottom = insets.bottom + spacing.screen;
 
   const primaryAction = () => {
+    console.log('[primaryAction] called — step:', step);
     if (step === 1) void handleProfileContinue();
     else if (step === 2) setStep(3);
     else void handleFinishOnboarding();

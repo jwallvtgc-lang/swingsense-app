@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { Session, User } from '@supabase/supabase-js';
+import * as Crypto from 'expo-crypto';
 // Same client as screens/services: `src/config/supabase.ts`
 import { supabase } from '../config/supabase';
 import { identifyUser, resetAnalytics, trackEvent } from '../services/analytics';
@@ -83,13 +84,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const fetchProfile = useCallback(async (userId: string) => {
     try {
-      // getUser() fetches fresh from the server — ensures user_metadata (e.g. account_type
-      // written by updateUser() in a prior session) is current before routing evaluates it.
-      // Runs in parallel with the profile row fetch so there's no added latency.
-      const [freshUserResult, { data, error }] = await Promise.all([
+      // getUser() and the account→profile_id lookup run in parallel — no added latency vs before.
+      // profile_relationships is the source of truth linking an auth account to its profile(s).
+      const [freshUserResult, { data: relRows, error: relError }] = await Promise.all([
         supabase.auth.getUser().then((r) => r.data?.user ?? null).catch(() => null),
-        supabase.from('profiles').select('*').eq('id', userId).single(),
+        supabase
+          .from('profile_relationships')
+          .select('profile_id')
+          .eq('account_id', userId)
+          .limit(1),
       ]);
+
+      if (relError) throw relError;
+
+      // No relationship row → account hasn't completed profile creation yet (normal onboarding state).
+      if (!relRows || relRows.length === 0) {
+        setState((s) => {
+          if (s.user?.id !== userId) return s;
+          const userPatch = freshUserResult?.id === userId ? { user: freshUserResult } : {};
+          return { ...s, ...userPatch, profile: null, hasProfile: false, profileResolved: true };
+        });
+        return;
+      }
+
+      const profileId = relRows[0].profile_id as string;
+      console.log('[fetchProfile] resolved profile_id:', profileId, '| auth userId:', userId);
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', profileId)
+        .single();
+
+      console.log('[fetchProfile] profiles SELECT result:', { data: data ? '(row)' : null, error: error?.message ?? null, code: (error as any)?.code ?? null });
 
       if (!error && data) {
         identifyUser(userId, {
@@ -281,40 +307,93 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   ) => {
     if (!state.user) return { error: new Error('Not authenticated') };
 
-    const { error } = await supabase.from('profiles').insert({
-      id: state.user.id,
-      ...data,
-      role: 'player',
-      leaderboard_opt_in: false,
-      onboarding_completed: data.onboarding_completed ?? false,
-    });
+    try {
+      // Generate the profile ID client-side so it's known before any DB call.
+      // This avoids a chicken-and-egg RLS failure: reading back the ID via .select().single()
+      // would trigger the "view linked profiles" policy, which requires a profile_relationships
+      // row that doesn't exist yet at that point.
+      // Use Crypto.randomUUID() (expo-crypto) — crypto.randomUUID() is not available in Expo Go.
+      const newProfileId = Crypto.randomUUID();
+      const accountType = state.user.user_metadata?.account_type as 'player' | 'parent' | undefined;
 
-    if (!error) {
+      const { error: insertError } = await supabase
+        .from('profiles')
+        .insert({
+          id: newProfileId,
+          ...data,
+          role: 'player',
+          leaderboard_opt_in: false,
+          onboarding_completed: data.onboarding_completed ?? false,
+        });
+
+      if (insertError) {
+        return { error: insertError as Error };
+      }
+
+      const { error: relError } = await supabase.from('profile_relationships').insert({
+        account_id: state.user.id,
+        profile_id: newProfileId,
+        relationship_type: accountType === 'parent' ? 'parent' : 'self',
+        is_payer: true,
+        gave_coppa_consent: data.gave_coppa_consent ?? false,
+        consent_given_at: data.consent_given_at ?? null,
+      });
+
+      if (relError) {
+        return { error: relError as Error };
+      }
+
       await fetchProfile(state.user.id);
 
+      // activity_log.user_id → profiles.id (FK), so use the newly generated profile id.
       await supabase.from('activity_log').insert({
-        user_id: state.user.id,
+        user_id: newProfileId,
         event_type: 'login',
         event_data: { source: 'signup' },
       });
-    }
 
-    return { error: error as Error | null };
+      return { error: null };
+    } catch (e) {
+      return { error: e instanceof Error ? e : new Error(String(e)) };
+    }
   };
 
   const updateProfile = async (data: ProfileUpdateData) => {
     if (!state.user) return { error: new Error('Not authenticated') };
 
-    const { error } = await supabase
-      .from('profiles')
-      .update({ ...data, updated_at: new Date().toISOString() })
-      .eq('id', state.user.id);
-
-    if (!error) {
-      await fetchProfile(state.user.id);
+    // profiles.id is no longer guaranteed to match state.user.id (AI-147 Stage 1).
+    // Prefer the already-loaded profile id; fall back to resolving via profile_relationships
+    // (same lookup fetchProfile uses) for cases where the profile hasn't loaded yet due to RLS.
+    let profileId: string | null = state.profile?.id ?? null;
+    if (!profileId) {
+      const { data: relRows } = await supabase
+        .from('profile_relationships')
+        .select('profile_id')
+        .eq('account_id', state.user.id)
+        .limit(1);
+      profileId = (relRows?.[0]?.profile_id as string) ?? null;
     }
 
-    return { error: error as Error | null };
+    if (!profileId) {
+      return { error: new Error('No profile found for this account') };
+    }
+
+    const { data: updated, error } = await supabase
+      .from('profiles')
+      .update({ ...data, updated_at: new Date().toISOString() })
+      .eq('id', profileId)
+      .select('id');
+
+    console.log('[updateProfile] profileId:', profileId, '| rows affected:', updated?.length ?? 0, '| error:', error?.message ?? null);
+
+    if (error) return { error: error as Error };
+
+    if (!updated || updated.length === 0) {
+      return { error: new Error('Update matched no rows — RLS policy may need updating for the new profile model') };
+    }
+
+    await fetchProfile(state.user.id);
+    return { error: null };
   };
 
   return (
