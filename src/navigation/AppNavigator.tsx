@@ -8,6 +8,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { rootNavigationRef } from './rootNavigationRef';
 import { COLORS, SPLASH_BACKGROUND } from '../config/constants';
 import AuthScreen from '../screens/AuthScreen';
+import AccountTypeScreen from '../screens/AccountTypeScreen';
 import OnboardingScreen from '../screens/OnboardingScreen';
 import SplashScreen from '../screens/SplashScreen';
 import AnalyzeScreen from '../screens/AnalyzeScreen';
@@ -27,11 +28,11 @@ import DrillDetailScreen from '../screens/DrillDetailScreen';
 import DrillLibraryScreen from '../screens/DrillLibraryScreen';
 import ManagePlanScreen from '../screens/ManagePlanScreen';
 
-import type { AuthStackParamList, MainStackParamList, TabParamList } from './types';
+import type { AuthStackParamList, MainStackParamList, OnboardStackParamList, TabParamList } from './types';
 
 const Stack = createNativeStackNavigator<MainStackParamList>();
 const SplashAuthStack = createNativeStackNavigator<AuthStackParamList>();
-const OnboardingStack = createNativeStackNavigator<{ Onboarding: undefined }>();
+const OnboardingStack = createNativeStackNavigator<OnboardStackParamList>();
 const Tab = createBottomTabNavigator<TabParamList>();
 
 function MainTabs() {
@@ -65,7 +66,8 @@ function AuthNavigator() {
 
 function OnboardingNavigator() {
   return (
-    <OnboardingStack.Navigator screenOptions={{ headerShown: false }}>
+    <OnboardingStack.Navigator screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
+      <OnboardingStack.Screen name="AccountType" component={AccountTypeScreen} />
       <OnboardingStack.Screen name="Onboarding" component={OnboardingScreen} />
     </OnboardingStack.Navigator>
   );

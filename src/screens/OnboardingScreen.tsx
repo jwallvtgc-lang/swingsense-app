@@ -11,6 +11,8 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useRoute } from '@react-navigation/native';
+import type { RouteProp } from '@react-navigation/native';
 
 import LogoTile from '../components/LogoTile';
 import PrimaryButton from '../components/PrimaryButton';
@@ -18,6 +20,7 @@ import ScoreRing from '../components/ScoreRing';
 import ScreenHeader from '../components/ScreenHeader';
 import TextInput from '../components/TextInput';
 import { useAuth } from '../contexts/AuthContext';
+import { supabase } from '../config/supabase';
 import { trackEvent } from '../services/analytics';
 import {
   BattingSide,
@@ -25,6 +28,7 @@ import {
   POSITION_LABELS,
   BATTING_SIDE_LABELS,
 } from '../types';
+import type { OnboardStackParamList } from '../navigation/types';
 import {
   bottomTab,
   colors,
@@ -93,11 +97,18 @@ const SCORE_CARDS: {
   },
 ];
 
+type OnboardingRoute = RouteProp<OnboardStackParamList, 'Onboarding'>;
+
 export default function OnboardingScreen() {
   const { height } = Dimensions.get('window');
   const insets = useSafeAreaInsets();
+  const route = useRoute<OnboardingRoute>();
+  const { accountType } = route.params;
   const { profile, hasProfile, createProfile, updateProfile } = useAuth();
+
+  // step 1 = Player Profile, step 2 = Your Scores, step 3 = CTA
   const [step, setStep] = useState(1);
+  const [parentName, setParentName] = useState('');
   const [firstName, setFirstName] = useState('');
   const [age, setAge] = useState('');
   const [position, setPosition] = useState<Position | null>(null);
@@ -116,7 +127,7 @@ export default function OnboardingScreen() {
 
   const validateProfileFields = useCallback(() => {
     if (!firstName.trim()) {
-      Alert.alert('Missing name', 'Please enter your first name.');
+      Alert.alert('Missing name', 'Please enter the player\'s first name.');
       return false;
     }
     if (!age.trim() || isNaN(Number(age)) || Number(age) < 5 || Number(age) > 99) {
@@ -124,11 +135,11 @@ export default function OnboardingScreen() {
       return false;
     }
     if (!position) {
-      Alert.alert('Missing position', 'Please select your primary position.');
+      Alert.alert('Missing position', 'Please select a primary position.');
       return false;
     }
     if (!battingSide) {
-      Alert.alert('Missing batting side', 'Please select your batting side.');
+      Alert.alert('Missing batting side', 'Please select a batting side.');
       return false;
     }
     return true;
@@ -156,12 +167,16 @@ export default function OnboardingScreen() {
             batting_side: payload.batting_side,
             experience_level: payload.experience_level,
           });
-    setSaving(false);
     if (error) {
+      setSaving(false);
       Alert.alert('Error', error.message);
       return;
     }
-    setStep(3);
+    if (accountType === 'parent' && parentName.trim()) {
+      await supabase.auth.updateUser({ data: { parent_name: parentName.trim() } });
+    }
+    setSaving(false);
+    setStep(2);
   }, [
     validateProfileFields,
     firstName,
@@ -173,6 +188,8 @@ export default function OnboardingScreen() {
     profile,
     createProfile,
     updateProfile,
+    accountType,
+    parentName,
   ]);
 
   const handleFinishOnboarding = useCallback(async () => {
@@ -187,54 +204,53 @@ export default function OnboardingScreen() {
       experience_level: experienceLevel,
       primary_position: position,
       batting_side: battingSide,
+      account_type: accountType,
     });
-  }, [updateProfile, experienceLevel, position, battingSide]);
+  }, [updateProfile, experienceLevel, position, battingSide, accountType]);
 
   const footerPaddingBottom = insets.bottom + spacing.screen;
 
   const primaryAction = () => {
-    if (step === 1) setStep(2);
-    else if (step === 2) void handleProfileContinue();
-    else if (step === 3) setStep(4);
+    if (step === 1) void handleProfileContinue();
+    else if (step === 2) setStep(3);
     else void handleFinishOnboarding();
   };
 
   const primaryLabel =
     step === 1
-      ? 'Get Started'
+      ? 'Continue'
       : step === 2
-        ? 'Continue'
-        : step === 3
-          ? 'Got It'
-          : 'Analyze My First Swing';
+        ? 'Got It'
+        : 'Analyze My First Swing';
 
   const scrollContentStyle = [
     styles.scrollContent,
-    step === 1 && styles.scrollContentWelcome,
-    step === 4 && styles.scrollContentCta,
+    step === 3 && styles.scrollContentCta,
   ];
 
   const scrollInner = (
     <>
       {step === 1 ? (
-        <View style={styles.welcomeBlock}>
-          <LogoTile size="lg" />
-          <Text style={styles.welcomeKicker}>WELCOME TO</Text>
-          <Text style={styles.wordmark}>SWINGSENSE</Text>
-          <Text style={styles.tagline}>AI coaching for every swing</Text>
-        </View>
-      ) : null}
-
-      {step === 2 ? (
         <>
           <ScreenHeader
-            title="YOUR PROFILE"
-            subtitle="We use this to calibrate your scores and coaching"
+            title="PLAYER PROFILE"
+            subtitle="We use this to calibrate scores and coaching"
           />
+          {accountType === 'parent' ? (
+            <View style={styles.field}>
+              <Text style={styles.label}>Parent Name</Text>
+              <TextInput
+                placeholder="Your first name"
+                value={parentName}
+                onChangeText={setParentName}
+                autoCapitalize="words"
+              />
+            </View>
+          ) : null}
           <View style={styles.field}>
-            <Text style={styles.label}>First Name *</Text>
+            <Text style={styles.label}>Player First Name *</Text>
             <TextInput
-              placeholder="Your first name"
+              placeholder="First name"
               value={firstName}
               onChangeText={setFirstName}
               autoCapitalize="words"
@@ -339,7 +355,7 @@ export default function OnboardingScreen() {
         </>
       ) : null}
 
-      {step === 4 ? (
+      {step === 3 ? (
         <View style={styles.ctaBlock}>
           <LogoTile size="lg" />
           <Text style={styles.ctaTitle}>READY TO ANALYZE</Text>
@@ -358,24 +374,24 @@ export default function OnboardingScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={0}
       >
-        {step === 3 ? (
+        {step === 2 ? (
           <View
             style={[
-              styles.step3Outer,
+              styles.step2Outer,
               {
                 paddingTop: height * 0.18,
                 paddingBottom: bottomTab.height + spacing.cardGap,
               },
             ]}
           >
-            <View style={styles.step3Inner}>
-              <View style={styles.step3HeaderBlock}>
+            <View style={styles.step2Inner}>
+              <View style={styles.step2HeaderBlock}>
                 <ScreenHeader
                   title="YOUR SCORES"
                   subtitle="What the numbers actually mean"
                 />
               </View>
-              <View style={[styles.grid, styles.step3Grid]}>
+              <View style={[styles.grid, styles.step2Grid]}>
                 <View style={styles.gridRow}>
                   {SCORE_CARDS.slice(0, 2).map((c) => (
                     <View key={c.label} style={styles.gridCell}>
@@ -425,7 +441,7 @@ export default function OnboardingScreen() {
       </KeyboardAvoidingView>
       <View
         style={
-          step === 3
+          step === 2
             ? [styles.footerPinned, { bottom: insets.bottom + spacing.screen }]
             : [styles.footer, { paddingBottom: footerPaddingBottom }]
         }
@@ -433,7 +449,7 @@ export default function OnboardingScreen() {
         <PrimaryButton
           label={primaryLabel}
           onPress={primaryAction}
-          loading={saving && (step === 2 || step === 4)}
+          loading={saving && (step === 1 || step === 3)}
         />
       </View>
     </SafeAreaView>
@@ -448,18 +464,18 @@ const styles = StyleSheet.create({
   flex: {
     flex: 1,
   },
-  step3Outer: {
+  step2Outer: {
     flex: 1,
     paddingHorizontal: spacing.screen,
   },
-  step3Inner: {
+  step2Inner: {
     alignSelf: 'stretch',
   },
-  step3HeaderBlock: {
+  step2HeaderBlock: {
     marginBottom: spacing.cardGap,
     alignSelf: 'stretch',
   },
-  step3Grid: {
+  step2Grid: {
     marginTop: 0,
   },
   scrollContent: {
@@ -467,9 +483,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.screen,
     paddingTop: spacing.screen,
     paddingBottom: spacing.cardGap,
-  },
-  scrollContentWelcome: {
-    justifyContent: 'center',
   },
   scrollContentCta: {
     justifyContent: 'center',
@@ -484,34 +497,6 @@ const styles = StyleSheet.create({
     right: spacing.screen,
     paddingTop: spacing.cardGap,
     zIndex: 1,
-  },
-  welcomeBlock: {
-    alignItems: 'center',
-    alignSelf: 'stretch',
-  },
-  welcomeKicker: {
-    fontFamily: FONT_INTER,
-    fontSize: fontSizes.drillInstruction,
-    fontWeight: fontWeights.regular,
-    letterSpacing: letterSpacing.label,
-    color: colors.text.muted,
-    textTransform: 'uppercase',
-    marginTop: spacing.sectionGap,
-  },
-  wordmark: {
-    fontFamily: DISPLAY_FONT,
-    fontSize: fontSizes.headline,
-    color: colors.text.primary,
-    textAlign: 'center',
-    marginTop: spacing.iconGap,
-  },
-  tagline: {
-    fontFamily: FONT_INTER,
-    fontSize: fontSizes.sectionTitle,
-    fontWeight: fontWeights.regular,
-    color: colors.text.secondary,
-    marginTop: spacing.pillGap,
-    textAlign: 'center',
   },
   field: {
     marginBottom: spacing.sectionGap,

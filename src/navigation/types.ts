@@ -5,6 +5,11 @@ export type AuthStackParamList = {
   TermsOfService: undefined;
 };
 
+export type OnboardStackParamList = {
+  AccountType: undefined;
+  Onboarding: { accountType: 'parent' | 'myself' };
+};
+
 /** Switches between auth, onboarding, and main app (session-driven). */
 export type RootBranchParamList = {
   AuthStack: undefined;
