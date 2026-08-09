@@ -275,7 +275,8 @@ export default function OnboardingScreen() {
 
   const handleShareWithParent = useCallback(async () => {
     const name = firstName.trim();
-    const appStoreUrl = 'https://apps.apple.com/app/id6760627870';
+    // TODO: swap to App Store URL (https://apps.apple.com/app/id6760627870) once the listing goes live
+    const appStoreUrl = 'https://testflight.apple.com/join/jrA4Jg74';
     const message = name
       ? `Hey, ${name} wants to use SwingSense for baseball swing coaching — can you set it up? ${appStoreUrl}`
       : `Someone wants to use SwingSense for baseball swing coaching — can you set it up? ${appStoreUrl}`;
