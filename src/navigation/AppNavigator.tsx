@@ -26,6 +26,7 @@ import TermsOfServiceScreen from '../screens/TermsOfServiceScreen';
 import DrillDetailScreen from '../screens/DrillDetailScreen';
 import DrillLibraryScreen from '../screens/DrillLibraryScreen';
 import ManagePlanScreen from '../screens/ManagePlanScreen';
+import AddPlayerScreen from '../screens/AddPlayerScreen';
 
 import type { AuthStackParamList, MainStackParamList, OnboardStackParamList, TabParamList } from './types';
 import { colors } from '../../design-system/tokens';
@@ -108,6 +109,7 @@ function MainNavigator() {
       <Stack.Screen name="DrillDetail" component={DrillDetailScreen} />
       <Stack.Screen name="DrillLibrary" component={DrillLibraryScreen} />
       <Stack.Screen name="ManagePlan" component={ManagePlanScreen} />
+      <Stack.Screen name="AddPlayer" component={AddPlayerScreen} />
     </Stack.Navigator>
   );
 }

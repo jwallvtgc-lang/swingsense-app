@@ -37,6 +37,7 @@ export type MainStackParamList = {
   DrillDetail: { drillId: string };
   DrillLibrary: undefined;
   ManagePlan: undefined;
+  AddPlayer: undefined;
 };
 
 export type TabParamList = {

@@ -25,6 +25,7 @@ interface Props {
   activeProfileId: string | null;
   onSelect: (profileId: string) => void;
   onClose: () => void;
+  onAddPlayer: () => void;
 }
 
 function profileInitials(firstName: string | null | undefined): string {
@@ -39,6 +40,7 @@ export default function ProfileSwitcherSheet({
   activeProfileId,
   onSelect,
   onClose,
+  onAddPlayer,
 }: Props) {
   const insets = useSafeAreaInsets();
 
@@ -91,15 +93,14 @@ export default function ProfileSwitcherSheet({
 
           <View style={styles.separator} />
 
-          {/* Add Player — placeholder for next pass, not yet interactive */}
           <Pressable
-            style={styles.profileRow}
-            disabled
+            style={({ pressed }) => [styles.profileRow, pressed && styles.rowPressed]}
+            onPress={() => { onAddPlayer(); onClose(); }}
             accessibilityRole="button"
-            accessibilityState={{ disabled: true }}
+            accessibilityLabel="Add a player profile"
           >
             <View style={styles.addIconRing}>
-              <Ionicons name="add" size={ADD_ICON_SIZE} color={colors.text.muted} />
+              <Ionicons name="add" size={ADD_ICON_SIZE} color={colors.text.gold} />
             </View>
             <Text style={styles.addLabel}>Add Player</Text>
           </Pressable>
@@ -177,16 +178,16 @@ const styles = StyleSheet.create({
     width: AVATAR_SIZE,
     height: AVATAR_SIZE,
     borderRadius: AVATAR_SIZE / 2,
-    backgroundColor: colors.bg.base,
+    backgroundColor: colors.bg.goldDim,
     borderWidth: 1,
-    borderColor: colors.border.subtle,
+    borderColor: colors.text.gold,
     alignItems: 'center',
     justifyContent: 'center',
   },
   addLabel: {
     fontFamily: typography.body,
     fontSize: fontSizes.body,
-    fontWeight: fontWeights.regular,
-    color: colors.text.muted,
+    fontWeight: fontWeights.medium,
+    color: colors.text.gold,
   },
 });

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import Constants from 'expo-constants';
 import { Alert, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -89,6 +89,10 @@ export default function ProfileScreen() {
     profile != null
       ? formatHeight(profile.height_feet, profile.height_inches)
       : '—';
+
+  const handleAddPlayer = useCallback(() => {
+    navigation.navigate('AddPlayer');
+  }, [navigation]);
 
   const openFeedback = () => {
     const subject = encodeURIComponent('SwingSense Beta Feedback');
@@ -251,6 +255,7 @@ export default function ProfileScreen() {
         activeProfileId={activeProfileId}
         onSelect={switchProfile}
         onClose={() => setSwitcherVisible(false)}
+        onAddPlayer={handleAddPlayer}
       />
       <BottomTabBar activeTab="profile" onTabPress={navigateMainTab} />
     </View>

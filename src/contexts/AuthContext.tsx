@@ -49,7 +49,7 @@ interface AuthContextValue extends AuthState {
     password: string
   ) => Promise<{ error: Error | null; session: Session | null }>;
   signOut: () => Promise<void>;
-  createProfile: (data: Omit<Profile, 'id' | 'role' | 'leaderboard_opt_in' | 'created_at' | 'updated_at'>) => Promise<{ error: Error | null }>;
+  createProfile: (data: Omit<Profile, 'id' | 'role' | 'leaderboard_opt_in' | 'created_at' | 'updated_at'>) => Promise<{ error: Error | null; profileId: string | null }>;
   updateProfile: (data: ProfileUpdateData) => Promise<{ error: Error | null }>;
   refreshProfile: () => Promise<void>;
   /** Switch the active profile to any profile linked to this account. Updates `profile` and `activeProfileId` immediately in local state — no network call. */
@@ -91,7 +91,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     profileResolved: false,
   });
 
-  const fetchProfile = useCallback(async (userId: string) => {
+  const fetchProfile = useCallback(async (userId: string, preferProfileId?: string) => {
     try {
       // Fetch the user object and all profile_relationships for this account in parallel.
       const [freshUserResult, { data: relRows, error: relError }] = await Promise.all([
@@ -151,8 +151,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         // Preserve the currently active profile if it's still in the new result set.
         // Otherwise default to the is_payer profile, then the first profile.
+        // preferProfileId forces a specific profile active (used by createProfile to activate new profiles).
         const stillValid = s.activeProfileId != null && allProfiles.some((p) => p.id === s.activeProfileId);
-        const activeId = stillValid ? s.activeProfileId! : payerProfileId;
+        const preferValid = preferProfileId != null && allProfiles.some((p) => p.id === preferProfileId);
+        const activeId = preferValid ? preferProfileId! : stillValid ? s.activeProfileId! : payerProfileId;
         const activeProfile = allProfiles.find((p) => p.id === activeId) ?? allProfiles[0]!;
 
         return {
@@ -349,7 +351,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const createProfile = async (
     data: Omit<Profile, 'id' | 'role' | 'leaderboard_opt_in' | 'created_at' | 'updated_at'>
   ) => {
-    if (!state.user) return { error: new Error('Not authenticated') };
+    if (!state.user) return { error: new Error('Not authenticated'), profileId: null };
 
     try {
       // Generate the profile ID client-side so it's known before any DB call.
@@ -371,7 +373,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         });
 
       if (insertError) {
-        return { error: insertError as Error };
+        return { error: insertError as Error, profileId: null };
       }
 
       // is_payer should only be true for the first profile under this account.
@@ -393,10 +395,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
 
       if (relError) {
-        return { error: relError as Error };
+        return { error: relError as Error, profileId: null };
       }
 
-      await fetchProfile(state.user.id);
+      await fetchProfile(state.user.id, newProfileId);
 
       // activity_log.user_id → profiles.id (FK), so use the newly generated profile id.
       await supabase.from('activity_log').insert({
@@ -405,9 +407,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         event_data: { source: 'signup' },
       });
 
-      return { error: null };
+      return { error: null, profileId: newProfileId };
     } catch (e) {
-      return { error: e instanceof Error ? e : new Error(String(e)) };
+      return { error: e instanceof Error ? e : new Error(String(e)), profileId: null };
     }
   };
 
