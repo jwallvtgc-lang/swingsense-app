@@ -14,6 +14,7 @@ export default function AvatarCircle({
   imageUri,
 }: AvatarCircleProps) {
   const r = size / 2;
+  const initialsSize = Math.round(size * (avatar.fontSize / avatar.size));
   const showImage = imageUri != null && imageUri.length > 0;
 
   return (
@@ -35,7 +36,7 @@ export default function AvatarCircle({
           accessibilityLabel="Profile photo"
         />
       ) : (
-        <Text style={[styles.initials, { fontSize: avatar.fontSize }]} maxFontSizeMultiplier={1.35}>
+        <Text style={[styles.initials, { fontSize: initialsSize }]} maxFontSizeMultiplier={1.35}>
           {initials}
         </Text>
       )}
