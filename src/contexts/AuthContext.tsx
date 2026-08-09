@@ -9,7 +9,12 @@ import { Profile } from '../types';
 interface AuthState {
   session: Session | null;
   user: User | null;
+  /** The currently active profile — whichever the user has selected via switchProfile, or the payer profile by default. */
   profile: Profile | null;
+  /** All profiles linked to this account via profile_relationships. */
+  profiles: Profile[];
+  /** ID of the profile currently shown across the app. */
+  activeProfileId: string | null;
   loading: boolean;
   hasProfile: boolean;
   /** False while the first `profiles` fetch for the current session is in flight; avoids onboarding flash for returning users. */
@@ -47,6 +52,8 @@ interface AuthContextValue extends AuthState {
   createProfile: (data: Omit<Profile, 'id' | 'role' | 'leaderboard_opt_in' | 'created_at' | 'updated_at'>) => Promise<{ error: Error | null }>;
   updateProfile: (data: ProfileUpdateData) => Promise<{ error: Error | null }>;
   refreshProfile: () => Promise<void>;
+  /** Switch the active profile to any profile linked to this account. Updates `profile` and `activeProfileId` immediately in local state — no network call. */
+  switchProfile: (profileId: string) => void;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -77,6 +84,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     session: null,
     user: null,
     profile: null,
+    profiles: [],
+    activeProfileId: null,
     loading: true,
     hasProfile: false,
     profileResolved: false,
@@ -84,59 +93,74 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const fetchProfile = useCallback(async (userId: string) => {
     try {
-      // getUser() and the account→profile_id lookup run in parallel — no added latency vs before.
-      // profile_relationships is the source of truth linking an auth account to its profile(s).
+      // Fetch the user object and all profile_relationships for this account in parallel.
       const [freshUserResult, { data: relRows, error: relError }] = await Promise.all([
         supabase.auth.getUser().then((r) => r.data?.user ?? null).catch(() => null),
         supabase
           .from('profile_relationships')
-          .select('profile_id')
-          .eq('account_id', userId)
-          .limit(1),
+          .select('profile_id, is_payer')
+          .eq('account_id', userId),
       ]);
 
       if (relError) throw relError;
 
-      // No relationship row → account hasn't completed profile creation yet (normal onboarding state).
+      // No relationship rows → account hasn't completed profile creation yet (normal onboarding state).
       if (!relRows || relRows.length === 0) {
         setState((s) => {
           if (s.user?.id !== userId) return s;
           const userPatch = freshUserResult?.id === userId ? { user: freshUserResult } : {};
-          return { ...s, ...userPatch, profile: null, hasProfile: false, profileResolved: true };
+          return { ...s, ...userPatch, profile: null, profiles: [], activeProfileId: null, hasProfile: false, profileResolved: true };
         });
         return;
       }
 
-      const profileId = relRows[0].profile_id as string;
-      console.log('[fetchProfile] resolved profile_id:', profileId, '| auth userId:', userId);
-      const { data, error } = await supabase
+      const profileIds = relRows.map((r) => r.profile_id as string);
+      const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
         .select('*')
-        .eq('id', profileId)
-        .single();
+        .in('id', profileIds);
 
-      console.log('[fetchProfile] profiles SELECT result:', { data: data ? '(row)' : null, error: error?.message ?? null, code: (error as any)?.code ?? null });
-
-      if (!error && data) {
-        identifyUser(userId, {
-          first_name: data.first_name ?? undefined,
-          experience_level: data.experience_level,
-          primary_position: data.primary_position,
-          batting_side: data.batting_side,
-          age: data.age,
+      if (profilesError || !profilesData?.length) {
+        setState((s) => {
+          if (s.user?.id !== userId) return s;
+          const userPatch = freshUserResult?.id === userId ? { user: freshUserResult } : {};
+          return { ...s, ...userPatch, profile: null, profiles: [], activeProfileId: null, hasProfile: false, profileResolved: true };
         });
+        return;
       }
+
+      const allProfiles = profilesData as Profile[];
+
+      // Identify user in analytics using the payer (primary) profile.
+      const payerRel = relRows.find((r) => r.is_payer);
+      const payerProfileId = (payerRel?.profile_id as string | undefined) ?? allProfiles[0]!.id;
+      const payerProfile = allProfiles.find((p) => p.id === payerProfileId) ?? allProfiles[0]!;
+      identifyUser(userId, {
+        first_name: payerProfile.first_name ?? undefined,
+        experience_level: payerProfile.experience_level,
+        primary_position: payerProfile.primary_position,
+        batting_side: payerProfile.batting_side,
+        age: payerProfile.age,
+      });
+
+      console.log('[fetchProfile] resolved', allProfiles.length, 'profile(s) | auth userId:', userId);
 
       setState((s) => {
         if (s.user?.id !== userId) return s;
         const userPatch = freshUserResult?.id === userId ? { user: freshUserResult } : {};
-        if (error || !data) {
-          return { ...s, ...userPatch, profile: null, hasProfile: false, profileResolved: true };
-        }
+
+        // Preserve the currently active profile if it's still in the new result set.
+        // Otherwise default to the is_payer profile, then the first profile.
+        const stillValid = s.activeProfileId != null && allProfiles.some((p) => p.id === s.activeProfileId);
+        const activeId = stillValid ? s.activeProfileId! : payerProfileId;
+        const activeProfile = allProfiles.find((p) => p.id === activeId) ?? allProfiles[0]!;
+
         return {
           ...s,
           ...userPatch,
-          profile: data as Profile,
+          profiles: allProfiles,
+          activeProfileId: activeProfile.id,
+          profile: activeProfile,
           hasProfile: true,
           profileResolved: true,
         };
@@ -144,7 +168,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch {
       setState((s) => {
         if (s.user?.id !== userId) return s;
-        return { ...s, profile: null, hasProfile: false, profileResolved: true };
+        return { ...s, profile: null, profiles: [], activeProfileId: null, hasProfile: false, profileResolved: true };
       });
     }
   }, []);
@@ -160,7 +184,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         user: session?.user ?? null,
         loading: false,
         profileResolved: !hasUser,
-        ...(hasUser ? {} : { profile: null, hasProfile: false }),
+        ...(hasUser ? {} : { profile: null, profiles: [], activeProfileId: null, hasProfile: false }),
       }));
       if (session?.user) {
         void fetchProfile(session.user.id);
@@ -297,10 +321,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setState((s) => ({
       ...s,
       profile: null,
+      profiles: [],
+      activeProfileId: null,
       hasProfile: false,
       profileResolved: true,
     }));
   };
+
+  const switchProfile = useCallback((profileId: string) => {
+    const target = state.profiles.find((p) => p.id === profileId);
+    if (!target) return;
+    // Re-identify analytics with the newly active profile.
+    identifyUser(state.user?.id ?? profileId, {
+      first_name: target.first_name ?? undefined,
+      experience_level: target.experience_level,
+      primary_position: target.primary_position,
+      batting_side: target.batting_side,
+      age: target.age,
+    });
+    setState((s) => {
+      const t = s.profiles.find((p) => p.id === profileId);
+      if (!t) return s;
+      return { ...s, activeProfileId: profileId, profile: t, hasProfile: true };
+    });
+  }, [state.profiles, state.user?.id]);
 
   const createProfile = async (
     data: Omit<Profile, 'id' | 'role' | 'leaderboard_opt_in' | 'created_at' | 'updated_at'>
@@ -416,6 +460,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         createProfile,
         updateProfile,
         refreshProfile,
+        switchProfile,
       }}
     >
       {children}

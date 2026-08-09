@@ -49,6 +49,9 @@ export const colors = {
 
     // Decorative
     ambientCircle: 'rgba(240,165,0,0.15)', // Analyze screen top-right circle
+
+    // Overlays
+    modalOverlay: 'rgba(0,0,0,0.6)', // Semi-transparent backdrop behind bottom sheets and modals
   },
 
   text: {
