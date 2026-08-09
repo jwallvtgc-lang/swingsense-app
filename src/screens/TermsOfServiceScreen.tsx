@@ -23,7 +23,7 @@ const SECTIONS = [
   },
   {
     heading: 'Account',
-    body: 'You are responsible for maintaining the security of your account. You must provide accurate information during signup. One account per person.',
+    body: 'One account per parent or guardian. You may create and manage profiles for multiple children under a single account. You are responsible for maintaining the security of your account and must provide accurate information during signup.',
   },
   {
     heading: 'Content You Upload',

@@ -19,7 +19,7 @@ const SECTIONS = [
   },
   {
     heading: 'Information We Collect',
-    body: "Account information: email address. Player information: first name, age, position, batting side, and experience level provided during signup. For players under 13, we also collect a parent or guardian's name as part of the required consent process. Swing videos you upload for analysis. Usage data: swing scores, coaching outputs, and app activity.",
+    body: "Account information: email address. Player information: first name, age, position, batting side, and experience level provided during signup. For players under 13, we also collect a parent or guardian's name as part of the required consent process. Swing videos you upload for analysis. Usage data: swing scores, coaching outputs, and app activity.\n\nA parent or guardian account may include profiles for multiple children. The data practices described in this policy apply individually to each child's profile.",
   },
   {
     heading: 'How We Use Your Information',

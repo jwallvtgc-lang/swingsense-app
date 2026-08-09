@@ -81,37 +81,18 @@ const SCORE_CARDS: {
   sublabel: string;
   accentColor: string;
 }[] = [
-  {
-    score: 45,
-    label: 'Needs Work',
-    sublabel: 'Clear issues to address',
-    accentColor: colors.text.red,
-  },
-  {
-    score: 65,
-    label: 'On Track',
-    sublabel: 'Solid for your age',
-    accentColor: colors.text.muted,
-  },
-  {
-    score: 78,
-    label: 'Strong',
-    sublabel: 'Minor tweaks only',
-    accentColor: colors.text.green,
-  },
-  {
-    score: 88,
-    label: 'Exceptional',
-    sublabel: 'Great mechanics',
-    accentColor: colors.text.gold,
-  },
+  { score: 15, label: 'Needs Work', sublabel: 'Clear issues to address',  accentColor: colors.core5.bandLow },
+  { score: 40, label: 'On Track',   sublabel: 'Building the basics',       accentColor: colors.core5.bandMid },
+  { score: 65, label: 'Strong',     sublabel: 'Solid for your age',        accentColor: colors.core5.bandHigh },
+  { score: 85, label: 'Excellent',  sublabel: 'Minor tweaks only',         accentColor: colors.core5.bandExcellent },
+  { score: 95, label: 'Legendary',  sublabel: 'Elite, top-tier mechanics', accentColor: colors.core5.bandLegendary },
 ];
 
 type OnboardingRoute = RouteProp<OnboardStackParamList, 'Onboarding'>;
 type Nav = NativeStackNavigationProp<OnboardStackParamList, 'Onboarding'>;
 
 export default function OnboardingScreen() {
-  const { width, height } = Dimensions.get('window');
+  const { width } = Dimensions.get('window');
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<Nav>();
   const route = useRoute<OnboardingRoute>();
@@ -542,7 +523,7 @@ export default function OnboardingScreen() {
             style={[
               styles.step2Outer,
               {
-                paddingTop: height * 0.18,
+                paddingTop: spacing.screen,
                 paddingBottom: bottomTab.height + spacing.cardGap,
               },
             ]}
@@ -554,35 +535,21 @@ export default function OnboardingScreen() {
                   subtitle="What the numbers actually mean"
                 />
               </View>
-              <View style={[styles.grid, styles.step2Grid]}>
-                <View style={styles.gridRow}>
-                  {SCORE_CARDS.slice(0, 2).map((c) => (
-                    <View key={c.label} style={styles.gridCell}>
-                      <ScoreRing
-                        score={c.score}
-                        size="sm"
-                        showLabel
-                        accentColor={c.accentColor}
-                      />
+              <View style={styles.bandList}>
+                {SCORE_CARDS.map((c) => (
+                  <View key={c.label} style={styles.bandRow}>
+                    <ScoreRing
+                      score={c.score}
+                      size="sm"
+                      showLabel
+                      accentColor={c.accentColor}
+                    />
+                    <View style={styles.bandText}>
                       <Text style={styles.scoreCardLabel}>{c.label}</Text>
                       <Text style={styles.scoreCardSublabel}>{c.sublabel}</Text>
                     </View>
-                  ))}
-                </View>
-                <View style={styles.gridRow}>
-                  {SCORE_CARDS.slice(2, 4).map((c) => (
-                    <View key={c.label} style={styles.gridCell}>
-                      <ScoreRing
-                        score={c.score}
-                        size="sm"
-                        showLabel
-                        accentColor={c.accentColor}
-                      />
-                      <Text style={styles.scoreCardLabel}>{c.label}</Text>
-                      <Text style={styles.scoreCardSublabel}>{c.sublabel}</Text>
-                    </View>
-                  ))}
-                </View>
+                  </View>
+                ))}
               </View>
               <Text
                 style={[styles.scoreExplainer, { marginTop: spacing.sectionGap }]}
@@ -640,9 +607,6 @@ const styles = StyleSheet.create({
   step2HeaderBlock: {
     marginBottom: spacing.cardGap,
     alignSelf: 'stretch',
-  },
-  step2Grid: {
-    marginTop: 0,
   },
   scrollContent: {
     flexGrow: 1,
@@ -717,34 +681,29 @@ const styles = StyleSheet.create({
   chipLabelActive: {
     color: colors.text.onGold,
   },
-  grid: {
-    marginTop: spacing.cardGap,
-    gap: spacing.cardGap,
+  bandList: {
+    gap: spacing.iconGap,
   },
-  gridRow: {
+  bandRow: {
     flexDirection: 'row',
-    gap: spacing.cardGap,
-  },
-  gridCell: {
-    flex: 1,
     alignItems: 'center',
-    minWidth: 0,
+    gap: spacing.sectionGap,
+  },
+  bandText: {
+    flex: 1,
+    gap: 2,
   },
   scoreCardLabel: {
     fontFamily: FONT_INTER,
     fontSize: fontSizes.body,
     fontWeight: fontWeights.medium,
     color: colors.text.primary,
-    textAlign: 'center',
-    marginTop: spacing.pillGap,
   },
   scoreCardSublabel: {
     fontFamily: FONT_INTER,
     fontSize: fontSizes.caption,
     fontWeight: fontWeights.regular,
     color: colors.text.secondary,
-    textAlign: 'center',
-    marginTop: spacing.iconGap,
   },
   scoreExplainer: {
     fontFamily: FONT_INTER,
