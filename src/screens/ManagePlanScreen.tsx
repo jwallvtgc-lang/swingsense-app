@@ -63,7 +63,6 @@ const FREE_FEATURES: FeatureItem[] = [
   { text: '3 AI-enabled swing analyses / week', check: 'muted' },
   { text: '1 personalized drill tied to a swing / week', check: 'muted' },
   { text: 'Key performance metrics for each swing', check: 'muted' },
-  { text: 'Group chat with your team', check: 'muted' },
 ];
 
 const SILVER_FEATURES: FeatureItem[] = [
@@ -77,9 +76,8 @@ const SILVER_FEATURES: FeatureItem[] = [
 const GOLD_FEATURES: FeatureItem[] = [
   { includedNote: 'Everything in Silver, plus' },
   { text: 'Unlimited AI-enabled swing analyses', check: 'gold' },
-  { text: 'Swing exoskeleton and heat map diagnostics', check: 'gold' },
   { text: '30+ always-available drills tied to core swing mechanics', check: 'gold' },
-  { text: 'Chat with a real human coach', check: 'gold' },
+  { text: 'More innovative and personalized features coming', check: 'gold' },
 ];
 
 function FeatureList({ items }: { items: FeatureItem[] }) {
@@ -118,15 +116,15 @@ export default function ManagePlanScreen() {
   const [analysesThisMonth, setAnalysesThisMonth] = useState<number | null>(null);
 
   useEffect(() => {
-    const userId = user?.id;
-    if (!userId) return;
+    const profileId = profile?.id;
+    if (!profileId) return;
     let cancelled = false;
     (async () => {
-      const n = await getCompletedAnalysesCountThisMonth(userId);
+      const n = await getCompletedAnalysesCountThisMonth(profileId);
       if (!cancelled) setAnalysesThisMonth(n);
     })();
     return () => { cancelled = true; };
-  }, [user?.id]);
+  }, [profile?.id]);
 
   const playerName = displayNameFromUser(profile?.first_name, user);
   const usageCount = analysesThisMonth ?? 0;
