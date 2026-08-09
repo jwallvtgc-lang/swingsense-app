@@ -7,7 +7,8 @@
     "preview": {
       "distribution": "store",
       "ios": {
-        "simulator": false
+        "simulator": false,
+        "autoIncrement": true
       },
       "channel": "preview",
       "env": {

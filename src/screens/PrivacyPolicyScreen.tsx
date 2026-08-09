@@ -70,7 +70,7 @@ export default function PrivacyPolicyScreen() {
         <Text style={styles.title} {...displayTitleProps}>
           Privacy Policy
         </Text>
-        <Text style={styles.updated}>Last updated: August 2, 2026</Text>
+        <Text style={styles.updated}>Last updated: August 9, 2026</Text>
         {SECTIONS.map((section) => (
           <View key={section.heading} style={styles.section}>
             {section.heading ? <Text style={styles.heading}>{section.heading}</Text> : null}

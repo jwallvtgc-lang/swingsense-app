@@ -74,7 +74,7 @@ export default function TermsOfServiceScreen() {
         <Text style={styles.title} {...displayTitleProps}>
           Terms of Service
         </Text>
-        <Text style={styles.updated}>Last updated: April 18, 2026</Text>
+        <Text style={styles.updated}>Last updated: August 9, 2026</Text>
         {SECTIONS.map((section) => (
           <View key={section.heading} style={styles.section}>
             {section.heading ? <Text style={styles.heading}>{section.heading}</Text> : null}
