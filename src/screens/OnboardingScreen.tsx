@@ -9,6 +9,7 @@ import {
   Platform,
   Pressable,
   ScrollView,
+  Share,
   StyleSheet,
   Text,
   View,
@@ -272,6 +273,19 @@ export default function OnboardingScreen() {
 
   const footerPaddingBottom = insets.bottom + spacing.screen;
 
+  const handleShareWithParent = useCallback(async () => {
+    const name = firstName.trim();
+    const appStoreUrl = 'https://apps.apple.com/app/id6760627870';
+    const message = name
+      ? `Hey, ${name} wants to use SwingSense for baseball swing coaching — can you set it up? ${appStoreUrl}`
+      : `Someone wants to use SwingSense for baseball swing coaching — can you set it up? ${appStoreUrl}`;
+    try {
+      await Share.share({ message });
+    } catch {
+      // user dismissed share sheet — no-op
+    }
+  }, [firstName]);
+
   const primaryAction = () => {
     console.log('[primaryAction] called — step:', step);
     if (step === 1) void handleProfileContinue();
@@ -401,9 +415,24 @@ export default function OnboardingScreen() {
             </View>
           ) : showPlayerBlock ? (
             <View style={styles.blockingSection}>
-              <Text style={styles.blockingText}>
-                SwingSense needs a parent or guardian to set this up. Please continue on a parent's device, or ask a parent to create your profile.
+              <Text style={styles.blockingTitle}>Let's get a parent set up</Text>
+              <Text style={styles.blockingBody}>
+                {firstName.trim()
+                  ? `${firstName.trim()} is under 13, so a parent or guardian needs to create this profile — that's how we keep their info safe.`
+                  : `Players under 13 need a parent or guardian to create their profile — that's how we keep their info safe.`}
               </Text>
+              <Text style={styles.blockingReassurance}>Nothing has been saved yet.</Text>
+              <PrimaryButton
+                label="Share with a Parent"
+                onPress={() => void handleShareWithParent()}
+              />
+              <Pressable
+                onPress={() => navigation.goBack()}
+                style={({ pressed }) => [styles.parentHereLink, pressed && styles.linkPressed]}
+                accessibilityRole="button"
+              >
+                <Text style={styles.parentHereLinkText}>A parent is here with me</Text>
+              </Pressable>
             </View>
           ) : (
             <>
@@ -799,12 +828,38 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border.dim,
     marginBottom: spacing.sectionGap,
+    gap: spacing.cardGap,
+    alignItems: 'center',
   },
-  blockingText: {
+  blockingTitle: {
+    fontFamily: FONT_INTER,
+    fontSize: fontSizes.sectionTitle,
+    fontWeight: fontWeights.bold,
+    color: colors.text.primary,
+    textAlign: 'center',
+  },
+  blockingBody: {
     fontFamily: FONT_INTER,
     fontSize: fontSizes.body,
     fontWeight: fontWeights.regular,
     color: colors.text.secondary,
+    textAlign: 'center',
+  },
+  blockingReassurance: {
+    fontFamily: FONT_INTER,
+    fontSize: fontSizes.caption,
+    fontWeight: fontWeights.regular,
+    color: colors.text.muted,
+    textAlign: 'center',
+  },
+  parentHereLink: {
+    paddingVertical: spacing.pillGap,
+  },
+  parentHereLinkText: {
+    fontFamily: FONT_INTER,
+    fontSize: fontSizes.body,
+    fontWeight: fontWeights.medium,
+    color: colors.text.gold,
     textAlign: 'center',
   },
   splashBg: {
