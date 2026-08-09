@@ -82,4 +82,4 @@ export const FONT_SIZE = {
   hero: 36,
 } as const;
 
-export const FREE_TIER_MONTHLY_LIMIT = 2;
+export const FREE_TIER_WEEKLY_LIMIT = 3;
