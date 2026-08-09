@@ -1,16 +1,19 @@
 import { useEffect, useMemo, useState } from 'react';
 import Constants from 'expo-constants';
-import { Alert, Linking, ScrollView, StyleSheet, View } from 'react-native';
+import { Alert, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import type { CompositeNavigationProp } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
+import AvatarCircle from '../components/AvatarCircle';
 import BottomTabBar from '../components/BottomTabBar';
 import DataRow from '../components/DataRow';
 import EditButton from '../components/EditButton';
 import ProfileHeader from '../components/ProfileHeader';
+import ProfileSwitcherSheet from '../components/ProfileSwitcherSheet';
 import SectionCard from '../components/SectionCard';
 import { useAuth } from '../contexts/AuthContext';
 import { displayNameFromUser } from '../utils/displayName';
@@ -18,7 +21,7 @@ import { getCompletedAnalysesCountThisMonth } from '../services/analysis';
 import { useMainTabBarNav } from '../navigation/useMainTabBarNav';
 import type { MainStackParamList, TabParamList } from '../navigation/types';
 import { BATTING_SIDE_LABELS, POSITION_LABELS } from '../types';
-import { bottomTab, colors, spacing } from '../../design-system/tokens';
+import { bottomTab, colors, fontSizes, fontWeights, letterSpacing, radius, spacing, typography } from '../../design-system/tokens';
 
 type ProfileNav = CompositeNavigationProp<
   BottomTabNavigationProp<TabParamList, 'Profile'>,
@@ -50,8 +53,9 @@ export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<ProfileNav>();
   const navigateMainTab = useMainTabBarNav();
-  const { user, profile, signOut } = useAuth();
+  const { user, profile, profiles, activeProfileId, switchProfile, signOut } = useAuth();
   const [analysesThisMonth, setAnalysesThisMonth] = useState<number | null>(null);
+  const [switcherVisible, setSwitcherVisible] = useState(false);
 
   useEffect(() => {
     const profileId = profile?.id;
@@ -125,7 +129,22 @@ export default function ProfileScreen() {
           initials={initials}
         />
 
+        {/* Profile switcher row — shows active player, opens sheet to switch */}
         <View style={styles.afterHeader}>
+          <Text style={styles.switcherLabel}>Player</Text>
+          <Pressable
+            style={({ pressed }) => [styles.switcherRow, pressed && styles.switcherRowPressed]}
+            onPress={() => setSwitcherVisible(true)}
+            accessibilityRole="button"
+            accessibilityLabel="Switch player profile"
+          >
+            <AvatarCircle initials={initials} size={SWITCHER_AVATAR_SIZE} />
+            <Text style={styles.switcherName} numberOfLines={1}>{displayName}</Text>
+            <Ionicons name="chevron-down" size={16} color={colors.text.gold} />
+          </Pressable>
+        </View>
+
+        <View style={styles.afterCard}>
           <SectionCard
             title="Player Profile"
             headerRight={
@@ -226,10 +245,19 @@ export default function ProfileScreen() {
           </SectionCard>
         </View>
       </ScrollView>
+      <ProfileSwitcherSheet
+        visible={switcherVisible}
+        profiles={profiles}
+        activeProfileId={activeProfileId}
+        onSelect={switchProfile}
+        onClose={() => setSwitcherVisible(false)}
+      />
       <BottomTabBar activeTab="profile" onTabPress={navigateMainTab} />
     </View>
   );
 }
+
+const SWITCHER_AVATAR_SIZE = 32;
 
 const styles = StyleSheet.create({
   wrapper: {
@@ -244,7 +272,38 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.screen,
   },
   afterHeader: {
-    marginTop: spacing.sectionGap,
+    marginTop: spacing.sectionGap + spacing.cardGap,
+    gap: spacing.iconGap,
+  },
+  switcherLabel: {
+    fontFamily: typography.body,
+    fontSize: fontSizes.label,
+    fontWeight: fontWeights.medium,
+    color: colors.text.muted,
+    letterSpacing: letterSpacing.label,
+    textTransform: 'uppercase',
+  },
+  switcherRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.iconGap,
+    backgroundColor: colors.bg.surface,
+    borderRadius: radius.card,
+    borderWidth: 1,
+    borderColor: colors.border.dim,
+    paddingVertical: spacing.cardSm,
+    paddingHorizontal: spacing.card,
+  },
+  switcherRowPressed: {
+    opacity: 0.7,
+  },
+  switcherName: {
+    flex: 1,
+    minWidth: 0,
+    fontFamily: typography.body,
+    fontSize: fontSizes.body,
+    fontWeight: fontWeights.medium,
+    color: colors.text.primary,
   },
   afterCard: {
     marginTop: spacing.cardGap,
