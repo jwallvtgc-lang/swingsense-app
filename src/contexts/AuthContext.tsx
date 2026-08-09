@@ -330,11 +330,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return { error: insertError as Error };
       }
 
+      // is_payer should only be true for the first profile under this account.
+      const { data: existingPayer } = await supabase
+        .from('profile_relationships')
+        .select('profile_id')
+        .eq('account_id', state.user.id)
+        .eq('is_payer', true)
+        .limit(1);
+      const isPayer = !existingPayer || existingPayer.length === 0;
+
       const { error: relError } = await supabase.from('profile_relationships').insert({
         account_id: state.user.id,
         profile_id: newProfileId,
         relationship_type: accountType === 'parent' ? 'parent' : 'self',
-        is_payer: true,
+        is_payer: isPayer,
         gave_coppa_consent: data.gave_coppa_consent ?? false,
         consent_given_at: data.consent_given_at ?? null,
       });
