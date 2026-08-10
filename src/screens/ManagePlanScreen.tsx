@@ -16,6 +16,7 @@ import Svg, { Path } from 'react-native-svg';
 import BackNav from '../components/BackNav';
 import { useAuth } from '../contexts/AuthContext';
 import { getCompletedAnalysesCountThisMonth } from '../services/analysis';
+import { purchaseSilverForProfile } from '../services/purchases';
 import { displayNameFromUser } from '../utils/displayName';
 import { useSubscription } from '../hooks/useSubscription';
 import { useTierConfigs } from '../hooks/useTierConfig';
@@ -129,6 +130,8 @@ export default function ManagePlanScreen() {
     return () => { cancelled = true; };
   }, [profile?.id]);
 
+  const [purchasing, setPurchasing] = useState(false);
+
   const currentTier = subscription?.tier ?? 'free';
   const playerName = displayNameFromUser(profile?.first_name, user);
   const usageCount = analysesThisMonth ?? 0;
@@ -141,11 +144,27 @@ export default function ManagePlanScreen() {
       ? `You're on Silver — ${silverLimit} analyses per month.`
       : `You're on Free. Silver includes ${silverLimit}/month — Gold is unlimited.`;
 
-  const handleUpgradeSilver = () => {
+  const handleUpgradeSilver = async () => {
+    const profileId = profile?.id;
+    const accountId = user?.id;
+    if (!profileId || !accountId) return;
+
+    setPurchasing(true);
+    const result = await purchaseSilverForProfile(profileId, accountId);
+    setPurchasing(false);
+
+    if (result.cancelled) return; // user dismissed the sheet — no message needed
+
+    if (result.error) {
+      Alert.alert('Purchase Failed', result.error.message, [{ text: 'OK' }]);
+      return;
+    }
+
+    // Success — navigate back so subscription hook re-fetches on next ManagePlan visit.
     Alert.alert(
-      'Upgrade to Silver',
-      'In-app purchase will be available in the next update. RevenueCat integration is coming soon.',
-      [{ text: 'Got it' }]
+      'Welcome to Silver!',
+      "You're all set. Your plan has been upgraded.",
+      [{ text: 'Got it', onPress: () => navigation.goBack() }],
     );
   };
 
@@ -236,12 +255,15 @@ export default function ManagePlanScreen() {
               <Pressable
                 style={({ pressed }) => [
                   styles.planBtnSilver,
-                  pressed && styles.planBtnPressed,
+                  (pressed || purchasing) && styles.planBtnPressed,
                 ]}
-                onPress={handleUpgradeSilver}
+                onPress={() => void handleUpgradeSilver()}
                 accessibilityRole="button"
+                disabled={purchasing}
               >
-                <Text style={styles.planBtnSilverLabel}>Upgrade to Silver</Text>
+                <Text style={styles.planBtnSilverLabel}>
+                  {purchasing ? 'Processing…' : 'Upgrade to Silver'}
+                </Text>
               </Pressable>
             )}
           </View>

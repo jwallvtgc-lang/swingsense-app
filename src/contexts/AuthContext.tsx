@@ -4,6 +4,7 @@ import * as Crypto from 'expo-crypto';
 // Same client as screens/services: `src/config/supabase.ts`
 import { supabase } from '../config/supabase';
 import { identifyUser, resetAnalytics, trackEvent } from '../services/analytics';
+import { loginRevenueCat, logoutRevenueCat } from '../services/purchases';
 import { Profile } from '../types';
 
 interface AuthState {
@@ -190,6 +191,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }));
       if (session?.user) {
         void fetchProfile(session.user.id);
+        void loginRevenueCat(session.user.id);
       }
     },
     [fetchProfile]
@@ -320,6 +322,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signOut = async () => {
     await supabase.auth.signOut();
     resetAnalytics();
+    void logoutRevenueCat();
     setState((s) => ({
       ...s,
       profile: null,

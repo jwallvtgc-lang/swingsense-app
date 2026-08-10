@@ -21,10 +21,12 @@ import BrandedSplash from './src/components/BrandedSplash';
 import { AuthProvider } from './src/contexts/AuthContext';
 import AppNavigator from './src/navigation/AppNavigator';
 import { logConfig } from './src/config/constants';
+import { configureRevenueCat } from './src/services/purchases';
 import { SPLASH_MIN_MS, SPLASH_T0_MS } from './src/splashClock';
 
 SplashScreen.preventAutoHideAsync();
 logConfig();
+configureRevenueCat();
 
 export default function App() {
   const [nativeSplashDone, setNativeSplashDone] = useState(false);
