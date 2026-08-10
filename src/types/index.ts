@@ -144,7 +144,7 @@ export interface KeyFrame {
 export interface Subscription {
   id: string;
   user_id: string;
-  tier: 'free' | 'pro';
+  tier: 'free' | 'silver' | 'gold';
   status: 'active' | 'expired' | 'cancelled';
   analyses_used_this_month: number;
   month_reset_date: string;

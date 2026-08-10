@@ -17,7 +17,9 @@ import BackNav from '../components/BackNav';
 import { useAuth } from '../contexts/AuthContext';
 import { getCompletedAnalysesCountThisMonth } from '../services/analysis';
 import { displayNameFromUser } from '../utils/displayName';
+import { useSubscription } from '../hooks/useSubscription';
 import type { MainStackParamList } from '../navigation/types';
+import { SILVER_TIER_MONTHLY_LIMIT } from '../config/constants';
 import {
   colors,
   displayTitleProps,
@@ -29,8 +31,6 @@ import {
 } from '../../design-system/tokens';
 
 type Nav = NativeStackNavigationProp<MainStackParamList>;
-
-const SILVER_CAP = 60;
 
 type CheckColor = 'green' | 'gold' | 'muted';
 
@@ -114,6 +114,7 @@ export default function ManagePlanScreen() {
   const navigation = useNavigation<Nav>();
   const { user, profile } = useAuth();
   const [analysesThisMonth, setAnalysesThisMonth] = useState<number | null>(null);
+  const subscription = useSubscription();
 
   useEffect(() => {
     const profileId = profile?.id;
@@ -126,9 +127,17 @@ export default function ManagePlanScreen() {
     return () => { cancelled = true; };
   }, [profile?.id]);
 
+  const currentTier = subscription?.tier ?? 'free';
   const playerName = displayNameFromUser(profile?.first_name, user);
   const usageCount = analysesThisMonth ?? 0;
-  const usagePct = Math.min(100, Math.round((usageCount / SILVER_CAP) * 100));
+  const usagePct = Math.min(100, Math.round((usageCount / SILVER_TIER_MONTHLY_LIMIT) * 100));
+
+  const usageNote =
+    currentTier === 'gold'
+      ? "You're on Gold — unlimited analyses."
+      : currentTier === 'silver'
+      ? `You're on Silver — ${SILVER_TIER_MONTHLY_LIMIT} analyses per month.`
+      : `You're on Free. Silver includes ${SILVER_TIER_MONTHLY_LIMIT}/month — Gold is unlimited.`;
 
   const handleUpgradeSilver = () => {
     Alert.alert(
@@ -175,9 +184,7 @@ export default function ManagePlanScreen() {
           <View style={styles.barTrack}>
             <View style={[styles.barFill, { width: `${usagePct}%` }]} />
           </View>
-          <Text style={styles.usageNote}>
-            {"You're on Free. Silver includes 60/month — Gold is unlimited."}
-          </Text>
+          <Text style={styles.usageNote}>{usageNote}</Text>
         </View>
 
         {/* Plan cards */}
@@ -185,9 +192,11 @@ export default function ManagePlanScreen() {
 
           {/* FREE */}
           <View style={[styles.planCard, styles.planCardFree]}>
-            <View style={styles.badgeCurrent}>
-              <Text style={styles.badgeCurrentText}>Current Plan</Text>
-            </View>
+            {currentTier === 'free' ? (
+              <View style={styles.badgeCurrent}>
+                <Text style={styles.badgeCurrentText}>Current Plan</Text>
+              </View>
+            ) : null}
             <View style={styles.planHead}>
               <Text style={styles.planName}>Free</Text>
               <View>
@@ -195,13 +204,20 @@ export default function ManagePlanScreen() {
               </View>
             </View>
             <FeatureList items={FREE_FEATURES} />
-            <View style={styles.planBtnCurrentWrap}>
-              <Text style={styles.planBtnCurrentLabel}>Current Plan</Text>
-            </View>
+            {currentTier === 'free' ? (
+              <View style={styles.planBtnCurrentWrap}>
+                <Text style={styles.planBtnCurrentLabel}>Current Plan</Text>
+              </View>
+            ) : null}
           </View>
 
           {/* SILVER */}
           <View style={[styles.planCard, styles.planCardSilver]}>
+            {currentTier === 'silver' ? (
+              <View style={styles.badgeCurrent}>
+                <Text style={styles.badgeCurrentText}>Current Plan</Text>
+              </View>
+            ) : null}
             <View style={styles.planHead}>
               <Text style={styles.planName}>Silver</Text>
               <View style={styles.priceBlock}>
@@ -210,23 +226,35 @@ export default function ManagePlanScreen() {
               </View>
             </View>
             <FeatureList items={SILVER_FEATURES} />
-            <Pressable
-              style={({ pressed }) => [
-                styles.planBtnSilver,
-                pressed && styles.planBtnPressed,
-              ]}
-              onPress={handleUpgradeSilver}
-              accessibilityRole="button"
-            >
-              <Text style={styles.planBtnSilverLabel}>Upgrade to Silver</Text>
-            </Pressable>
+            {currentTier === 'silver' ? (
+              <View style={styles.planBtnCurrentWrap}>
+                <Text style={styles.planBtnCurrentLabel}>Current Plan</Text>
+              </View>
+            ) : (
+              <Pressable
+                style={({ pressed }) => [
+                  styles.planBtnSilver,
+                  pressed && styles.planBtnPressed,
+                ]}
+                onPress={handleUpgradeSilver}
+                accessibilityRole="button"
+              >
+                <Text style={styles.planBtnSilverLabel}>Upgrade to Silver</Text>
+              </Pressable>
+            )}
           </View>
 
-          {/* GOLD — Coming Soon */}
+          {/* GOLD */}
           <View style={[styles.planCard, styles.planCardGold]}>
-            <View style={styles.badgeComingSoon}>
-              <Text style={styles.badgeComingSoonText}>Coming Soon</Text>
-            </View>
+            {currentTier === 'gold' ? (
+              <View style={styles.badgeCurrent}>
+                <Text style={styles.badgeCurrentText}>Current Plan</Text>
+              </View>
+            ) : (
+              <View style={styles.badgeComingSoon}>
+                <Text style={styles.badgeComingSoonText}>Coming Soon</Text>
+              </View>
+            )}
             <View style={styles.planHead}>
               <Text style={[styles.planName, styles.planNameGold]}>Gold</Text>
               <View style={styles.priceBlock}>
@@ -235,9 +263,15 @@ export default function ManagePlanScreen() {
               </View>
             </View>
             <FeatureList items={GOLD_FEATURES} />
-            <View style={[styles.planBtnCurrentWrap, styles.planBtnComingSoon]}>
-              <Text style={styles.planBtnComingSoonLabel}>Coming Soon</Text>
-            </View>
+            {currentTier === 'gold' ? (
+              <View style={styles.planBtnCurrentWrap}>
+                <Text style={styles.planBtnCurrentLabel}>Current Plan</Text>
+              </View>
+            ) : (
+              <View style={[styles.planBtnCurrentWrap, styles.planBtnComingSoon]}>
+                <Text style={styles.planBtnComingSoonLabel}>Coming Soon</Text>
+              </View>
+            )}
           </View>
 
         </View>

@@ -18,6 +18,7 @@ import SectionCard from '../components/SectionCard';
 import { useAuth } from '../contexts/AuthContext';
 import { displayNameFromUser } from '../utils/displayName';
 import { getCompletedAnalysesCountThisMonth } from '../services/analysis';
+import { useSubscription } from '../hooks/useSubscription';
 import { useMainTabBarNav } from '../navigation/useMainTabBarNav';
 import type { MainStackParamList, TabParamList } from '../navigation/types';
 import { BATTING_SIDE_LABELS, POSITION_LABELS } from '../types';
@@ -56,6 +57,10 @@ export default function ProfileScreen() {
   const { user, profile, profiles, activeProfileId, switchProfile, signOut } = useAuth();
   const [analysesThisMonth, setAnalysesThisMonth] = useState<number | null>(null);
   const [switcherVisible, setSwitcherVisible] = useState(false);
+  const subscription = useSubscription();
+  const planDisplay = subscription != null
+    ? subscription.tier.charAt(0).toUpperCase() + subscription.tier.slice(1)
+    : 'Free';
 
   useEffect(() => {
     const profileId = profile?.id;
@@ -179,7 +184,7 @@ export default function ProfileScreen() {
 
         <View style={styles.afterCard}>
           <SectionCard title="Membership">
-            <DataRow label="Plan" value="Free" valueWeight="normal" />
+            <DataRow label="Plan" value={planDisplay} valueWeight="normal" />
             <DataRow
               label="Analyses this month"
               value={analysesThisMonth === null ? '—' : String(analysesThisMonth)}

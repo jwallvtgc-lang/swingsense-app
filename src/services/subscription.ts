@@ -1,6 +1,6 @@
 import { supabase } from '../config/supabase';
 import { Subscription } from '../types';
-import { FREE_TIER_WEEKLY_LIMIT } from '../config/constants';
+import { FREE_TIER_WEEKLY_LIMIT, SILVER_TIER_MONTHLY_LIMIT } from '../config/constants';
 
 export async function getUserSubscription(
   userId: string
@@ -25,11 +25,36 @@ export async function canUserAnalyze(userId: string): Promise<{
     return { allowed: true, remaining: FREE_TIER_WEEKLY_LIMIT };
   }
 
-  if (sub.tier === 'pro' && sub.status === 'active') {
+  if (sub.tier === 'gold' && sub.status === 'active') {
     return { allowed: true };
   }
 
   const now = new Date();
+
+  if (sub.tier === 'silver' && sub.status === 'active') {
+    // Silver uses a 30-day rolling window, separate from Free's 7-day window.
+    const resetDate = new Date(sub.month_reset_date);
+    if (now >= resetDate) {
+      const nextResetDate = new Date(resetDate.getTime() + 30 * 24 * 60 * 60 * 1000);
+      await supabase
+        .from('subscriptions')
+        .update({
+          analyses_used_this_month: 0,
+          month_reset_date: nextResetDate.toISOString(),
+        })
+        .eq('id', sub.id);
+      return { allowed: true, remaining: SILVER_TIER_MONTHLY_LIMIT };
+    }
+    const remaining = SILVER_TIER_MONTHLY_LIMIT - sub.analyses_used_this_month;
+    if (remaining <= 0) {
+      return {
+        allowed: false,
+        reason: `You've used all ${SILVER_TIER_MONTHLY_LIMIT} analyses this month. Upgrade to Gold for unlimited access.`,
+        remaining: 0,
+      };
+    }
+    return { allowed: true, remaining };
+  }
   // Column names (analyses_used_this_month, month_reset_date) are legacy — they represent
   // a 7-day rolling window, not a calendar month. A column rename migration would clarify this.
   const resetDate = new Date(sub.month_reset_date);
