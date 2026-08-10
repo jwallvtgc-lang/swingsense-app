@@ -18,8 +18,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { getCompletedAnalysesCountThisMonth } from '../services/analysis';
 import { displayNameFromUser } from '../utils/displayName';
 import { useSubscription } from '../hooks/useSubscription';
+import { useTierConfigs } from '../hooks/useTierConfig';
 import type { MainStackParamList } from '../navigation/types';
-import { SILVER_TIER_MONTHLY_LIMIT } from '../config/constants';
 import {
   colors,
   displayTitleProps,
@@ -115,6 +115,8 @@ export default function ManagePlanScreen() {
   const { user, profile } = useAuth();
   const [analysesThisMonth, setAnalysesThisMonth] = useState<number | null>(null);
   const subscription = useSubscription();
+  const { configs: tierConfigs } = useTierConfigs();
+  const silverLimit = tierConfigs.get('silver')?.analysis_limit ?? 60;
 
   useEffect(() => {
     const profileId = profile?.id;
@@ -130,14 +132,14 @@ export default function ManagePlanScreen() {
   const currentTier = subscription?.tier ?? 'free';
   const playerName = displayNameFromUser(profile?.first_name, user);
   const usageCount = analysesThisMonth ?? 0;
-  const usagePct = Math.min(100, Math.round((usageCount / SILVER_TIER_MONTHLY_LIMIT) * 100));
+  const usagePct = Math.min(100, Math.round((usageCount / silverLimit) * 100));
 
   const usageNote =
     currentTier === 'gold'
       ? "You're on Gold — unlimited analyses."
       : currentTier === 'silver'
-      ? `You're on Silver — ${SILVER_TIER_MONTHLY_LIMIT} analyses per month.`
-      : `You're on Free. Silver includes ${SILVER_TIER_MONTHLY_LIMIT}/month — Gold is unlimited.`;
+      ? `You're on Silver — ${silverLimit} analyses per month.`
+      : `You're on Free. Silver includes ${silverLimit}/month — Gold is unlimited.`;
 
   const handleUpgradeSilver = () => {
     Alert.alert(

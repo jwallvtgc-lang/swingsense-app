@@ -1,6 +1,6 @@
 import { supabase } from '../config/supabase';
 import { Subscription } from '../types';
-import { FREE_TIER_WEEKLY_LIMIT, SILVER_TIER_MONTHLY_LIMIT } from '../config/constants';
+import { getTierConfig } from './tierConfig';
 
 export async function getUserSubscription(
   userId: string
@@ -21,48 +21,34 @@ export async function canUserAnalyze(userId: string): Promise<{
 }> {
   const sub = await getUserSubscription(userId);
 
+  // No subscription row yet — treat as free tier
   if (!sub) {
-    return { allowed: true, remaining: FREE_TIER_WEEKLY_LIMIT };
+    const freeCfg = await getTierConfig('free');
+    return { allowed: true, remaining: freeCfg?.analysis_limit ?? 3 };
   }
 
-  if (sub.tier === 'gold' && sub.status === 'active') {
+  // Lapsed subscriptions (expired/cancelled) fall back to free-tier limits
+  const effectiveTier = sub.status === 'active' ? sub.tier : 'free';
+  const cfg = await getTierConfig(effectiveTier);
+
+  // Unlimited tier (analysis_limit === null)
+  if (cfg?.analysis_limit == null) {
     return { allowed: true };
   }
 
-  const now = new Date();
+  // Limited tier — derive window size and label from config
+  const limit = cfg.analysis_limit;
+  const periodDays = cfg.analysis_period === 'monthly' ? 30 : 7;
+  const periodLabel = cfg.analysis_period === 'monthly' ? 'month' : 'week';
 
-  if (sub.tier === 'silver' && sub.status === 'active') {
-    // Silver uses a 30-day rolling window, separate from Free's 7-day window.
-    const resetDate = new Date(sub.month_reset_date);
-    if (now >= resetDate) {
-      const nextResetDate = new Date(resetDate.getTime() + 30 * 24 * 60 * 60 * 1000);
-      await supabase
-        .from('subscriptions')
-        .update({
-          analyses_used_this_month: 0,
-          month_reset_date: nextResetDate.toISOString(),
-        })
-        .eq('id', sub.id);
-      return { allowed: true, remaining: SILVER_TIER_MONTHLY_LIMIT };
-    }
-    const remaining = SILVER_TIER_MONTHLY_LIMIT - sub.analyses_used_this_month;
-    if (remaining <= 0) {
-      return {
-        allowed: false,
-        reason: `You've used all ${SILVER_TIER_MONTHLY_LIMIT} analyses this month. Upgrade to Gold for unlimited access.`,
-        remaining: 0,
-      };
-    }
-    return { allowed: true, remaining };
-  }
   // Column names (analyses_used_this_month, month_reset_date) are legacy — they represent
-  // a 7-day rolling window, not a calendar month. A column rename migration would clarify this.
+  // a rolling window whose length is now determined by analysis_period from config.
+  const now = new Date();
   const resetDate = new Date(sub.month_reset_date);
+
   if (now >= resetDate) {
-    // Advance exactly 7 days from the stored reset date, not from now, to prevent drift:
-    // anchoring to the stored date means a user who delays opening the app doesn't gain
-    // extra analyses (their next window still starts from the last reset boundary).
-    const nextResetDate = new Date(resetDate.getTime() + 7 * 24 * 60 * 60 * 1000);
+    // Advance from stored reset date (not from now) to prevent drift.
+    const nextResetDate = new Date(resetDate.getTime() + periodDays * 24 * 60 * 60 * 1000);
     await supabase
       .from('subscriptions')
       .update({
@@ -70,15 +56,14 @@ export async function canUserAnalyze(userId: string): Promise<{
         month_reset_date: nextResetDate.toISOString(),
       })
       .eq('id', sub.id);
-
-    return { allowed: true, remaining: FREE_TIER_WEEKLY_LIMIT };
+    return { allowed: true, remaining: limit };
   }
 
-  const remaining = FREE_TIER_WEEKLY_LIMIT - sub.analyses_used_this_month;
+  const remaining = limit - sub.analyses_used_this_month;
   if (remaining <= 0) {
     return {
       allowed: false,
-      reason: `You've used all ${FREE_TIER_WEEKLY_LIMIT} free analyses this week. Upgrade to continue.`,
+      reason: `You've used all ${limit} analyses this ${periodLabel}. Upgrade to continue.`,
       remaining: 0,
     };
   }
@@ -89,6 +74,10 @@ export async function canUserAnalyze(userId: string): Promise<{
 export async function incrementAnalysisCount(userId: string): Promise<void> {
   const sub = await getUserSubscription(userId);
   if (!sub) return;
+
+  // Skip counter for unlimited tiers — the count is never checked for them.
+  const cfg = await getTierConfig(sub.tier);
+  if (cfg?.analysis_limit == null) return;
 
   await supabase
     .from('subscriptions')
