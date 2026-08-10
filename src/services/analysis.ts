@@ -3,6 +3,8 @@ import { getBackendUrl } from '../config/constants';
 import { SwingAnalysis, CoachingOutput, SimilarityBreakdown, Profile } from '../types';
 import { trackEvent } from './analytics';
 import { uploadSwingVideo } from './storage';
+import { getUserSubscription } from './subscription';
+import { getTierConfig } from './tierConfig';
 
 interface AnalysisPipelineResult {
   analysis: SwingAnalysis | null;
@@ -446,6 +448,34 @@ export async function startAnalysisPipeline(
     console.log('[Analysis] analysisId:', analysisId);
     console.log('[Analysis] c5 values:', c5);
 
+    // Compute has_action_plan from subscription_tiers.action_plan_frequency.
+    // 'always' → true every time. 'first_per_period' → true only if no prior
+    // completed analysis in this period already has has_action_plan = true.
+    let has_action_plan = true;
+    try {
+      const sub = await getUserSubscription(profileId);
+      const effectiveTier = sub && sub.status === 'active' ? sub.tier : 'free';
+      const cfg = await getTierConfig(effectiveTier);
+      const freq = cfg?.action_plan_frequency ?? 'always';
+
+      if (freq === 'first_per_period') {
+        const periodDays = cfg?.analysis_period === 'monthly' ? 30 : 7;
+        const resetDate = sub ? new Date(sub.month_reset_date) : new Date();
+        const periodStart = new Date(resetDate.getTime() - periodDays * 24 * 60 * 60 * 1000);
+
+        const { count } = await supabase
+          .from('swing_analyses')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', profileId)
+          .eq('has_action_plan', true)
+          .gte('created_at', periodStart.toISOString());
+
+        has_action_plan = (count ?? 0) === 0;
+      }
+    } catch (apErr) {
+      console.warn('[Analysis] has_action_plan compute failed, defaulting true:', apErr);
+    }
+
     const { data: updated, error: updateError } = await supabase
       .from('swing_analyses')
       .update({
@@ -461,6 +491,7 @@ export async function startAnalysisPipeline(
         slot_score: c5?.slot ?? null,
         balance_at_contact_score: c5?.balance_at_contact ?? null,
         core5_overall: c5?.overall ?? null,
+        has_action_plan,
         status: 'completed',
       })
       .eq('id', analysisId)

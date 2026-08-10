@@ -410,7 +410,7 @@ export default function ResultsScreen() {
       )}
 
       {/* 3. Your Action Plan — drill first (what to do); quick context after (why, compact) */}
-      {(coaching?.primary_mechanical_issue || coaching?.drill) && (
+      {analysis.has_action_plan !== false && (coaching?.primary_mechanical_issue || coaching?.drill) && (
         <SectionCard title="Your Action Plan" icon="construct">
           {coaching?.drill && (
             <View style={styles.actionPlanBlockFirst}>

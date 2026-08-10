@@ -808,6 +808,7 @@ export default function AnalysisScreen() {
                 </Text>
               )}
             </SectionCard>
+            {analysis.has_action_plan !== false && (
             <SectionCard title="Action Plan">
               {co?.selected_drill ? (
                 <LibraryDrillCard
@@ -853,9 +854,10 @@ export default function AnalysisScreen() {
                 </Text>
               )}
             </SectionCard>
+            )}
 
-            {/* Drill Coach feedback */}
-            <SectionCard>
+            {/* Drill Coach feedback — only when a drill was actually assigned */}
+            {analysis.has_action_plan !== false && <SectionCard>
               {!drillFeedback && (
                 <>
                   <Text
@@ -1009,7 +1011,7 @@ export default function AnalysisScreen() {
                   </Text>
                 </>
               )}
-            </SectionCard>
+            </SectionCard>}
           </View>
         )}
 

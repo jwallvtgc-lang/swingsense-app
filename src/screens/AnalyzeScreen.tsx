@@ -183,20 +183,44 @@ export default function AnalyzeScreen() {
                     day: 'numeric',
                   })}
                 </Text>
-                <Text style={styles.swingIssue} numberOfLines={2}>
-                  {lastAnalysis.coaching_output?.primary_mechanical_issue?.title ??
-                    'Tap to review'}
-                </Text>
-                {(lastAnalysis.coaching_output?.selected_drill?.name ?? lastAnalysis.coaching_output?.drill) && (
-                  <View style={styles.recommendationBlock}>
-                    <Text style={styles.recommendationLabel} numberOfLines={1} allowFontScaling={false}>
-                      Primary Recommendation
+                {lastAnalysis.has_action_plan === false ? (
+                  <>
+                    <Text style={styles.swingIssue} numberOfLines={2}>
+                      Tap to review your swing
                     </Text>
-                    <Text style={styles.recommendationDrill} numberOfLines={1}>
-                      {lastAnalysis.coaching_output?.selected_drill?.name ??
-                        lastAnalysis.coaching_output!.drill!.split('.')[0]}
+                    <View style={styles.recommendationBlock}>
+                      <Text style={styles.recommendationLabel} numberOfLines={1} allowFontScaling={false}>
+                        Upgrade to unlock
+                      </Text>
+                      <Pressable
+                        style={({ pressed }) => [styles.upgradePill, pressed && styles.upgradePillPressed]}
+                        onPress={(e) => {
+                          e.stopPropagation();
+                          navigation.navigate('ManagePlan');
+                        }}
+                      >
+                        <Text style={styles.upgradePillText} allowFontScaling={false}>View plans →</Text>
+                      </Pressable>
+                    </View>
+                  </>
+                ) : (
+                  <>
+                    <Text style={styles.swingIssue} numberOfLines={2}>
+                      {lastAnalysis.coaching_output?.primary_mechanical_issue?.title ??
+                        'Tap to review'}
                     </Text>
-                  </View>
+                    {(lastAnalysis.coaching_output?.selected_drill?.name ?? lastAnalysis.coaching_output?.drill) && (
+                      <View style={styles.recommendationBlock}>
+                        <Text style={styles.recommendationLabel} numberOfLines={1} allowFontScaling={false}>
+                          Primary Recommendation
+                        </Text>
+                        <Text style={styles.recommendationDrill} numberOfLines={1}>
+                          {lastAnalysis.coaching_output?.selected_drill?.name ??
+                            lastAnalysis.coaching_output!.drill!.split('.')[0]}
+                        </Text>
+                      </View>
+                    )}
+                  </>
                 )}
               </View>
             </View>
@@ -348,6 +372,25 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.text.primary,
     fontWeight: fontWeights.bold,
+  },
+  upgradePill: {
+    alignSelf: 'flex-start',
+    backgroundColor: colors.bg.goldDim,
+    borderWidth: 1,
+    borderColor: colors.text.gold,
+    borderRadius: radius.pill,
+    paddingVertical: spacing.iconGap,
+    paddingHorizontal: spacing.cardSm,
+    marginTop: spacing.iconGap / 2,
+  },
+  upgradePillPressed: {
+    opacity: 0.75,
+  },
+  upgradePillText: {
+    fontFamily: typography.body,
+    fontSize: fontSizes.caption,
+    fontWeight: fontWeights.medium,
+    color: colors.text.gold,
   },
   viewAnalysisLink: {
     position: 'absolute',
