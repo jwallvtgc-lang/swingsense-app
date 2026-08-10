@@ -13,6 +13,10 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import BackNav from '../components/BackNav';
 import { useDrills } from '../hooks/useDrills';
+import { useSubscription } from '../hooks/useSubscription';
+import { useTierConfigs } from '../hooks/useTierConfig';
+import { useAuth } from '../contexts/AuthContext';
+import { seededDrillSelection } from '../utils/drillSelection';
 import { EXPERIENCE_LEVEL_LABELS, MECHANIC_LABELS } from '../constants/drillConstants';
 import type { DrillCard, DrillMechanic } from '../types/drill';
 import type { MainStackParamList } from '../navigation/types';
@@ -72,12 +76,34 @@ export default function DrillLibraryScreen() {
   const navigation = useNavigation<DrillLibraryNavigationProp>();
   const [activeFilter, setActiveFilter] = useState<DrillMechanic | 'all'>('all');
   const { drills: allDrills } = useDrills();
+  const { configs: tierConfigs } = useTierConfigs();
+  const subscription = useSubscription();
+  const { profile } = useAuth();
+
+  const currentTier = subscription?.tier ?? 'free';
+  const tierCfg = tierConfigs.get(currentTier);
+  // library_drill_count: 0 = blocked (Free), number = limited seeded set (Silver), null = full (Gold)
+  const libraryCount = tierCfg?.library_drill_count;
+
+  // Visible drill set — same seeded selection logic as DrillCarousel so Silver sees
+  // identical drills in both places (same function, same profileId + periodKey inputs).
+  const visibleDrills = useMemo(() => {
+    if (typeof libraryCount === 'number' && libraryCount > 0) {
+      return seededDrillSelection(
+        allDrills,
+        libraryCount,
+        profile?.id ?? '',
+        subscription?.month_reset_date ?? '',
+      );
+    }
+    return allDrills; // null (Gold) or undefined (loading) → full set
+  }, [allDrills, libraryCount, profile?.id, subscription?.month_reset_date]);
 
   const filteredDrills = useMemo(() => {
     return activeFilter === 'all'
-      ? allDrills
-      : allDrills.filter(drill => drill.mechanic === activeFilter);
-  }, [activeFilter, allDrills]);
+      ? visibleDrills
+      : visibleDrills.filter(drill => drill.mechanic === activeFilter);
+  }, [activeFilter, visibleDrills]);
 
   const handleDrillPress = (drill: DrillCard) => {
     navigation.navigate('DrillDetail', { drillId: drill.id });
@@ -101,6 +127,30 @@ export default function DrillLibraryScreen() {
       </Pressable>
     );
   };
+
+  // Free tier (library_drill_count === 0): block access with upgrade gate.
+  if (libraryCount === 0) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <BackNav label="Back" onPress={() => navigation.goBack()} />
+        <View style={styles.gateContent}>
+          <Text style={styles.header} {...displayTitleProps}>Drill Library</Text>
+          <Text style={styles.gateTitle}>Unlock the Drill Library</Text>
+          <Text style={styles.gateBody}>
+            The full drill library is available on Silver and Gold plans — drills tied to your
+            core swing mechanics, with video walkthroughs for every one.
+          </Text>
+          <Pressable
+            style={({ pressed }) => [styles.gateBtn, pressed && styles.gateBtnPressed]}
+            onPress={() => navigation.navigate('ManagePlan')}
+            accessibilityRole="button"
+          >
+            <Text style={styles.gateBtnLabel}>View Plans</Text>
+          </Pressable>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -147,6 +197,47 @@ const styles = StyleSheet.create({
     color: colors.text.primary,
     marginBottom: spacing.sectionGap,
   },
+
+  // Upgrade gate
+  gateContent: {
+    flex: 1,
+    padding: spacing.screen,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: spacing.sectionGap,
+  },
+  gateTitle: {
+    fontFamily: typography.body,
+    fontSize: fontSizes.sectionTitle,
+    fontWeight: fontWeights.bold,
+    color: colors.text.primary,
+    textAlign: 'center',
+  },
+  gateBody: {
+    fontFamily: typography.body,
+    fontSize: fontSizes.body,
+    color: colors.text.secondary,
+    textAlign: 'center',
+    lineHeight: Math.round(fontSizes.body * 1.6),
+    maxWidth: 300,
+  },
+  gateBtn: {
+    backgroundColor: colors.text.primary,
+    borderRadius: radius.card,
+    paddingVertical: spacing.cardGap,
+    paddingHorizontal: spacing.card * 2,
+    alignItems: 'center',
+  },
+  gateBtnPressed: {
+    opacity: 0.8,
+  },
+  gateBtnLabel: {
+    fontFamily: typography.body,
+    fontSize: fontSizes.body,
+    fontWeight: fontWeights.bold,
+    color: colors.text.onGold,
+  },
+
   filterScroll: {
     flexGrow: 0,
     minHeight: 44,

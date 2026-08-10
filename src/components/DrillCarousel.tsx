@@ -5,7 +5,10 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import DrillCard from './DrillCard';
 import { useDrills } from '../hooks/useDrills';
+import { useSubscription } from '../hooks/useSubscription';
+import { useTierConfigs } from '../hooks/useTierConfig';
 import { mapMechanicalIssueToMechanic } from '../constants/drillConstants';
+import { seededDrillSelection } from '../utils/drillSelection';
 import type { DrillCard as DrillCardType } from '../types/drill';
 import { getLastCompletedAnalysis } from '../services/analysis';
 import { useAuth } from '../contexts/AuthContext';
@@ -26,12 +29,13 @@ interface DrillCarouselProps {
   title?: string;
 }
 
-
 export default function DrillCarousel({ title = 'PRACTICE DRILLS' }: DrillCarouselProps) {
   const navigation = useNavigation<Navigation>();
   const { profile } = useAuth();
   const [lastAnalysis, setLastAnalysis] = useState<SwingAnalysis | null>(null);
   const { drills: allDrills } = useDrills();
+  const { configs: tierConfigs } = useTierConfigs();
+  const subscription = useSubscription();
 
   useEffect(() => {
     if (!profile?.id) return;
@@ -44,9 +48,29 @@ export default function DrillCarousel({ title = 'PRACTICE DRILLS' }: DrillCarous
     fetchAnalysis();
   }, [profile?.id]);
 
+  const currentTier = subscription?.tier ?? 'free';
+  const tierCfg = tierConfigs.get(currentTier);
+  // carousel_drill_count: 0 = hidden (Free), number = limited seeded set (Silver), null = unlimited (Gold)
+  const carouselCount = tierCfg?.carousel_drill_count;
+
   const { carouselDrills, hasRecommendation } = useMemo(() => {
     if (allDrills.length === 0) return { carouselDrills: [], hasRecommendation: false };
 
+    // Limited tier (e.g. Silver): deterministic seeded selection, no random recommendation.
+    // Uses the same seed as DrillLibraryScreen so carousel and library show identical drills.
+    if (typeof carouselCount === 'number' && carouselCount > 0) {
+      return {
+        carouselDrills: seededDrillSelection(
+          allDrills,
+          carouselCount,
+          profile?.id ?? '',
+          subscription?.month_reset_date ?? '',
+        ),
+        hasRecommendation: false,
+      };
+    }
+
+    // Unlimited tier (Gold / null): existing recommendation-aware logic.
     const primaryIssue = lastAnalysis?.coaching_output?.primary_mechanical_issue;
     const targetMechanic = primaryIssue?.title ? mapMechanicalIssueToMechanic(primaryIssue.title) : null;
 
@@ -64,12 +88,9 @@ export default function DrillCarousel({ title = 'PRACTICE DRILLS' }: DrillCarous
       }
     }
 
-    // No analysis data, no mechanic match, or no drills for that mechanic — random order.
-    // "For You" is suppressed in this state (hasRecommendation: false) since there's no
-    // personalization data to base it on.
     const shuffled = [...allDrills].sort(() => Math.random() - 0.5);
     return { carouselDrills: shuffled.slice(0, 5), hasRecommendation: false };
-  }, [lastAnalysis, profile, allDrills]);
+  }, [lastAnalysis, profile, allDrills, carouselCount, subscription?.month_reset_date]);
 
   const handleDrillPress = useCallback((drill: DrillCardType) => {
     navigation.navigate('DrillDetail', { drillId: drill.id });
@@ -78,6 +99,9 @@ export default function DrillCarousel({ title = 'PRACTICE DRILLS' }: DrillCarous
   const handleViewAllDrills = useCallback(() => {
     navigation.navigate('DrillLibrary');
   }, [navigation]);
+
+  // Free tier (carousel_drill_count === 0): entire section absent from home screen.
+  if (carouselCount === 0) return null;
 
   return (
     <View style={styles.container}>
