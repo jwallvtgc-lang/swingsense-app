@@ -26,7 +26,11 @@ import { SPLASH_MIN_MS, SPLASH_T0_MS } from './src/splashClock';
 
 SplashScreen.preventAutoHideAsync();
 logConfig();
-configureRevenueCat();
+try {
+  configureRevenueCat();
+} catch (e) {
+  console.error('[App] configureRevenueCat failed — purchases unavailable:', e);
+}
 
 export default function App() {
   const [nativeSplashDone, setNativeSplashDone] = useState(false);
