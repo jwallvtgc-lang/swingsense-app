@@ -153,6 +153,14 @@ export default function AuthScreen() {
       });
       if (error) {
         alertAuthError(new Error(error.message), true);
+        return;
+      }
+      // Apple only provides fullName on the very first sign-in for a given user.
+      // Store it immediately in user_metadata so onboarding can pre-fill the name
+      // field without asking the user to re-enter what Apple already collected.
+      const givenName = credential.fullName?.givenName ?? null;
+      if (givenName) {
+        void supabase.auth.updateUser({ data: { apple_given_name: givenName } });
       }
     } catch (e: unknown) {
       const err = e as { code?: string; message?: string };

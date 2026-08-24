@@ -92,7 +92,7 @@ export default function CameraScreen() {
           SwingSense needs camera access to record your swing
         </Text>
         <Pressable style={styles.permissionButton} onPress={requestPermission}>
-          <Text style={styles.permissionButtonText}>Grant Permission</Text>
+          <Text style={styles.permissionButtonText}>Continue</Text>
         </Pressable>
       </View>
     );

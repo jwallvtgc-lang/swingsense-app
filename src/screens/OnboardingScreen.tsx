@@ -129,6 +129,20 @@ export default function OnboardingScreen() {
     setExperienceLevel(profile.experience_level ?? null);
   }, [profile]);
 
+  // Pre-fill name from Apple Sign In if available. Apple only provides the name
+  // on the very first sign-in; it is stored in user_metadata immediately after
+  // sign-in so it persists across AccountTypeScreen navigation and app kills.
+  // Guards on empty state so the effect never overrides text the user has typed.
+  useEffect(() => {
+    const appleName = user?.user_metadata?.apple_given_name as string | undefined;
+    if (!appleName) return;
+    if (accountType === 'parent') {
+      setParentName((prev) => prev || appleName);
+    } else {
+      setFirstName((prev) => prev || appleName);
+    }
+  }, [user?.user_metadata?.apple_given_name, accountType]);
+
   // Dismiss the keyboard as soon as the COPPA consent gate appears so the
   // checkbox and Continue button are immediately visible without manual dismissal.
   useEffect(() => {
