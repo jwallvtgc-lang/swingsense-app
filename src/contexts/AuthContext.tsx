@@ -55,6 +55,8 @@ interface AuthContextValue extends AuthState {
   refreshProfile: () => Promise<void>;
   /** Switch the active profile to any profile linked to this account. Updates `profile` and `activeProfileId` immediately in local state — no network call. */
   switchProfile: (profileId: string) => void;
+  /** Permanently delete this account and all associated profiles/data. Signs out on success. */
+  deleteAccount: () => Promise<{ error: Error | null }>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -416,6 +418,47 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const deleteAccount = async (): Promise<{ error: Error | null }> => {
+    if (!state.user) return { error: new Error('Not authenticated') };
+
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData.session?.access_token;
+      if (!accessToken) return { error: new Error('No active session') };
+
+      const edgeFnUrl = `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/delete-account`;
+      const response = await fetch(edgeFnUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        return { error: new Error((body as { error?: string }).error ?? `Deletion failed (${response.status})`) };
+      }
+
+      resetAnalytics();
+      void logoutRevenueCat();
+      await supabase.auth.signOut();
+      setState({
+        session: null,
+        user: null,
+        profile: null,
+        profiles: [],
+        activeProfileId: null,
+        loading: false,
+        hasProfile: false,
+        profileResolved: true,
+      });
+      return { error: null };
+    } catch (e) {
+      return { error: e instanceof Error ? e : new Error(String(e)) };
+    }
+  };
+
   const updateProfile = async (data: ProfileUpdateData) => {
     if (!state.user) return { error: new Error('Not authenticated') };
 
@@ -466,6 +509,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         updateProfile,
         refreshProfile,
         switchProfile,
+        deleteAccount,
       }}
     >
       {children}

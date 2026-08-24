@@ -53,3 +53,4 @@ venv/
 
 # Xcode env - let EAS build generate with correct permissions
 ios/.xcode.env.local
+supabase/.temp/

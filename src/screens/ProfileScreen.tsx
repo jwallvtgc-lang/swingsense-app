@@ -54,7 +54,8 @@ export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<ProfileNav>();
   const navigateMainTab = useMainTabBarNav();
-  const { user, profile, profiles, activeProfileId, switchProfile, signOut } = useAuth();
+  const { user, profile, profiles, activeProfileId, switchProfile, signOut, deleteAccount } = useAuth();
+  const [deleting, setDeleting] = useState(false);
   const [analysesThisMonth, setAnalysesThisMonth] = useState<number | null>(null);
   const [switcherVisible, setSwitcherVisible] = useState(false);
   const subscription = useSubscription();
@@ -112,6 +113,44 @@ export default function ProfileScreen() {
       { text: 'Cancel', style: 'cancel' },
       { text: 'Sign Out', style: 'destructive', onPress: () => void signOut() },
     ]);
+  };
+
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      'Delete Account',
+      'This will permanently delete your account and all associated data:\n\n• All player profiles under this account\n• All swing history and analyses\n• Any active subscription\n\nThis cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Continue',
+          style: 'destructive',
+          onPress: () => {
+            Alert.alert(
+              'Are you sure?',
+              'Your account and all data will be permanently deleted. This action cannot be reversed.',
+              [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                  text: 'Permanently Delete Account',
+                  style: 'destructive',
+                  onPress: async () => {
+                    setDeleting(true);
+                    const { error } = await deleteAccount();
+                    setDeleting(false);
+                    if (error) {
+                      Alert.alert(
+                        'Deletion Failed',
+                        'Something went wrong. Please try again or contact swingsenseapp@gmail.com.',
+                      );
+                    }
+                  },
+                },
+              ],
+            );
+          },
+        },
+      ],
+    );
   };
 
   const contentBottomPad = useMemo(
@@ -253,6 +292,24 @@ export default function ProfileScreen() {
             />
           </SectionCard>
         </View>
+
+        {/* DELETE ACCOUNT — visually separated, clearly destructive */}
+        <View style={styles.deleteSection}>
+          <Pressable
+            style={({ pressed }) => [styles.deleteButton, pressed && styles.deleteButtonPressed, deleting && styles.deleteButtonDisabled]}
+            onPress={handleDeleteAccount}
+            disabled={deleting}
+            accessibilityRole="button"
+            accessibilityLabel="Delete account"
+          >
+            <Text style={styles.deleteButtonText}>
+              {deleting ? 'Deleting…' : 'Delete Account'}
+            </Text>
+          </Pressable>
+          <Text style={styles.deleteHint}>
+            Permanently removes your account and all player data.
+          </Text>
+        </View>
       </ScrollView>
       <ProfileSwitcherSheet
         visible={switcherVisible}
@@ -317,5 +374,35 @@ const styles = StyleSheet.create({
   },
   afterCard: {
     marginTop: spacing.cardGap,
+  },
+  deleteSection: {
+    marginTop: spacing.sectionGap,
+    alignItems: 'center',
+    gap: spacing.iconGap,
+  },
+  deleteButton: {
+    borderWidth: 1,
+    borderColor: colors.text.red,
+    borderRadius: radius.pill,
+    paddingVertical: spacing.cardSm,
+    paddingHorizontal: spacing.card,
+  },
+  deleteButtonPressed: {
+    opacity: 0.6,
+  },
+  deleteButtonDisabled: {
+    opacity: 0.4,
+  },
+  deleteButtonText: {
+    fontFamily: typography.body,
+    fontSize: fontSizes.body,
+    fontWeight: fontWeights.medium,
+    color: colors.text.red,
+  },
+  deleteHint: {
+    fontFamily: typography.body,
+    fontSize: fontSizes.caption,
+    color: colors.text.muted,
+    textAlign: 'center',
   },
 });
