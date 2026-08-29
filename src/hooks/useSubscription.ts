@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
+import { useIsFocused } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
 import { getUserSubscription } from '../services/subscription';
 import type { Subscription } from '../types';
 
 export function useSubscription(): Subscription | null {
   const { profile } = useAuth();
+  const isFocused = useIsFocused();
   const [subscription, setSubscription] = useState<Subscription | null>(null);
 
   useEffect(() => {
@@ -19,7 +21,7 @@ export function useSubscription(): Subscription | null {
       if (!cancelled) setSubscription(sub);
     })();
     return () => { cancelled = true; };
-  }, [profile?.id]);
+  }, [profile?.id, isFocused]);
 
   return subscription;
 }
