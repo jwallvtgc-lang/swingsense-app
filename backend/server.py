@@ -28,6 +28,8 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
+from url_guard import UnsafeURLError, allowed_video_hosts, validate_video_url
+
 load_dotenv()
 
 # Log config at import (helps debug Render crashes)
@@ -51,6 +53,10 @@ _trace_key = (
     ""
 )
 _log(f"[Startup] CoachingTrace key resolved: ...{_trace_key[-10:] if len(_trace_key) >= 10 else '(too short)'}")
+_allowed_hosts = allowed_video_hosts()
+_log(
+    f"[Startup] Allowed video hosts: {sorted(_allowed_hosts) if _allowed_hosts else 'NONE — /analyze will reject all downloads'}"
+)
 
 try:
     from tflite_runtime.interpreter import Interpreter
@@ -1776,12 +1782,20 @@ async def analyze(request: AnalyzeRequest):
     url_hash = hashlib.sha256(request.video_url.encode()).hexdigest()[:12]
     _log(f"[Analyze] Analyzing video analysis_id={request.analysis_id} url_hash={url_hash} url={request.video_url[:100]}...")
 
+    # SSRF guard (AI-151): only fetch from the configured Supabase storage host.
+    try:
+        validate_video_url(request.video_url)
+    except UnsafeURLError as e:
+        _log(f"[Analyze] BLOCKED video_url url_hash={url_hash}: {e}")
+        raise HTTPException(status_code=400, detail="Invalid video_url")
+
     with tempfile.NamedTemporaryFile(suffix=".mp4", delete=False) as tmp:
         tmp_path = tmp.name
 
     try:
         _log(f"[Analyze] Downloading video from provided URL (no cache)...")
-        async with httpx.AsyncClient(timeout=120.0) as client:
+        # follow_redirects stays off: a redirect would bypass the host allowlist above.
+        async with httpx.AsyncClient(timeout=120.0, follow_redirects=False) as client:
             resp = await client.get(request.video_url)
             resp.raise_for_status()
             with open(tmp_path, "wb") as f:
