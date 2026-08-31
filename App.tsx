@@ -18,6 +18,7 @@ import {
 } from '@expo-google-fonts/inter';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import BrandedSplash from './src/components/BrandedSplash';
+import ErrorBoundary from './src/components/ErrorBoundary';
 import { AuthProvider } from './src/contexts/AuthContext';
 import AppNavigator from './src/navigation/AppNavigator';
 import { logConfig } from './src/config/constants';
@@ -82,7 +83,9 @@ export default function App() {
         ) : (
           <>
             <StatusBar style="light" />
-            <AppNavigator />
+            <ErrorBoundary>
+              <AppNavigator />
+            </ErrorBoundary>
           </>
         )}
       </AuthProvider>
