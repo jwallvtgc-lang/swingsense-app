@@ -1375,10 +1375,30 @@ The lowest scoring mechanic above is the most likely primary issue. Use overall 
     response = client.messages.create(
         model="claude-sonnet-4-6",
         max_tokens=4096,
-        system=SYSTEM_PROMPT,
+        # SYSTEM_PROMPT is static and identical on every call, so cache it.
+        # Cache reads bill at ~10% of input rate; writes at ~125%. The prompt is
+        # ~5.6k tokens, above Sonnet's minimum cacheable prefix, and sits ahead of
+        # the per-swing user message so the cached prefix stays stable.
+        system=[
+            {
+                "type": "text",
+                "text": SYSTEM_PROMPT,
+                "cache_control": {"type": "ephemeral"},
+            }
+        ],
         messages=[{"role": "user", "content": user_message}],
     )
     latency_ms = round((time.time() - start_time) * 1000)
+
+    # Cache hit/miss is otherwise invisible — log it so a silent invalidation
+    # (prompt edit, SDK change) shows up as cache_read dropping to 0.
+    _usage = response.usage
+    _log(
+        f"[Analyze] Claude usage: input={_usage.input_tokens} "
+        f"cache_write={getattr(_usage, 'cache_creation_input_tokens', 0)} "
+        f"cache_read={getattr(_usage, 'cache_read_input_tokens', 0)} "
+        f"output={_usage.output_tokens}"
+    )
 
     result_text = response.content[0].text
 
