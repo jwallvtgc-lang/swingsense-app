@@ -65,6 +65,11 @@ export default function ProcessingScreen() {
 
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const progressAnim = useRef(new Animated.Value(0)).current;
+  // Guards against runPipeline() firing twice for the same attempt when the gating
+  // effect below re-runs because `runPipeline`'s identity changed (e.g. `profile`
+  // gets a new object reference after handleAgreeToAiConsent's updateProfile() call
+  // triggers a fetchProfile() re-fetch in AuthContext), not because of a real retry.
+  const hasStartedPipeline = useRef(false);
 
   const animateProgress = useCallback((toValue: number) => {
     Animated.timing(progressAnim, {
@@ -170,8 +175,16 @@ export default function ProcessingScreen() {
     return () => clearInterval(interval);
   }, []);
 
+  // A new attempt (mount, or "Try Again") should be allowed to run again —
+  // reset the one-shot guard whenever retryKey changes.
+  useEffect(() => {
+    hasStartedPipeline.current = false;
+  }, [retryKey]);
+
   useEffect(() => {
     if (showAiConsent) return;
+    if (hasStartedPipeline.current) return;
+    hasStartedPipeline.current = true;
     runPipeline();
   }, [retryKey, runPipeline, showAiConsent]);
 
