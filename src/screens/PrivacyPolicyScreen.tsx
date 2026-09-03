@@ -19,7 +19,7 @@ const SECTIONS = [
   },
   {
     heading: 'Information We Collect',
-    body: "Account information: email address. Player information: first name, age, position, batting side, and experience level provided during signup. For players under 13, we also collect a parent or guardian's name as part of the required consent process. Swing videos you upload for analysis. Usage data: swing scores, coaching outputs, and app activity.\n\nA parent or guardian account may include profiles for multiple children. The data practices described in this policy apply individually to each child's profile.",
+    body: "Email address — collected when you create an account. Player information (first name, age, position, batting side, and experience level) — collected when you complete signup. For players under 13, a parent or guardian's name — collected as part of the required consent process. Swing videos — collected when you upload or record a swing for analysis. Usage data (swing scores, coaching outputs, and app activity) — collected automatically as you use the app.\n\nA parent or guardian account may include profiles for multiple children. The data practices described in this policy apply individually to each child's profile.",
   },
   {
     heading: 'How We Use Your Information',
@@ -35,7 +35,7 @@ const SECTIONS = [
   },
   {
     heading: 'Data Sharing',
-    body: "We do not sell your personal information. We use Supabase for secure data storage and Anthropic's Claude API for AI coaching analysis — this means your swing video is sent directly to Anthropic to generate your coaching feedback. Both services are bound by their own privacy policies and do not use your data for any purpose other than providing the SwingSense service.",
+    body: "We do not sell your personal information. We use Supabase for secure data storage and Anthropic's Claude API for AI coaching analysis — this means your swing video is sent directly to Anthropic to generate your coaching feedback. Both services are bound by their own privacy policies and do not use your data for any purpose other than providing the SwingSense service. We only share data with service providers, including Anthropic, who are contractually and technically required to protect your data to a standard consistent with this policy.",
   },
   {
     heading: 'Data Security',
