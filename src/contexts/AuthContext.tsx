@@ -35,6 +35,8 @@ type ProfileUpdateData = Partial<
     | 'onboarding_completed'
     | 'gave_coppa_consent'
     | 'consent_given_at'
+    | 'ai_data_consent'
+    | 'ai_data_consent_at'
   >
 >;
 

@@ -26,6 +26,7 @@ import { getPreviousBestScore, startAnalysisPipeline } from '../services/analysi
 import { trackEvent } from '../services/analytics';
 import { incrementAnalysisCount } from '../services/subscription';
 import type { MainStackParamList } from '../navigation/types';
+import AiConsentModal from '../components/AiConsentModal';
 
 type Nav = NativeStackNavigationProp<MainStackParamList, 'Processing'>;
 type Route = RouteProp<MainStackParamList, 'Processing'>;
@@ -52,7 +53,7 @@ const COACHING_TIPS = [
 export default function ProcessingScreen() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
-  const { user, profile } = useAuth();
+  const { user, profile, updateProfile } = useAuth();
   const { videoUri, frontFacing } = route.params;
 
   const [currentStep, setCurrentStep] = useState(0);
@@ -60,6 +61,7 @@ export default function ProcessingScreen() {
   const [error, setError] = useState<string | null>(null);
   const [retryKey, setRetryKey] = useState(0);
   const [tipIndex, setTipIndex] = useState(0);
+  const [showAiConsent, setShowAiConsent] = useState(!profile?.ai_data_consent);
 
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const progressAnim = useRef(new Animated.Value(0)).current;
@@ -169,8 +171,21 @@ export default function ProcessingScreen() {
   }, []);
 
   useEffect(() => {
+    if (showAiConsent) return;
     runPipeline();
-  }, [retryKey, runPipeline]);
+  }, [retryKey, runPipeline, showAiConsent]);
+
+  const handleAgreeToAiConsent = useCallback(async () => {
+    setShowAiConsent(false);
+    await updateProfile({
+      ai_data_consent: true,
+      ai_data_consent_at: new Date().toISOString(),
+    });
+  }, [updateProfile]);
+
+  const handleDeclineAiConsent = useCallback(() => {
+    navigation.goBack();
+  }, [navigation]);
 
   if (error) {
     const isNoSwing = /couldn't detect a swing|no swing detected/i.test(error);
@@ -288,6 +303,12 @@ export default function ProcessingScreen() {
           <Text style={styles.tipText}>{COACHING_TIPS[tipIndex]}</Text>
         </View>
       </View>
+
+      <AiConsentModal
+        visible={showAiConsent}
+        onAgree={handleAgreeToAiConsent}
+        onDecline={handleDeclineAiConsent}
+      />
     </View>
   );
 }

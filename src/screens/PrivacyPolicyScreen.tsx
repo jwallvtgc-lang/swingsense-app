@@ -27,7 +27,7 @@ const SECTIONS = [
   },
   {
     heading: 'Video Data',
-    body: 'Videos you upload are stored securely and used solely to generate your coaching analysis. We do not share your videos with third parties. You can delete your videos and account data at any time by contacting us.',
+    body: "Videos you upload are stored securely and used solely to generate your coaching analysis. Before your first swing analysis, we ask you to explicitly acknowledge that your video is sent to Anthropic's Claude AI for this purpose. We do not share your videos with any other third party. You can delete your videos and account data at any time by contacting us.",
   },
   {
     heading: "Children's Privacy (COPPA)",
@@ -35,7 +35,7 @@ const SECTIONS = [
   },
   {
     heading: 'Data Sharing',
-    body: "We do not sell your personal information. We use Supabase for secure data storage and Anthropic's Claude API for AI coaching analysis. Both services are bound by their own privacy policies and do not use your data for any purpose other than providing the SwingSense service.",
+    body: "We do not sell your personal information. We use Supabase for secure data storage and Anthropic's Claude API for AI coaching analysis — this means your swing video is sent directly to Anthropic to generate your coaching feedback. Both services are bound by their own privacy policies and do not use your data for any purpose other than providing the SwingSense service.",
   },
   {
     heading: 'Data Security',
@@ -70,7 +70,7 @@ export default function PrivacyPolicyScreen() {
         <Text style={styles.title} {...displayTitleProps}>
           Privacy Policy
         </Text>
-        <Text style={styles.updated}>Last updated: August 9, 2026</Text>
+        <Text style={styles.updated}>Last updated: September 3, 2026</Text>
         {SECTIONS.map((section) => (
           <View key={section.heading} style={styles.section}>
             {section.heading ? <Text style={styles.heading}>{section.heading}</Text> : null}
