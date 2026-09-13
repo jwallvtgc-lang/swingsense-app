@@ -15,7 +15,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
 import * as Speech from 'expo-speech';
-import { Audio } from 'expo-av';
+import { setAudioModeAsync } from 'expo-audio';
 import {
   bottomTab,
   camera,
@@ -118,10 +118,10 @@ export default function CameraScreen() {
 
   const fireVoiceCues = async () => {
     try {
-      await Audio.setAudioModeAsync({
-        allowsRecordingIOS: true,
-        playsInSilentModeIOS: true,
-        shouldDuckAndroid: false,
+      await setAudioModeAsync({
+        allowsRecording: true,
+        playsInSilentMode: true,
+        interruptionMode: 'mixWithOthers',
       });
     } catch (e) {
       console.log('[CameraScreen] Audio session setup failed:', e);
