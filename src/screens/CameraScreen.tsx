@@ -70,12 +70,13 @@ export default function CameraScreen() {
     };
   }, [isRecording]);
 
-  // Cleanup countdown timer on unmount
+  // Cleanup countdown timer and speech on unmount
   useEffect(() => {
     return () => {
       if (countdownTimer.current) {
         clearInterval(countdownTimer.current);
       }
+      Speech.stop();
     };
   }, []);
 
@@ -101,12 +102,18 @@ export default function CameraScreen() {
   // Camera flip functionality removed - locked to front camera
 
   const startCountdown = () => {
+    if (countdownTimer.current) {
+      clearInterval(countdownTimer.current);
+    }
+
     setCountdown(3);
     countdownTimer.current = setInterval(() => {
       setCountdown(prev => {
         if (prev === null || prev <= 1) {
-          clearInterval(countdownTimer.current!);
-          setCountdown(null);
+          if (countdownTimer.current) {
+            clearInterval(countdownTimer.current);
+            countdownTimer.current = null;
+          }
           autoStartPending.current = true;
           tryAutoStartRecording();
           return null;
@@ -115,6 +122,22 @@ export default function CameraScreen() {
       });
     }, 1000);
   };
+
+  const speakAndWait = (text: string) => new Promise<void>((resolve) => {
+    let settled = false;
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      resolve();
+    };
+
+    Speech.speak(text, {
+      ...SPEECH_CONFIG,
+      onDone: finish,
+      onStopped: finish,
+      onError: finish,
+    });
+  });
 
   const fireVoiceCues = async () => {
     try {
@@ -126,28 +149,6 @@ export default function CameraScreen() {
     } catch (e) {
       console.log('[CameraScreen] Audio session setup failed:', e);
     }
-
-    try {
-      await Speech.speak(
-        "Step back until your full body is visible in the frame.",
-        SPEECH_CONFIG
-      );
-    } catch (e) {
-      console.log('[CameraScreen] Speech cue 1 failed:', e);
-    }
-
-    await new Promise(r => setTimeout(r, 2000));
-
-    try {
-      await Speech.speak(
-        "Take your full swing when you are ready.",
-        SPEECH_CONFIG
-      );
-    } catch (e) {
-      console.log('[CameraScreen] Speech cue 2 failed:', e);
-    }
-
-    await new Promise(r => setTimeout(r, 500));
 
     if (!audioPermission?.granted) {
       const result = await requestAudioPermission();
@@ -161,11 +162,24 @@ export default function CameraScreen() {
       }
     }
 
+    try {
+      await speakAndWait("Step back until your full body is visible in the frame.");
+      await new Promise(r => setTimeout(r, 300));
+      await speakAndWait("Take your full swing when you are ready.");
+      await new Promise(r => setTimeout(r, 300));
+    } catch (e) {
+      console.log('[CameraScreen] Speech cues failed:', e);
+    }
+
     startCountdown();
   };
 
   const handleManualRecord = () => {
-    if (countdownTimer.current) clearInterval(countdownTimer.current);
+    Speech.stop();
+    if (countdownTimer.current) {
+      clearInterval(countdownTimer.current);
+      countdownTimer.current = null;
+    }
     setCountdown(null);
     setTimeout(() => {
       startRecording();
@@ -177,7 +191,7 @@ export default function CameraScreen() {
       autoStartPending.current = false;
       setTimeout(() => {
         startRecording();
-      }, 1500);
+      }, 500);
     }
   };
 
@@ -225,11 +239,13 @@ export default function CameraScreen() {
   };
 
   const goBack = () => {
+    Speech.stop();
     if (isRecording) {
       stopRecording();
     }
     if (countdownTimer.current) {
       clearInterval(countdownTimer.current);
+      countdownTimer.current = null;
     }
     navigation.goBack();
   };
