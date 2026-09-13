@@ -47,6 +47,7 @@ export default function CameraScreen() {
   const [audioPermission, requestAudioPermission] = useMicrophonePermissions();
   const cuesHaveFired = useRef(false);
   const countdownTimer = useRef<NodeJS.Timeout | null>(null);
+  const retakePending = useRef(false);
 
   useEffect(() => {
     let interval: NodeJS.Timeout | undefined;
@@ -167,6 +168,14 @@ export default function CameraScreen() {
       isReadyRef.current = true;
       setIsReadyUI(true);
 
+      // Retakes skip the spoken setup and go straight back into the visible
+      // countdown/recording flow as soon as the camera preview is ready again.
+      if (retakePending.current) {
+        retakePending.current = false;
+        setTimeout(startCountdown, 500);
+        return;
+      }
+
       if (cuesHaveFired.current) return;
       cuesHaveFired.current = true;
       setTimeout(fireVoiceCues, 800);
@@ -205,7 +214,18 @@ export default function CameraScreen() {
     navigation.goBack();
   };
 
-  const handleRetake = () => setRecordedVideoUri(null);
+  const handleRetake = () => {
+    Speech.stop();
+    if (countdownTimer.current) {
+      clearInterval(countdownTimer.current);
+      countdownTimer.current = null;
+    }
+    setCountdown(null);
+    retakePending.current = true;
+    isReadyRef.current = false;
+    setIsReadyUI(false);
+    setRecordedVideoUri(null);
+  };
 
   const handleUseVideo = () => {
     if (recordedVideoUri) {
