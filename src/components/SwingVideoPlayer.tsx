@@ -1,6 +1,6 @@
-import React, { useRef, useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { View, Text, Pressable, StyleSheet, Dimensions, Image } from 'react-native';
-import { Video, ResizeMode, AVPlaybackStatus } from 'expo-av';
+import { VideoView, useVideoPlayer } from 'expo-video';
 import { Ionicons } from '@expo/vector-icons';
 import * as VideoThumbnails from 'expo-video-thumbnails';
 import FullScreenVideoPlayer from './FullScreenVideoPlayer';
@@ -27,7 +27,7 @@ export default function SwingVideoPlayer({
   primaryIssue,
   fullWidth = false,
 }: SwingVideoPlayerProps) {
-  const videoRef = useRef<Video>(null);
+  const player = useVideoPlayer(videoUrl);
   const [thumbnailUri, setThumbnailUri] = useState<string | null>(null);
   const [videoDimensions, setVideoDimensions] = useState({ width: 0, height: 0 });
   const [naturalSize, setNaturalSize] = useState({ width: 0, height: 0 });
@@ -70,6 +70,16 @@ export default function SwingVideoPlayer({
 
     setVideoDimensions({ width: displayWidth, height: displayHeight });
   }, []);
+
+  useEffect(() => {
+    const subscription = player.addListener('sourceLoad', (payload) => {
+      const size = payload.availableVideoTracks[0]?.size;
+      if (size) {
+        onReadyForDisplay({ naturalSize: size });
+      }
+    });
+    return () => subscription.remove();
+  }, [player, onReadyForDisplay]);
 
 
   const openFullScreen = useCallback(() => {
@@ -117,16 +127,11 @@ export default function SwingVideoPlayer({
           ]}
         >
           {/* Hidden video for dimensions only */}
-          <Video
-            ref={videoRef}
-            source={{ uri: videoUrl }}
+          <VideoView
+            player={player}
             style={styles.hiddenVideo}
-            resizeMode={ResizeMode.CONTAIN}
-            useNativeControls={false}
-            isLooping={false}
-            shouldPlay={false}
-            rate={1.0}
-            onReadyForDisplay={onReadyForDisplay}
+            contentFit="contain"
+            nativeControls={false}
           />
 
           {/* Static thumbnail display */}

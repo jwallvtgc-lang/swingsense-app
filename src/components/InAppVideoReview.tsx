@@ -6,7 +6,7 @@ import {
   StyleSheet,
   StatusBar,
 } from 'react-native';
-import { Video, ResizeMode } from 'expo-av';
+import { VideoView, useVideoPlayer } from 'expo-video';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
@@ -33,6 +33,11 @@ export default function InAppVideoReview({
   frontFacing = false,
 }: InAppVideoReviewProps) {
   const insets = useSafeAreaInsets();
+  const player = useVideoPlayer(videoUri, (player) => {
+    player.loop = true;
+    player.volume = 0;
+    player.play();
+  });
 
   return (
     <View style={styles.container}>
@@ -40,13 +45,11 @@ export default function InAppVideoReview({
 
       {/* Video Preview */}
       <View style={styles.videoContainer}>
-        <Video
-          source={{ uri: videoUri }}
+        <VideoView
+          player={player}
           style={styles.video}
-          resizeMode={ResizeMode.CONTAIN}
-          shouldPlay
-          isLooping
-          volume={0}
+          contentFit="contain"
+          nativeControls={false}
         />
 
         {frontFacing && (

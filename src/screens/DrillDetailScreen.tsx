@@ -8,7 +8,7 @@ import {
 } from 'react-native';
 import { useRoute, useNavigation, type RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { Video, ResizeMode } from 'expo-av';
+import { VideoView, useVideoPlayer } from 'expo-video';
 
 import BackNav from '../components/BackNav';
 import DrillVideoPlaceholder from '../components/DrillVideoPlaceholder';
@@ -46,6 +46,7 @@ export default function DrillDetailScreen() {
   const [isCompleted, setIsCompleted] = useState(false);
   const [showResetButton, setShowResetButton] = useState(false);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const player = useVideoPlayer(drill?.videoUrl ?? null);
 
   useEffect(() => {
     if (user && profile?.id) {
@@ -108,16 +109,15 @@ export default function DrillDetailScreen() {
         <View style={styles.content}>
           {/* Video section
               Controls auto-hide is platform-controlled (iOS ~5s, Android ~3s).
-              expo-av useNativeControls and expo-video VideoView both delegate to
-              the native player and expose no timeout prop. Switch to custom
-              controls (expo-video + manual overlay) if tighter timeout is needed. */}
+              VideoView's native controls delegate to the native player and
+              expose no timeout prop. Switch to custom controls (manual
+              overlay) if tighter timeout is needed. */}
           {drill.videoUrl ? (
-            <Video
-              source={{ uri: drill.videoUrl }}
+            <VideoView
+              player={player}
               style={styles.video}
-              useNativeControls
-              resizeMode={ResizeMode.CONTAIN}
-              shouldPlay={false}
+              nativeControls
+              contentFit="contain"
             />
           ) : (
             <DrillVideoPlaceholder />
