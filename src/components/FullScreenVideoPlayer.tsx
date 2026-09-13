@@ -51,18 +51,30 @@ export default function FullScreenVideoPlayer({
   const player = useVideoPlayer(videoUrl, (player) => {
     player.timeUpdateEventInterval = 0.1;
     player.currentTime = initialTime / 1000;
-    player.play();
   });
-  const [isPlaying, setIsPlaying] = useState(true);
+  const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(initialTime);
   const [duration, setDuration] = useState(0);
-  const [videoDimensions, setVideoDimensions] = useState({ width: 0, height: 0 });
-  const [naturalSize, setNaturalSize] = useState({ width: 0, height: 0 });
   const [thumbnails, setThumbnails] = useState<ThumbnailData[]>([]);
   const [loadingThumbnails, setLoadingThumbnails] = useState(false);
 
   const screenWidth = Dimensions.get('window').width;
-  const screenHeight = Dimensions.get('window').height;
+
+  // Only play while the fullscreen modal is visible. The component remains mounted while
+  // hidden, so starting playback in useVideoPlayer causes audible off-screen autoplay.
+  useEffect(() => {
+    try {
+      if (visible) {
+        player.currentTime = initialTime / 1000;
+        setCurrentTime(initialTime);
+        player.play();
+      } else {
+        player.pause();
+      }
+    } catch (error) {
+      console.error('[FullScreenVideoPlayer] visibility playback error:', error);
+    }
+  }, [visible, player, initialTime]);
 
   // Generate thumbnails when modal opens
   useEffect(() => {
@@ -93,26 +105,6 @@ export default function FullScreenVideoPlayer({
     }
   };
 
-  const onReadyForDisplay = useCallback((readyStatus: { naturalSize: { width: number; height: number } }) => {
-    const { naturalSize } = readyStatus;
-    setNaturalSize(naturalSize);
-
-    // Calculate video dimensions to fill full screen area
-    const availableHeight = screenHeight - spacing.sectionGap * 8; // Header + scrubber + safe areas
-
-    const aspectRatio = naturalSize.width / naturalSize.height;
-    let displayWidth = screenWidth;
-    let displayHeight = screenWidth / aspectRatio;
-
-    // If height exceeds available area, scale down to fit
-    if (displayHeight > availableHeight) {
-      displayHeight = availableHeight;
-      displayWidth = displayHeight * aspectRatio;
-    }
-
-    setVideoDimensions({ width: displayWidth, height: displayHeight });
-  }, [screenWidth, screenHeight]);
-
   useEffect(() => {
     const playingChangeSub = player.addListener('playingChange', (payload) => {
       setIsPlaying(prev => prev !== payload.isPlaying ? payload.isPlaying : prev);
@@ -125,14 +117,11 @@ export default function FullScreenVideoPlayer({
 
     const playToEndSub = player.addListener('playToEnd', () => {
       player.currentTime = 0;
+      setCurrentTime(0);
       setIsPlaying(false);
     });
 
-    const sourceLoadSub = player.addListener('sourceLoad', (payload) => {
-      const size = payload.availableVideoTracks[0]?.size;
-      if (size) {
-        onReadyForDisplay({ naturalSize: size });
-      }
+    const sourceLoadSub = player.addListener('sourceLoad', () => {
       setDuration(prev => (prev === 0 && player.duration > 0) ? player.duration * 1000 : prev);
     });
 
@@ -142,7 +131,7 @@ export default function FullScreenVideoPlayer({
       playToEndSub.remove();
       sourceLoadSub.remove();
     };
-  }, [player, onReadyForDisplay]);
+  }, [player]);
 
   const togglePlayback = () => {
     try {
@@ -156,7 +145,6 @@ export default function FullScreenVideoPlayer({
     }
   };
 
-
   const seekToTime = (time: number) => {
     try {
       player.currentTime = time / 1000;
@@ -169,13 +157,6 @@ export default function FullScreenVideoPlayer({
     const time = (position / screenWidth) * duration;
     seekToTime(time);
   };
-
-
-  const isPortraitVideo = naturalSize.height > naturalSize.width && naturalSize.width > 0;
-  const innerVideoWidth = isPortraitVideo
-    ? videoDimensions.height * (naturalSize.width / naturalSize.height)
-    : videoDimensions.width;
-  const innerVideoHeight = videoDimensions.height;
 
   const currentFrameNumber = keypoints?.frames ?
     Math.floor((currentTime / 1000) * (keypoints.fps || 30)) : 0;
@@ -197,46 +178,25 @@ export default function FullScreenVideoPlayer({
 
         {/* Main content area - full screen video */}
         <View style={styles.contentArea}>
-          <View style={styles.videoPanel}>
-            <View style={[
-              styles.videoContainer,
-              videoDimensions.width > 0 && {
-                width: videoDimensions.width,
-                height: videoDimensions.height,
-              }
-            ]}>
-              <View
-                style={[
-                  styles.videoInner,
-                  videoDimensions.width > 0 && {
-                    width: innerVideoWidth,
-                    height: innerVideoHeight,
-                  },
-                  isPortraitVideo && styles.videoInnerPortrait,
-                ]}
-              >
-                <VideoView
-                  player={player}
-                  style={styles.video}
-                  contentFit="contain"
-                  nativeControls={false}
+          <VideoView
+            player={player}
+            style={StyleSheet.absoluteFill}
+            contentFit="cover"
+            nativeControls={false}
+          />
+
+          {/* Play/Pause Overlay */}
+          {!isPlaying && (
+            <Pressable style={styles.playOverlay} onPress={togglePlayback}>
+              <View style={styles.playButton}>
+                <Ionicons
+                  name="play"
+                  size={32}
+                  color={colors.text.primary}
                 />
               </View>
-
-              {/* Play/Pause Overlay */}
-              {!isPlaying && (
-                <Pressable style={styles.playOverlay} onPress={togglePlayback}>
-                  <View style={styles.playButton}>
-                    <Ionicons
-                      name="play"
-                      size={32}
-                      color={colors.text.primary}
-                    />
-                  </View>
-                </Pressable>
-              )}
-            </View>
-          </View>
+            </Pressable>
+          )}
         </View>
 
         {/* Frame scrubber */}
@@ -314,35 +274,12 @@ const styles = StyleSheet.create({
   },
   contentArea: {
     flex: 1,
-  },
-  videoPanel: {
-    flex: 1, // Take full available space
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  videoContainer: {
-    position: 'relative',
-    backgroundColor: 'transparent',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  videoInner: {
     position: 'relative',
     overflow: 'hidden',
-  },
-  videoInnerPortrait: {
-    alignSelf: 'center',
-  },
-  video: {
-    width: '100%',
-    height: '100%',
+    backgroundColor: colors.bg.splashBase,
   },
   playOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
+    ...StyleSheet.absoluteFillObject,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: camera.headerOverlay,
