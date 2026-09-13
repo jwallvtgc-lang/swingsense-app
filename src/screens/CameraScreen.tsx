@@ -47,7 +47,6 @@ export default function CameraScreen() {
   const [audioPermission, requestAudioPermission] = useMicrophonePermissions();
   const cuesHaveFired = useRef(false);
   const countdownTimer = useRef<NodeJS.Timeout | null>(null);
-  const autoStartPending = useRef(false);
 
   useEffect(() => {
     let interval: NodeJS.Timeout | undefined;
@@ -88,7 +87,11 @@ export default function CameraScreen() {
   const startCountdown = () => {
     if (countdownTimer.current) clearInterval(countdownTimer.current);
 
+    // Recording begins with the first visible countdown number so the entire
+    // 3-2-1 lead-in is captured in the clip.
     setCountdown(3);
+    startRecording();
+
     countdownTimer.current = setInterval(() => {
       setCountdown(prev => {
         if (prev === null || prev <= 1) {
@@ -96,8 +99,6 @@ export default function CameraScreen() {
             clearInterval(countdownTimer.current);
             countdownTimer.current = null;
           }
-          autoStartPending.current = true;
-          tryAutoStartRecording();
           return null;
         }
         return prev - 1;
@@ -161,18 +162,10 @@ export default function CameraScreen() {
     setTimeout(startRecording, 300);
   };
 
-  const tryAutoStartRecording = () => {
-    if (isReadyRef.current && autoStartPending.current) {
-      autoStartPending.current = false;
-      setTimeout(startRecording, 300);
-    }
-  };
-
   const onCameraReady = () => {
     setTimeout(() => {
       isReadyRef.current = true;
       setIsReadyUI(true);
-      tryAutoStartRecording();
 
       if (cuesHaveFired.current) return;
       cuesHaveFired.current = true;
@@ -260,23 +253,23 @@ export default function CameraScreen() {
           </Pressable>
         </View>
 
-        {isRecording && (
+        {isRecording && countdown === null && (
           <View style={styles.timerContainer}>
             <Text style={styles.timerText}>{formatTimer(recordingDuration)}</Text>
           </View>
         )}
 
-        {!isRecording && (
+        {countdown !== null ? (
           <View style={styles.instructionsOverlay} pointerEvents="none">
-            {countdown !== null ? (
-              <View style={styles.countdownBadge}>
-                <Text style={styles.countdownText}>{countdown}</Text>
-              </View>
-            ) : (
-              <Text style={styles.instructionsText}>Step back until your full body is in frame</Text>
-            )}
+            <View style={styles.countdownBadge}>
+              <Text style={styles.countdownText}>{countdown}</Text>
+            </View>
           </View>
-        )}
+        ) : !isRecording ? (
+          <View style={styles.instructionsOverlay} pointerEvents="none">
+            <Text style={styles.instructionsText}>Step back until your full body is in frame</Text>
+          </View>
+        ) : null}
 
         <View style={styles.controls}>
           {!isRecording && (
