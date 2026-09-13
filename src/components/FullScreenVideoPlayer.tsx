@@ -55,6 +55,7 @@ export default function FullScreenVideoPlayer({
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(initialTime);
   const [duration, setDuration] = useState(0);
+  const [naturalSize, setNaturalSize] = useState({ width: 0, height: 0 });
   const [thumbnails, setThumbnails] = useState<ThumbnailData[]>([]);
   const [loadingThumbnails, setLoadingThumbnails] = useState(false);
 
@@ -121,7 +122,11 @@ export default function FullScreenVideoPlayer({
       setIsPlaying(false);
     });
 
-    const sourceLoadSub = player.addListener('sourceLoad', () => {
+    const sourceLoadSub = player.addListener('sourceLoad', (payload) => {
+      const size = payload.availableVideoTracks[0]?.size;
+      if (size) {
+        setNaturalSize(size);
+      }
       setDuration(prev => (prev === 0 && player.duration > 0) ? player.duration * 1000 : prev);
     });
 
@@ -158,6 +163,8 @@ export default function FullScreenVideoPlayer({
     seekToTime(time);
   };
 
+  const isPortraitVideo = naturalSize.height > naturalSize.width && naturalSize.width > 0;
+
   const currentFrameNumber = keypoints?.frames ?
     Math.floor((currentTime / 1000) * (keypoints.fps || 30)) : 0;
 
@@ -181,7 +188,7 @@ export default function FullScreenVideoPlayer({
           <VideoView
             player={player}
             style={StyleSheet.absoluteFill}
-            contentFit="cover"
+            contentFit={isPortraitVideo ? 'cover' : 'contain'}
             nativeControls={false}
           />
 
