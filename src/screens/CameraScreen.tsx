@@ -6,14 +6,12 @@ import {
   StyleSheet,
   Alert,
   StatusBar,
-  Dimensions,
   ActivityIndicator,
 } from 'react-native';
 import { CameraView, CameraType, useCameraPermissions, useMicrophonePermissions } from 'expo-camera';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import type { RouteProp } from '@react-navigation/native';
 import * as Speech from 'expo-speech';
 import { setAudioModeAsync } from 'expo-audio';
 import {
@@ -33,16 +31,12 @@ import InAppVideoReview from '../components/InAppVideoReview';
 import { SPEECH_CONFIG } from '../utils/speechConfig';
 
 type Nav = NativeStackNavigationProp<MainStackParamList, 'Camera'>;
-type Route = RouteProp<MainStackParamList, 'Camera'>;
-
-const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
 export default function CameraScreen() {
   const navigation = useNavigation<Nav>();
-  const route = useRoute<Route>();
   const cameraRef = useRef<CameraView>(null);
 
-  const [facing] = useState<CameraType>('front'); // Lock to front camera
+  const [facing] = useState<CameraType>('front');
   const [isRecording, setIsRecording] = useState(false);
   const [recordedVideoUri, setRecordedVideoUri] = useState<string | null>(null);
   const [recordingDuration, setRecordingDuration] = useState(0);
@@ -55,9 +49,8 @@ export default function CameraScreen() {
   const countdownTimer = useRef<NodeJS.Timeout | null>(null);
   const autoStartPending = useRef(false);
 
-  // Timer effect for recording duration
   useEffect(() => {
-    let interval: NodeJS.Timeout;
+    let interval: NodeJS.Timeout | undefined;
     if (isRecording) {
       interval = setInterval(() => {
         setRecordingDuration(prev => prev + 1);
@@ -70,28 +63,21 @@ export default function CameraScreen() {
     };
   }, [isRecording]);
 
-  // Cleanup countdown timer and speech on unmount
   useEffect(() => {
     return () => {
-      if (countdownTimer.current) {
-        clearInterval(countdownTimer.current);
-      }
+      if (countdownTimer.current) clearInterval(countdownTimer.current);
       Speech.stop();
     };
   }, []);
 
-  if (!permission) {
-    return <View style={styles.container} />;
-  }
+  if (!permission) return <View style={styles.container} />;
 
   if (!permission.granted) {
     return (
       <View style={styles.permissionContainer}>
         <Ionicons name="camera-outline" size={camera.recordButtonSize * 0.8} color={colors.text.muted} />
         <Text style={styles.permissionTitle}>Camera Access Required</Text>
-        <Text style={styles.permissionText}>
-          SwingSense needs camera access to record your swing
-        </Text>
+        <Text style={styles.permissionText}>SwingSense needs camera access to record your swing</Text>
         <Pressable style={styles.permissionButton} onPress={requestPermission}>
           <Text style={styles.permissionButtonText}>Continue</Text>
         </Pressable>
@@ -99,12 +85,8 @@ export default function CameraScreen() {
     );
   }
 
-  // Camera flip functionality removed - locked to front camera
-
   const startCountdown = () => {
-    if (countdownTimer.current) {
-      clearInterval(countdownTimer.current);
-    }
+    if (countdownTimer.current) clearInterval(countdownTimer.current);
 
     setCountdown(3);
     countdownTimer.current = setInterval(() => {
@@ -162,15 +144,10 @@ export default function CameraScreen() {
       }
     }
 
-    try {
-      await speakAndWait("Step back until your full body is visible in the frame.");
-      await new Promise(r => setTimeout(r, 300));
-      await speakAndWait("Take your full swing when you are ready.");
-      await new Promise(r => setTimeout(r, 300));
-    } catch (e) {
-      console.log('[CameraScreen] Speech cues failed:', e);
-    }
-
+    await speakAndWait('Step back until your full body is visible in the frame.');
+    await new Promise(r => setTimeout(r, 250));
+    await speakAndWait('Take your full swing when you are ready.');
+    await new Promise(r => setTimeout(r, 250));
     startCountdown();
   };
 
@@ -181,32 +158,26 @@ export default function CameraScreen() {
       countdownTimer.current = null;
     }
     setCountdown(null);
-    setTimeout(() => {
-      startRecording();
-    }, 500);
+    setTimeout(startRecording, 300);
   };
 
   const tryAutoStartRecording = () => {
     if (isReadyRef.current && autoStartPending.current) {
       autoStartPending.current = false;
-      setTimeout(() => {
-        startRecording();
-      }, 500);
+      setTimeout(startRecording, 300);
     }
   };
 
   const onCameraReady = () => {
-    // Add 500ms buffer for real devices to fully initialize
     setTimeout(() => {
       isReadyRef.current = true;
       setIsReadyUI(true);
-      tryAutoStartRecording(); // Check if auto-start is pending
+      tryAutoStartRecording();
 
       if (cuesHaveFired.current) return;
       cuesHaveFired.current = true;
-
-      setTimeout(fireVoiceCues, 1000);
-    }, 500);
+      setTimeout(fireVoiceCues, 800);
+    }, 400);
   };
 
   const startRecording = async () => {
@@ -214,13 +185,8 @@ export default function CameraScreen() {
 
     try {
       setIsRecording(true);
-      const video = await cameraRef.current.recordAsync({
-        maxDuration: 10,
-      });
-
-      if (video) {
-        setRecordedVideoUri(video.uri);
-      }
+      const video = await cameraRef.current.recordAsync({ maxDuration: 6 });
+      if (video) setRecordedVideoUri(video.uri);
     } catch (error) {
       console.error('Recording failed:', error);
       const message = __DEV__
@@ -233,16 +199,12 @@ export default function CameraScreen() {
   };
 
   const stopRecording = () => {
-    if (cameraRef.current && isRecording) {
-      cameraRef.current.stopRecording();
-    }
+    if (cameraRef.current && isRecording) cameraRef.current.stopRecording();
   };
 
   const goBack = () => {
     Speech.stop();
-    if (isRecording) {
-      stopRecording();
-    }
+    if (isRecording) stopRecording();
     if (countdownTimer.current) {
       clearInterval(countdownTimer.current);
       countdownTimer.current = null;
@@ -250,10 +212,7 @@ export default function CameraScreen() {
     navigation.goBack();
   };
 
-  const handleRetake = () => {
-    setRecordedVideoUri(null);
-    // Don't replay audio cues on retake
-  };
+  const handleRetake = () => setRecordedVideoUri(null);
 
   const handleUseVideo = () => {
     if (recordedVideoUri) {
@@ -270,7 +229,6 @@ export default function CameraScreen() {
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // Show video review if we have a recorded video
   if (recordedVideoUri) {
     return (
       <InAppVideoReview
@@ -289,52 +247,44 @@ export default function CameraScreen() {
       <CameraView
         ref={cameraRef}
         mode="video"
-        style={styles.camera}
+        style={StyleSheet.absoluteFill}
         facing={facing}
         videoQuality="720p"
         onCameraReady={onCameraReady}
-      >
-        {/* Header Controls */}
+      />
+
+      <View style={styles.overlayRoot} pointerEvents="box-none">
         <View style={styles.header}>
           <Pressable style={styles.headerButton} onPress={goBack}>
             <Ionicons name="close" size={header.iconSize} color={colors.text.primary} />
           </Pressable>
         </View>
 
-        {/* Recording Timer (only show while recording) */}
         {isRecording && (
           <View style={styles.timerContainer}>
-            <Text style={styles.timerText}>
-              {formatTimer(recordingDuration)}
-            </Text>
+            <Text style={styles.timerText}>{formatTimer(recordingDuration)}</Text>
           </View>
         )}
 
-        {/* Recording Instructions (only show when not recording) */}
         {!isRecording && (
-          <View style={styles.instructionsOverlay}>
+          <View style={styles.instructionsOverlay} pointerEvents="none">
             {countdown !== null ? (
-              <Text style={styles.countdownText}>
-                {countdown}
-              </Text>
+              <View style={styles.countdownBadge}>
+                <Text style={styles.countdownText}>{countdown}</Text>
+              </View>
             ) : (
-              <Text style={styles.instructionsText}>
-                Step back until your full body is in frame
-              </Text>
+              <Text style={styles.instructionsText}>Step back until your full body is in frame</Text>
             )}
           </View>
         )}
 
-        {/* Bottom Controls */}
         <View style={styles.controls}>
-          {/* X button bottom left (only when not recording) */}
           {!isRecording && (
             <Pressable style={styles.exitButton} onPress={goBack}>
               <Ionicons name="close" size={bottomTab.iconSize} color={colors.text.primary} />
             </Pressable>
           )}
 
-          {/* Record/Stop button center */}
           <View style={styles.recordingControls}>
             <Pressable
               style={[
@@ -355,10 +305,9 @@ export default function CameraScreen() {
             </Pressable>
           </View>
 
-          {/* Spacer for balance */}
           {!isRecording && <View style={styles.spacer} />}
         </View>
-      </CameraView>
+      </View>
     </View>
   );
 }
@@ -368,8 +317,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.bg.base,
   },
-  camera: {
-    flex: 1,
+  overlayRoot: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 10,
   },
   permissionContainer: {
     flex: 1,
@@ -413,7 +363,6 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     paddingTop: header.safeAreaPadding,
     paddingHorizontal: spacing.screen,
-    zIndex: 1,
   },
   headerButton: {
     width: camera.controlButtonSize,
@@ -444,6 +393,7 @@ const styles = StyleSheet.create({
     left: spacing.screen,
     right: spacing.screen,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   instructionsText: {
     fontSize: fontSizes.body,
@@ -455,6 +405,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.card,
     paddingVertical: spacing.iconGap,
     borderRadius: radius.subCard,
+  },
+  countdownBadge: {
+    minWidth: 96,
+    minHeight: 96,
+    borderRadius: radius.circle,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   countdownText: {
     fontSize: fontSizes.heroScore,
