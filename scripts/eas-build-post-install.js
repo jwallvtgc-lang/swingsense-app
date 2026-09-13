@@ -1,21 +1,10 @@
 #!/usr/bin/env node
 // Fix splash + iOS build issues for EAS
 const fs = require('fs');
-const { execSync } = require('child_process');
 
-// Full-bleed native splash (app.json → splash-full.png)
-try {
-  execSync('node scripts/generate-splash-full.js', { stdio: 'inherit' });
-} catch (e) {
-  console.warn('generate-splash-full.js failed:', e.message);
-}
-
-// Legacy small splash-icon (optional; some workflows still reference it)
-try {
-  execSync('node scripts/fix-splash-background.js', { stdio: 'inherit' });
-} catch (e) {
-  console.warn('fix-splash-background.js failed (sharp may be unavailable):', e.message);
-}
+// Two sharp-based asset-generation scripts used to run here on every cloud build. Removed: one
+// wrote an unreferenced file, the other's real output is already committed from a prior local
+// run — regenerating either added no value and caused sharp-related Install-dependencies failures.
 
 if (process.env.EAS_BUILD_PLATFORM !== 'ios' || !fs.existsSync('ios')) {
   process.exit(0);
