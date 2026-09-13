@@ -1,4 +1,4 @@
-import React, { useRef, useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -9,7 +9,7 @@ import {
   SafeAreaView,
   ScrollView,
 } from 'react-native';
-import { Video, ResizeMode, AVPlaybackStatus } from 'expo-av';
+import { VideoView, useVideoPlayer } from 'expo-video';
 import { Ionicons } from '@expo/vector-icons';
 import * as VideoThumbnails from 'expo-video-thumbnails';
 import {
@@ -45,7 +45,14 @@ export default function FullScreenVideoPlayer({
   primaryIssue,
   initialTime = 0,
 }: FullScreenVideoPlayerProps) {
-  const videoRef = useRef<Video>(null);
+  // currentTime/duration are tracked internally in milliseconds throughout this component
+  // (frame math, time display, progress %); player.currentTime/duration are in seconds, so
+  // conversions happen only at the boundary where we read from or write to the player.
+  const player = useVideoPlayer(videoUrl, (player) => {
+    player.timeUpdateEventInterval = 0.1;
+    player.currentTime = initialTime / 1000;
+    player.play();
+  });
   const [isPlaying, setIsPlaying] = useState(true);
   const [currentTime, setCurrentTime] = useState(initialTime);
   const [duration, setDuration] = useState(0);
@@ -86,27 +93,6 @@ export default function FullScreenVideoPlayer({
     }
   };
 
-  const onPlaybackStatusUpdate = useCallback((status: AVPlaybackStatus) => {
-    if (status.isLoaded) {
-      const newIsPlaying = status.isPlaying;
-      const newCurrentTime = status.positionMillis || 0;
-      const newDuration = status.durationMillis || 0;
-
-      if (status.didJustFinish) {
-        videoRef.current?.setPositionAsync(0);
-        setIsPlaying(false);
-        return;
-      }
-
-      setIsPlaying(prev => prev !== newIsPlaying ? newIsPlaying : prev);
-      setCurrentTime(prev => Math.abs(prev - newCurrentTime) > 100 ? newCurrentTime : prev);
-
-      if (newDuration > 0 && duration === 0) {
-        setDuration(newDuration);
-      }
-    }
-  }, [duration]);
-
   const onReadyForDisplay = useCallback((readyStatus: { naturalSize: { width: number; height: number } }) => {
     const { naturalSize } = readyStatus;
     setNaturalSize(naturalSize);
@@ -127,12 +113,43 @@ export default function FullScreenVideoPlayer({
     setVideoDimensions({ width: displayWidth, height: displayHeight });
   }, [screenWidth, screenHeight]);
 
-  const togglePlayback = async () => {
+  useEffect(() => {
+    const playingChangeSub = player.addListener('playingChange', (payload) => {
+      setIsPlaying(prev => prev !== payload.isPlaying ? payload.isPlaying : prev);
+    });
+
+    const timeUpdateSub = player.addListener('timeUpdate', (payload) => {
+      const newCurrentTime = payload.currentTime * 1000;
+      setCurrentTime(prev => Math.abs(prev - newCurrentTime) > 100 ? newCurrentTime : prev);
+    });
+
+    const playToEndSub = player.addListener('playToEnd', () => {
+      player.currentTime = 0;
+      setIsPlaying(false);
+    });
+
+    const sourceLoadSub = player.addListener('sourceLoad', (payload) => {
+      const size = payload.availableVideoTracks[0]?.size;
+      if (size) {
+        onReadyForDisplay({ naturalSize: size });
+      }
+      setDuration(prev => (prev === 0 && player.duration > 0) ? player.duration * 1000 : prev);
+    });
+
+    return () => {
+      playingChangeSub.remove();
+      timeUpdateSub.remove();
+      playToEndSub.remove();
+      sourceLoadSub.remove();
+    };
+  }, [player, onReadyForDisplay]);
+
+  const togglePlayback = () => {
     try {
       if (isPlaying) {
-        await videoRef.current?.pauseAsync();
+        player.pause();
       } else {
-        await videoRef.current?.playAsync();
+        player.play();
       }
     } catch (error) {
       console.error('[FullScreenVideoPlayer] Playback error:', error);
@@ -140,9 +157,9 @@ export default function FullScreenVideoPlayer({
   };
 
 
-  const seekToTime = async (time: number) => {
+  const seekToTime = (time: number) => {
     try {
-      await videoRef.current?.setPositionAsync(time);
+      player.currentTime = time / 1000;
     } catch (error) {
       console.error('[FullScreenVideoPlayer] Seek error:', error);
     }
@@ -198,18 +215,11 @@ export default function FullScreenVideoPlayer({
                   isPortraitVideo && styles.videoInnerPortrait,
                 ]}
               >
-                <Video
-                  ref={videoRef}
-                  source={{ uri: videoUrl }}
+                <VideoView
+                  player={player}
                   style={styles.video}
-                  resizeMode={ResizeMode.CONTAIN}
-                  useNativeControls={false}
-                  isLooping={false}
-                  shouldPlay={true}
-                  rate={1.0}
-                  positionMillis={initialTime}
-                  onPlaybackStatusUpdate={onPlaybackStatusUpdate}
-                  onReadyForDisplay={onReadyForDisplay}
+                  contentFit="contain"
+                  nativeControls={false}
                 />
               </View>
 
