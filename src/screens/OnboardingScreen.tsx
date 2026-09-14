@@ -557,6 +557,7 @@ export default function OnboardingScreen() {
                       size="sm"
                       showLabel
                       accentColor={c.accentColor}
+                      smDiameter={56}
                     />
                     <View style={styles.bandText}>
                       <Text style={styles.scoreCardLabel}>{c.label}</Text>
@@ -616,6 +617,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.screen,
   },
   step2Inner: {
+    flex: 1,
     alignSelf: 'stretch',
   },
   step2HeaderBlock: {
@@ -696,16 +698,20 @@ const styles = StyleSheet.create({
     color: colors.text.onGold,
   },
   bandList: {
-    gap: spacing.iconGap,
+    flex: 1,
+    justifyContent: 'space-evenly',
   },
   bandRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sectionGap,
+    backgroundColor: colors.bg.surface,
+    borderRadius: radius.subCard,
+    padding: spacing.card,
   },
   bandText: {
     flex: 1,
-    gap: 2,
+    gap: spacing.labelSublabelGap,
   },
   scoreCardLabel: {
     fontFamily: FONT_INTER,

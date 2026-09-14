@@ -212,6 +212,7 @@ export const spacing = {
   deltaPillInnerGap: 4, // Gap between label and delta inside DeltaPill
   iconGap: 8, // Gap between icon and label in rows
   sectionGap: 20, // Vertical gap between major screen sections
+  labelSublabelGap: 2, // Gap between a title/label and its sublabel (e.g. Your Scores band text)
   /** Auth — OAuth / email method buttons */
   authMethodButton: 52,
   /** Auth — horizontal gap between icon column and label (matches spec 10px) */
