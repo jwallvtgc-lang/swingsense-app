@@ -30,6 +30,7 @@ import {
   deleteAnalysis,
   fetchProgressCoach,
   getUserAnalyses,
+  setBookmark,
 } from '../services/analysis';
 import type { SwingAnalysis } from '../types';
 import { getISOWeek } from '../utils/weekHelpers';
@@ -355,6 +356,27 @@ export default function HistoryScreen() {
     [profile?.id]
   );
 
+  /** Optimistic toggle — flips local state immediately, reverts on failure. */
+  const handleToggleBookmark = useCallback(
+    async (analysisId: string, nextValue: boolean) => {
+      const profileId = profile?.id;
+      if (!profileId) return;
+
+      setSwings((prev) =>
+        prev.map((s) => (s.id === analysisId ? { ...s, is_bookmarked: nextValue } : s))
+      );
+
+      const { error } = await setBookmark(profileId, analysisId, nextValue);
+      if (error) {
+        console.warn('[HistoryScreen] setBookmark:', error.message);
+        setSwings((prev) =>
+          prev.map((s) => (s.id === analysisId ? { ...s, is_bookmarked: !nextValue } : s))
+        );
+      }
+    },
+    [profile?.id]
+  );
+
   const renderItem: SectionListRenderItem<SwingAnalysis> = useCallback(
     ({ item }) => {
       const globalIndex = swingIndexMap.get(item.id) ?? 0;
@@ -368,12 +390,14 @@ export default function HistoryScreen() {
           insight={swingInsight(item)}
           topDelta={topDeltaFromAnalysis(item, previousItem)}
           isPersonalBest={item.id === personalBestId}
+          isBookmarked={item.is_bookmarked ?? false}
           onPress={() => navigation.navigate('Analysis', { analysisId: item.id })}
           onDelete={() => void handleDelete(item.id)}
+          onToggleBookmark={() => void handleToggleBookmark(item.id, !item.is_bookmarked)}
         />
       );
     },
-    [navigation, handleDelete, swings, swingIndexMap, personalBestId]
+    [navigation, handleDelete, handleToggleBookmark, swings, swingIndexMap, personalBestId]
   );
 
   const renderSectionHeader = useCallback(

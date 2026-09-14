@@ -20,8 +20,10 @@ export type SwingListItemProps = {
   insight: string;
   topDelta?: { label: string; direction: 'up' | 'down' | 'flat' } | null;
   isPersonalBest?: boolean;
+  isBookmarked?: boolean;
   onPress: () => void;
   onDelete: () => void;
+  onToggleBookmark: () => void;
 };
 
 export default function SwingListItem({
@@ -31,8 +33,10 @@ export default function SwingListItem({
   insight,
   topDelta,
   isPersonalBest = false,
+  isBookmarked = false,
   onPress,
   onDelete,
+  onToggleBookmark,
 }: SwingListItemProps) {
   return (
     <Pressable
@@ -78,6 +82,19 @@ export default function SwingListItem({
         ) : null}
       </View>
       <View style={styles.actions}>
+        <Pressable
+          onPress={onToggleBookmark}
+          hitSlop={12}
+          style={({ pressed }) => [styles.bookmarkHit, pressed && styles.bookmarkPressed]}
+          accessibilityLabel={isBookmarked ? 'Remove bookmark' : 'Bookmark swing'}
+          accessibilityRole="button"
+        >
+          <Ionicons
+            name={isBookmarked ? 'bookmark' : 'bookmark-outline'}
+            size={20} // matches DeleteButton's icon size — standard icon size, no token needed
+            color={isBookmarked ? colors.text.gold : colors.text.muted}
+          />
+        </Pressable>
         <DeleteButton onConfirm={onDelete} />
         <Ionicons
           name="chevron-forward"
@@ -102,6 +119,12 @@ const styles = StyleSheet.create({
   },
   cardPressed: {
     opacity: 0.92, // 0.92 pressed opacity — standard interaction feel
+  },
+  bookmarkHit: {
+    padding: spacing.iconHitPadding,
+  },
+  bookmarkPressed: {
+    opacity: 0.7, // matches DeleteButton's pressed opacity
   },
   middle: {
     flex: 1,

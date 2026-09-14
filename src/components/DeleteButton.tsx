@@ -1,7 +1,7 @@
 import { Alert, Pressable, StyleSheet } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 
-import { colors } from '../../design-system/tokens';
+import { colors, spacing } from '../../design-system/tokens';
 
 const SIZE = 20;
 
@@ -50,7 +50,7 @@ export default function DeleteButton({ onConfirm }: DeleteButtonProps) {
 
 const styles = StyleSheet.create({
   hit: {
-    padding: 2,
+    padding: spacing.iconHitPadding,
   },
   pressed: {
     opacity: 0.7,

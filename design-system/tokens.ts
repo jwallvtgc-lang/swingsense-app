@@ -208,6 +208,7 @@ export const spacing = {
   cardGap: 12, // Vertical gap between cards
   subGrid: 8, // Gap in 2×2 SubScoreCard grid
   pillGap: 6, // Gap between DeltaPills
+  iconHitPadding: 2, // Small icon Pressable hit-padding (DeleteButton, SwingListItem bookmark)
   deltaPillPadV: 5, // DeltaPill vertical padding
   deltaPillPadH: 10, // DeltaPill horizontal padding
   deltaPillInnerGap: 4, // Gap between label and delta inside DeltaPill

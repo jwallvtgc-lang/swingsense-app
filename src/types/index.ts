@@ -48,6 +48,7 @@ export interface SwingAnalysis {
   balance_at_contact_score?: number | null;
   core5_overall?: number | null;
   has_action_plan?: boolean | null;
+  is_bookmarked?: boolean | null;
   status: AnalysisStatus;
   created_at: string;
 }

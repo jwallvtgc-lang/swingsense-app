@@ -612,6 +612,20 @@ export async function deleteAnalysis(
   return { error: error ? new Error(error.message) : null };
 }
 
+export async function setBookmark(
+  userId: string,
+  analysisId: string,
+  isBookmarked: boolean
+): Promise<{ error: Error | null }> {
+  const { error } = await supabase
+    .from('swing_analyses')
+    .update({ is_bookmarked: isBookmarked })
+    .eq('id', analysisId)
+    .eq('user_id', userId);
+
+  return { error: error ? new Error(error.message) : null };
+}
+
 async function updateAnalysisStatus(
   analysisId: string,
   status: 'completed' | 'failed'
