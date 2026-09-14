@@ -50,7 +50,7 @@ interface DrillGridCardProps {
 
 function DrillGridCard({ drill, onPress }: DrillGridCardProps) {
   return (
-    <Pressable onPress={onPress}>
+    <Pressable style={styles.gridCardPressableWrap} onPress={onPress}>
       {({ pressed }) => (
         <DrillCardSurface
           thumbnailUrl={drill.thumbnailUrl}
@@ -288,8 +288,15 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: spacing.cardGap,
   },
-  gridCard: {
+  // Layout-only: width must live on the actual row child (Pressable) so the '48%'
+  // resolves against the FlatList row, not against DrillCardSurface's own
+  // ambiguous-width parent (which is exactly what was collapsing the card and
+  // wrapping its text character-by-character).
+  gridCardPressableWrap: {
     width: '48%',
+  },
+  gridCard: {
+    flex: 1,
     backgroundColor: colors.bg.surface,
     borderRadius: radius.card,
     overflow: 'hidden',

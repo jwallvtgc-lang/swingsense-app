@@ -29,7 +29,7 @@ const MECHANIC_LABELS: Record<DrillMechanic, string> = {
 
 export default function DrillCard({ drill, isRecommended = false, onPress }: DrillCardProps) {
   return (
-    <Pressable onPress={onPress}>
+    <Pressable style={styles.pressableWrap} onPress={onPress}>
       {({ pressed }) => (
         <DrillCardSurface
           thumbnailUrl={drill.thumbnailUrl}
@@ -69,15 +69,21 @@ export default function DrillCard({ drill, isRecommended = false, onPress }: Dri
 }
 
 const styles = StyleSheet.create({
-  card: {
+  // Layout-only: the width/height/margin that must live on the actual row child
+  // (Pressable) so percentage or fixed sizing resolves against the ScrollView row,
+  // not against DrillCardSurface's own ambiguous-width parent.
+  pressableWrap: {
     width: 260,
     height: 160,
+    marginRight: 20, // 20px gap between cards
+  },
+  card: {
+    flex: 1,
     backgroundColor: colors.bg.surface,
     borderRadius: radius.card,
     overflow: 'hidden',
     padding: spacing.cardSm, // 12px internal padding
     justifyContent: 'space-between', // Distribute rows evenly
-    marginRight: 20, // 20px gap between cards
   },
   cardPressed: {
     opacity: drillCardLink.pressOpacity,
