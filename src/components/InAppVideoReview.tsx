@@ -130,7 +130,7 @@ const styles = StyleSheet.create({
   retakeButton: {
     backgroundColor: colors.bg.surface,
     borderWidth: 1,
-    borderColor: colors.border.subtle,
+    borderColor: colors.border.dim,
   },
   retakeButtonText: {
     fontSize: fontSizes.ctaLabel,
