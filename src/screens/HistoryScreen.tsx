@@ -19,6 +19,7 @@ import EmptyState from '../components/EmptyState';
 import { ProgressCoachCard } from '../components/ProgressCoachCard';
 import ScreenHeader from '../components/ScreenHeader';
 import SwingListItem from '../components/SwingListItem';
+import TabSwitcher from '../components/TabSwitcher';
 import { ThisWeekMetricsCard } from '../components/ThisWeekMetricsCard';
 import { useAuth } from '../contexts/AuthContext';
 import { useMainTabBarNav } from '../navigation/useMainTabBarNav';
@@ -45,6 +46,9 @@ import {
 } from '../../design-system/tokens';
 
 const LOADING_MIN_HEIGHT = 120; // Prevents layout jump while fetching
+
+const FILTER_ALL = 'All';
+const FILTER_BOOKMARKED = 'Bookmarked';
 
 function listScore(analysis: SwingAnalysis): number {
   return (
@@ -172,6 +176,7 @@ export default function HistoryScreen() {
   const navigateMainTab = useMainTabBarNav();
   const { user, profile } = useAuth();
   const [swings, setSwings] = useState<SwingAnalysis[]>([]);
+  const [filter, setFilter] = useState(FILTER_ALL);
   const [loading, setLoading] = useState(true);
   const [progressData, setProgressData] = useState<{
     summary: string;
@@ -314,7 +319,12 @@ export default function HistoryScreen() {
     };
   }, [swings]);
 
-  const swingSections = useMemo(() => groupSwingsByDate(swings), [swings]);
+  const filteredSwings = useMemo(
+    () => (filter === FILTER_BOOKMARKED ? swings.filter((s) => s.is_bookmarked) : swings),
+    [swings, filter]
+  );
+
+  const swingSections = useMemo(() => groupSwingsByDate(filteredSwings), [filteredSwings]);
 
   // Create a lookup map for efficient global index calculation
   const swingIndexMap = useMemo(() => {
@@ -409,7 +419,8 @@ export default function HistoryScreen() {
 
   const keyExtractor = useCallback((item: SwingAnalysis) => item.id, []);
 
-  const listEmpty = !loading && swings.length === 0;
+  const listEmpty = !loading && filteredSwings.length === 0;
+  const noBookmarks = listEmpty && filter === FILTER_BOOKMARKED && swings.length > 0;
 
   return (
     <View style={styles.screen}>
@@ -441,6 +452,13 @@ export default function HistoryScreen() {
               <Text style={styles.compactButtonText}>+ Record Swing</Text>
             </Pressable>
           </View>
+          <View style={styles.filterRow}>
+            <TabSwitcher
+              tabs={[FILTER_ALL, FILTER_BOOKMARKED]}
+              activeTab={filter}
+              onChange={setFilter}
+            />
+          </View>
         </View>
         {loading ? (
           <View style={styles.loadingWrap}>
@@ -448,12 +466,21 @@ export default function HistoryScreen() {
           </View>
         ) : listEmpty ? (
           <View style={[styles.emptyWrap, { paddingBottom: listBottomPad }]}>
-            <EmptyState
-              title="No Swings Yet"
-              body="Record or upload your first swing to see your history."
-              ctaLabel="Analyze a Swing"
-              onCta={() => navigation.navigate('UploadTab')}
-            />
+            {noBookmarks ? (
+              <EmptyState
+                title="No Bookmarked Swings"
+                body="Tap the bookmark icon on any swing to save it here."
+                ctaLabel="Show All"
+                onCta={() => setFilter(FILTER_ALL)}
+              />
+            ) : (
+              <EmptyState
+                title="No Swings Yet"
+                body="Record or upload your first swing to see your history."
+                ctaLabel="Analyze a Swing"
+                onCta={() => navigation.navigate('UploadTab')}
+              />
+            )}
           </View>
         ) : (
           <View style={styles.listColumn}>
@@ -512,6 +539,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    marginTop: spacing.cardGap,
+  },
+  filterRow: {
     marginTop: spacing.cardGap,
   },
   compactButton: {
