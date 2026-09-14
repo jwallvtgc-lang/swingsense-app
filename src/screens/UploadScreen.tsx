@@ -15,6 +15,7 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { COLORS, SPACING, FONT_SIZE, FONTS } from '../config/constants';
 import { useAuth } from '../contexts/AuthContext';
+import { useIsFreeTier } from '../hooks/useSubscription';
 import { canUserAnalyze } from '../services/subscription';
 import type { MainStackParamList } from '../navigation/types';
 import BottomTabBar from '../components/BottomTabBar';
@@ -37,6 +38,7 @@ export default function UploadScreen() {
   const navigation = useNavigation<Nav>();
   const navigateMainTab = useMainTabBarNav();
   const { user, profile } = useAuth();
+  const isFreeTier = useIsFreeTier();
   const [selectedVideo, setSelectedVideo] = useState<string | null>(null);
   const [showFilmingModal, setShowFilmingModal] = useState(false);
   const [cameraType, setCameraType] = useState<'front' | 'back'>('front');
@@ -294,7 +296,7 @@ export default function UploadScreen() {
           ))}
         </View>
       </ScrollView>
-      <BottomTabBar activeTab="analyze" onTabPress={navigateMainTab} />
+      <BottomTabBar activeTab="analyze" onTabPress={navigateMainTab} showProfileBadge={isFreeTier} />
 
       <FilmingInstructionsModal
         visible={showFilmingModal}

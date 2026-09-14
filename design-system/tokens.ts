@@ -446,6 +446,12 @@ export const sparkline = {
   maxHeight: 16, // Maximum bar height
 }
 
+export const badgeDot = {
+  size: 8, // BottomTabBar unread/upgrade-nudge dot diameter
+  offset: -2, // Negative top/right offset, tucks dot into the icon's corner
+  borderWidth: 1.5, // Cutout ring separating dot from tab bar background
+}
+
 /** Similarity score → display color (aligned with `colors.core5` bands). */
 export function getScoreColor(score: number): string {
   if (score >= 90) return colors.core5.bandLegendary // gold

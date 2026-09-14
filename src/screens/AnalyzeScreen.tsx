@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useIsFreeTier } from '../hooks/useSubscription';
 import { displayNameFromUser } from '../utils/displayName';
 import { greetingWithName } from '../utils/timeGreeting';
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -50,6 +51,7 @@ export default function AnalyzeScreen() {
   const navigation = useNavigation<AnalyzeNav>();
   const navigateMainTab = useMainTabBarNav();
   const { user, profile } = useAuth();
+  const isFreeTier = useIsFreeTier();
   const { pickFromLibrary } = useVideoPicker();
   const [lastAnalysis, setLastAnalysis] = useState<SwingAnalysis | null>(null);
   const [streak, setStreak] = useState(0);
@@ -271,7 +273,7 @@ export default function AnalyzeScreen() {
         {/* Practice Drills section */}
         <DrillCarousel />
       </ScrollView>
-      <BottomTabBar activeTab="analyze" onTabPress={navigateMainTab} />
+      <BottomTabBar activeTab="analyze" onTabPress={navigateMainTab} showProfileBadge={isFreeTier} />
     </View>
   );
 }

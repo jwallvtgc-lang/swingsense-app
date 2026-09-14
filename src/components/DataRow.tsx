@@ -1,7 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-import { colors, fontSizes, fontWeights, spacing, typography } from '../../design-system/tokens';
+import { colors, fontSizes, fontWeights, radius, spacing, typography } from '../../design-system/tokens';
 
 export type DataRowProps = {
   label: string;
@@ -14,6 +14,8 @@ export type DataRowProps = {
   showChevron?: boolean;
   /** Red label (e.g. destructive actions). */
   labelTone?: 'default' | 'danger';
+  /** Small tag next to the label, e.g. "Upgrade". Omit for no tag. */
+  badgeLabel?: string;
 };
 
 export default function DataRow({
@@ -24,6 +26,7 @@ export default function DataRow({
   onPress,
   showChevron = false,
   labelTone = 'default',
+  badgeLabel,
 }: DataRowProps) {
   const hasValue = value.length > 0;
   const showValue = hasValue && !showChevron;
@@ -34,14 +37,21 @@ export default function DataRow({
 
   const inner = (
     <View style={styles.row}>
-      <Text
-        style={[
-          styles.label,
-          labelTone === 'danger' ? styles.labelDanger : styles.labelDefault,
-        ]}
-      >
-        {label}
-      </Text>
+      <View style={styles.labelRow}>
+        <Text
+          style={[
+            styles.label,
+            labelTone === 'danger' ? styles.labelDanger : styles.labelDefault,
+          ]}
+        >
+          {label}
+        </Text>
+        {badgeLabel != null && (
+          <View style={styles.badgePill}>
+            <Text style={styles.badgePillText}>{badgeLabel}</Text>
+          </View>
+        )}
+      </View>
       {showChevron ? (
         <View style={styles.chevronTrailing}>
           {hasValue ? (
@@ -103,8 +113,13 @@ const styles = StyleSheet.create({
     flexShrink: 1,
     textAlign: 'right',
   },
-  label: {
+  labelRow: {
     flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.pillGap,
+  },
+  label: {
     fontFamily: typography.body,
     fontSize: fontSizes.body,
   },
@@ -113,6 +128,20 @@ const styles = StyleSheet.create({
   },
   labelDanger: {
     color: colors.text.red,
+  },
+  badgePill: {
+    backgroundColor: colors.bg.goldDim,
+    borderWidth: 1,
+    borderColor: colors.text.gold,
+    borderRadius: radius.badge,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  badgePillText: {
+    fontFamily: typography.body,
+    fontSize: fontSizes.micro,
+    fontWeight: fontWeights.medium,
+    color: colors.text.gold,
   },
   pressed: {
     opacity: 0.85,

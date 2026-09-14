@@ -18,7 +18,7 @@ import SectionCard from '../components/SectionCard';
 import { useAuth } from '../contexts/AuthContext';
 import { displayNameFromUser } from '../utils/displayName';
 import { getCompletedAnalysesCountThisMonth } from '../services/analysis';
-import { useSubscription } from '../hooks/useSubscription';
+import { useSubscription, useIsFreeTier } from '../hooks/useSubscription';
 import { useMainTabBarNav } from '../navigation/useMainTabBarNav';
 import type { MainStackParamList, TabParamList } from '../navigation/types';
 import { BATTING_SIDE_LABELS, POSITION_LABELS } from '../types';
@@ -59,6 +59,7 @@ export default function ProfileScreen() {
   const [analysesThisMonth, setAnalysesThisMonth] = useState<number | null>(null);
   const [switcherVisible, setSwitcherVisible] = useState(false);
   const subscription = useSubscription();
+  const isFreeTier = useIsFreeTier();
   const planDisplay = subscription != null
     ? subscription.tier.charAt(0).toUpperCase() + subscription.tier.slice(1)
     : 'Free';
@@ -233,6 +234,7 @@ export default function ProfileScreen() {
               label="Manage Plan"
               valueWeight="normal"
               showChevron
+              badgeLabel={isFreeTier ? 'Upgrade' : undefined}
               onPress={() => navigation.navigate('ManagePlan')}
             />
             <DataRow
@@ -319,7 +321,7 @@ export default function ProfileScreen() {
         onClose={() => setSwitcherVisible(false)}
         onAddPlayer={handleAddPlayer}
       />
-      <BottomTabBar activeTab="profile" onTabPress={navigateMainTab} />
+      <BottomTabBar activeTab="profile" onTabPress={navigateMainTab} showProfileBadge={isFreeTier} />
     </View>
   );
 }

@@ -3,11 +3,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Path } from 'react-native-svg';
 
 import {
+  badgeDot,
   bottomTab,
   colors,
   fontSizes,
   fontWeights,
   letterSpacing,
+  radius,
   spacing,
   typography,
 } from '../../design-system/tokens';
@@ -22,6 +24,7 @@ type TabIconProps = { color: string; active: boolean };
 export type BottomTabBarProps = {
   activeTab: BottomTabId;
   onTabPress: (tab: BottomTabId) => void;
+  showProfileBadge?: boolean;
 };
 
 function TabIconAnalyze({ color }: TabIconProps) {
@@ -76,7 +79,11 @@ const TABS: {
   { id: 'profile', label: 'Profile', Icon: TabIconProfile },
 ];
 
-export default function BottomTabBar({ activeTab, onTabPress }: BottomTabBarProps) {
+export default function BottomTabBar({
+  activeTab,
+  onTabPress,
+  showProfileBadge = false,
+}: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
 
   return (
@@ -102,7 +109,10 @@ export default function BottomTabBar({ activeTab, onTabPress }: BottomTabBarProp
               accessibilityRole="tab"
               accessibilityState={{ selected: active }}
             >
-              <Icon color={tint} active={active} />
+              <View style={styles.iconWrap}>
+                <Icon color={tint} active={active} />
+                {id === 'profile' && showProfileBadge && <View style={styles.badgeDot} />}
+              </View>
               <Text style={[styles.label, { color: tint }]}>{label.toUpperCase()}</Text>
             </Pressable>
           );
@@ -140,5 +150,19 @@ const styles = StyleSheet.create({
   appTabIcon: {
     width: bottomTab.iconSize,
     height: bottomTab.iconSize,
+  },
+  iconWrap: {
+    position: 'relative',
+  },
+  badgeDot: {
+    position: 'absolute',
+    top: badgeDot.offset,
+    right: badgeDot.offset,
+    width: badgeDot.size,
+    height: badgeDot.size,
+    borderRadius: radius.circle,
+    backgroundColor: colors.bg.gold,
+    borderWidth: badgeDot.borderWidth,
+    borderColor: colors.bg.base,
   },
 });

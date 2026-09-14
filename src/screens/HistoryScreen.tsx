@@ -22,6 +22,7 @@ import SwingListItem from '../components/SwingListItem';
 import TabSwitcher from '../components/TabSwitcher';
 import { ThisWeekMetricsCard } from '../components/ThisWeekMetricsCard';
 import { useAuth } from '../contexts/AuthContext';
+import { useIsFreeTier } from '../hooks/useSubscription';
 import { useMainTabBarNav } from '../navigation/useMainTabBarNav';
 import type { MainStackParamList, TabParamList } from '../navigation/types';
 import type { CompositeNavigationProp } from '@react-navigation/native';
@@ -175,6 +176,7 @@ export default function HistoryScreen() {
   const navigation = useNavigation<HistoryNav>();
   const navigateMainTab = useMainTabBarNav();
   const { user, profile } = useAuth();
+  const isFreeTier = useIsFreeTier();
   const [swings, setSwings] = useState<SwingAnalysis[]>([]);
   const [filter, setFilter] = useState(FILTER_ALL);
   const [loading, setLoading] = useState(true);
@@ -518,7 +520,7 @@ export default function HistoryScreen() {
           </View>
         )}
       </View>
-      <BottomTabBar activeTab="history" onTabPress={navigateMainTab} />
+      <BottomTabBar activeTab="history" onTabPress={navigateMainTab} showProfileBadge={isFreeTier} />
     </View>
   );
 }
