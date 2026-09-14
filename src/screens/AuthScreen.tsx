@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   Alert,
   Dimensions,
@@ -40,9 +40,6 @@ const OAUTH_ICON_SIZE = 18;
 const WORDMARK_SOURCE = require('../../assets/splash-wordmark.png');
 // Actual exported PNG dimensions: 1128 × 598
 const AUTH_LOGO_ASPECT = 598 / 1128;
-
-/** Reserve bottom inset for scroll content so it clears the pinned terms footer. */
-const TERMS_FOOTER_RESERVE = 88;
 
 /** 18×18 mail icon (matches Google / system icon column width). */
 function EmailIcon18({ color }: { color: string }) {
@@ -104,6 +101,13 @@ export default function AuthScreen() {
     useNavigation<NativeStackNavigationProp<AuthStackParamList, 'Auth'>>();
   const insets = useSafeAreaInsets();
   const { signUp, signIn } = useAuth();
+  const scrollViewRef = useRef<ScrollView>(null);
+  /** Y offsets (each relative to its own immediate parent) needed to compute a field's
+   * absolute scroll-content position: authMiddle's offset within mainColumn, the visible
+   * inline form's offset within authMiddle, and each field's offset within that form. */
+  const authMiddleYRef = useRef(0);
+  const formYRef = useRef(0);
+  const fieldOffsetsRef = useRef<Record<string, number>>({});
 
   const [emailFormMode, setEmailFormMode] = useState<EmailFormMode>('none');
   const [emailValue, setEmailValue] = useState('');
@@ -117,6 +121,14 @@ export default function AuthScreen() {
       iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID ?? '',
     });
   }, []);
+
+  /** Scrolls a field above the keyboard using its accumulated layout offset — needed since
+   * a tall/centered form can otherwise leave the last field (Confirm password) clipped. */
+  const handleFieldFocus = (fieldKey: string) => {
+    const fieldY = fieldOffsetsRef.current[fieldKey] ?? 0;
+    const y = authMiddleYRef.current + formYRef.current + fieldY - spacing.cardGap;
+    scrollViewRef.current?.scrollTo({ y: Math.max(0, y), animated: true });
+  };
 
   const openLoginForm = () => {
     animateExpand();
@@ -277,19 +289,14 @@ export default function AuthScreen() {
       >
         <View style={styles.screenInner}>
           <ScrollView
+            ref={scrollViewRef}
             style={styles.flex}
             contentContainerStyle={[
               styles.scrollContent,
               {
                 paddingTop: insets.top + spacing.sectionGap * 2,
-                paddingBottom:
-                  insets.bottom + TERMS_FOOTER_RESERVE + spacing.sectionGap * 2,
+                paddingBottom: spacing.sectionGap * 2,
                 paddingHorizontal: spacing.screen,
-                minHeight:
-                  Dimensions.get('window').height -
-                  insets.top -
-                  insets.bottom -
-                  TERMS_FOOTER_RESERVE,
               },
             ]}
             keyboardShouldPersistTaps="handled"
@@ -307,7 +314,10 @@ export default function AuthScreen() {
                 </Text>
               </View>
 
-              <View style={styles.authMiddle}>
+              <View
+                style={styles.authMiddle}
+                onLayout={(e) => { authMiddleYRef.current = e.nativeEvent.layout.y; }}
+              >
                 <View style={styles.methodStack}>
                   {Platform.OS === 'ios' ? (
                     <AppleAuthentication.AppleAuthenticationButton
@@ -370,18 +380,25 @@ export default function AuthScreen() {
                 </View>
 
                 {emailFormMode === 'login' ? (
-                  <View style={styles.inlineForm}>
+                  <View
+                    style={styles.inlineForm}
+                    onLayout={(e) => { formYRef.current = e.nativeEvent.layout.y; }}
+                  >
                     <TextInput
                       type="email"
                       placeholder="Email"
                       value={emailValue}
                       onChangeText={setEmailValue}
+                      onFocus={() => handleFieldFocus('email')}
+                      onLayout={(e) => { fieldOffsetsRef.current.email = e.nativeEvent.layout.y; }}
                     />
                     <TextInput
                       type="password"
                       placeholder="Password"
                       value={passwordValue}
                       onChangeText={setPasswordValue}
+                      onFocus={() => handleFieldFocus('password')}
+                      onLayout={(e) => { fieldOffsetsRef.current.password = e.nativeEvent.layout.y; }}
                     />
                     <View style={styles.formSubmit}>
                       <PrimaryButton
@@ -410,24 +427,33 @@ export default function AuthScreen() {
                 </Pressable>
 
                 {emailFormMode === 'signup' ? (
-                  <View style={styles.inlineForm}>
+                  <View
+                    style={styles.inlineForm}
+                    onLayout={(e) => { formYRef.current = e.nativeEvent.layout.y; }}
+                  >
                     <TextInput
                       type="email"
                       placeholder="Email"
                       value={emailValue}
                       onChangeText={setEmailValue}
+                      onFocus={() => handleFieldFocus('email')}
+                      onLayout={(e) => { fieldOffsetsRef.current.email = e.nativeEvent.layout.y; }}
                     />
                     <TextInput
                       type="password"
                       placeholder="Password"
                       value={passwordValue}
                       onChangeText={setPasswordValue}
+                      onFocus={() => handleFieldFocus('password')}
+                      onLayout={(e) => { fieldOffsetsRef.current.password = e.nativeEvent.layout.y; }}
                     />
                     <TextInput
                       type="password"
                       placeholder="Confirm password"
                       value={confirmPasswordValue}
                       onChangeText={setConfirmPasswordValue}
+                      onFocus={() => handleFieldFocus('confirmPassword')}
+                      onLayout={(e) => { fieldOffsetsRef.current.confirmPassword = e.nativeEvent.layout.y; }}
                     />
                     <View style={styles.formSubmit}>
                       <PrimaryButton
@@ -446,7 +472,8 @@ export default function AuthScreen() {
             style={[
               styles.termsFooter,
               {
-                paddingBottom: Math.max(insets.bottom, spacing.sectionGap) + spacing.sectionGap,
+                paddingTop: spacing.cardGap,
+                paddingBottom: Math.max(insets.bottom, spacing.sectionGap),
                 paddingHorizontal: spacing.screen,
               },
             ]}
@@ -606,10 +633,7 @@ const styles = StyleSheet.create({
     color: colors.text.gold,
   },
   termsFooter: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
+    alignSelf: 'stretch',
   },
   terms: {
     alignSelf: 'stretch',

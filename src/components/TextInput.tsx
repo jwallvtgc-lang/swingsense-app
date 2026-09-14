@@ -1,4 +1,12 @@
-import type { KeyboardTypeOptions, StyleProp, TextStyle } from 'react-native';
+import { useState } from 'react';
+import type {
+  BlurEvent,
+  FocusEvent,
+  KeyboardTypeOptions,
+  LayoutChangeEvent,
+  StyleProp,
+  TextStyle,
+} from 'react-native';
 import { StyleSheet, TextInput as RNTextInput } from 'react-native';
 
 import { colors, fontSizes, radius, spacing, typography } from '../../design-system/tokens';
@@ -14,6 +22,9 @@ export type TextInputProps = {
   style?: StyleProp<TextStyle>;
   textAlign?: 'left' | 'center' | 'right';
   editable?: boolean;
+  onFocus?: (event: FocusEvent) => void;
+  onBlur?: (event: BlurEvent) => void;
+  onLayout?: (event: LayoutChangeEvent) => void;
 };
 
 export default function TextInput({
@@ -27,7 +38,11 @@ export default function TextInput({
   style,
   textAlign,
   editable = true,
+  onFocus,
+  onBlur,
+  onLayout,
 }: TextInputProps) {
+  const [isFocused, setIsFocused] = useState(false);
   const secure = type === 'password';
   const keyboardType =
     keyboardTypeProp ?? (type === 'email' ? 'email-address' : 'default');
@@ -35,13 +50,23 @@ export default function TextInput({
     autoCapitalizeProp ??
     (type === 'email' || type === 'password' ? 'none' : 'sentences');
 
+  const handleFocus = (event: FocusEvent) => {
+    setIsFocused(true);
+    onFocus?.(event);
+  };
+
+  const handleBlur = (event: BlurEvent) => {
+    setIsFocused(false);
+    onBlur?.(event);
+  };
+
   return (
     <RNTextInput
       value={value}
       onChangeText={onChangeText}
       placeholder={placeholder}
       placeholderTextColor={colors.text.inputPlaceholder}
-      style={[styles.input, style]}
+      style={[styles.input, isFocused && styles.inputFocused, style]}
       secureTextEntry={secure}
       keyboardType={keyboardType}
       autoCapitalize={autoCapitalize}
@@ -49,6 +74,9 @@ export default function TextInput({
       maxLength={maxLength}
       textAlign={textAlign}
       editable={editable}
+      onFocus={handleFocus}
+      onBlur={handleBlur}
+      onLayout={onLayout}
     />
   );
 }
@@ -64,10 +92,15 @@ const styles = StyleSheet.create({
     minHeight: INPUT_MIN_HEIGHT,
     backgroundColor: colors.bg.input,
     borderRadius: radius.subCard,
+    borderWidth: 1,
+    borderColor: 'transparent',
     paddingVertical: spacing.inputVertical,
     paddingHorizontal: spacing.inputHorizontal,
     fontFamily: typography.body,
     fontSize: fontSizes.body,
     color: colors.text.primary,
+  },
+  inputFocused: {
+    borderColor: colors.border.gold,
   },
 });
