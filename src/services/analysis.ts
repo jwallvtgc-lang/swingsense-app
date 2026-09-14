@@ -309,6 +309,34 @@ export async function fetchProgressCoach(params: {
   }
 }
 
+/** Derives the current [start, end) period boundary from a stored reset-date anchor and the
+ * tier's real period length — self-correcting even when the anchor is currently mismatched
+ * with the tier's cadence (e.g. a monthly-shaped month_reset_date on a weekly-period tier,
+ * before canUserAnalyze's own advancement logic has had a chance to roll it forward). Pure
+ * function, read-only — does not write anything back to the subscriptions row; that stays
+ * canUserAnalyze's responsibility.
+ */
+function currentPeriodBoundary(
+  anchorDate: Date,
+  periodDays: number,
+  now: Date = new Date()
+): { start: Date; end: Date } {
+  const periodMs = periodDays * 24 * 60 * 60 * 1000;
+  let end = anchorDate;
+
+  // Anchor too far in the future: walk it back to the nearest correctly-spaced
+  // boundary that's still >= now.
+  while (end.getTime() - periodMs > now.getTime()) {
+    end = new Date(end.getTime() - periodMs);
+  }
+  // Defensive: anchor stale in the past (e.g. a long-untouched row): walk forward.
+  while (end.getTime() <= now.getTime()) {
+    end = new Date(end.getTime() + periodMs);
+  }
+
+  return { start: new Date(end.getTime() - periodMs), end };
+}
+
 export async function startAnalysisPipeline(
   profileId: string,
   authUserId: string,
@@ -460,8 +488,8 @@ export async function startAnalysisPipeline(
 
       if (freq === 'first_per_period') {
         const periodDays = cfg?.analysis_period === 'monthly' ? 30 : 7;
-        const resetDate = sub ? new Date(sub.month_reset_date) : new Date();
-        const periodStart = new Date(resetDate.getTime() - periodDays * 24 * 60 * 60 * 1000);
+        const anchor = sub ? new Date(sub.month_reset_date) : new Date();
+        const { start: periodStart } = currentPeriodBoundary(anchor, periodDays);
 
         const { count } = await supabase
           .from('swing_analyses')
