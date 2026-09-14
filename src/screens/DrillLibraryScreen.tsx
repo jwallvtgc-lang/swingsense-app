@@ -12,6 +12,7 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import BackNav from '../components/BackNav';
+import DrillCardSurface from '../components/DrillCardSurface';
 import { useDrills } from '../hooks/useDrills';
 import { useSubscription } from '../hooks/useSubscription';
 import { useTierConfigs } from '../hooks/useTierConfig';
@@ -49,25 +50,29 @@ interface DrillGridCardProps {
 
 function DrillGridCard({ drill, onPress }: DrillGridCardProps) {
   return (
-    <Pressable
-      style={({ pressed }) => [styles.gridCard, pressed && styles.gridCardPressed]}
-      onPress={onPress}
-    >
-      <View style={styles.gridCardContent}>
-        <Text style={styles.gridCardMechanic}>
-          {drill.mechanic ? MECHANIC_LABELS[drill.mechanic] : ''}
-        </Text>
+    <Pressable onPress={onPress}>
+      {({ pressed }) => (
+        <DrillCardSurface
+          thumbnailUrl={drill.thumbnailUrl}
+          style={[styles.gridCard, pressed && styles.gridCardPressed]}
+        >
+          <View style={styles.gridCardContent}>
+            <Text style={styles.gridCardMechanic}>
+              {drill.mechanic ? MECHANIC_LABELS[drill.mechanic] : ''}
+            </Text>
 
-        <Text style={styles.gridCardTitle} numberOfLines={2}>
-          {drill.title}
-        </Text>
+            <Text style={styles.gridCardTitle} numberOfLines={2}>
+              {drill.title}
+            </Text>
 
-        <View style={styles.gridCardLevelBadge}>
-          <Text style={styles.gridCardLevelText}>
-            {EXPERIENCE_LEVEL_LABELS[drill.experience_level]}
-          </Text>
-        </View>
-      </View>
+            <View style={styles.gridCardLevelBadge}>
+              <Text style={styles.gridCardLevelText}>
+                {EXPERIENCE_LEVEL_LABELS[drill.experience_level]}
+              </Text>
+            </View>
+          </View>
+        </DrillCardSurface>
+      )}
     </Pressable>
   );
 }

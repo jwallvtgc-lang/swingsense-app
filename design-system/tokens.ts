@@ -52,6 +52,7 @@ export const colors = {
 
     // Overlays
     modalOverlay: 'rgba(0,0,0,0.6)', // Semi-transparent backdrop behind bottom sheets and modals
+    thumbnailOverlay: 'rgba(0,0,0,0.6)', // Legibility scrim over photo/video-frame thumbnails (drill cards)
   },
 
   text: {

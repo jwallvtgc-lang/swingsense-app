@@ -1,5 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { DrillCard as DrillCardType, DrillMechanic } from '../types/drill';
+import DrillCardSurface from './DrillCardSurface';
 import {
   colors,
   drillCardLink,
@@ -26,43 +27,43 @@ const MECHANIC_LABELS: Record<DrillMechanic, string> = {
   'Multi': 'Multi',
 };
 
-// TODO AI-129 Fix 3: video thumbnail background on carousel cards.
-// Deferred — expo-video-thumbnails getThumbnailAsync on remote .mov files requires
-// downloading video bytes per card with no CDN thumbnail service. Wire up once
-// Supabase Storage URLs serve transcoded previews or a thumbnail column is added.
 export default function DrillCard({ drill, isRecommended = false, onPress }: DrillCardProps) {
   return (
-    <Pressable
-      style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
-      onPress={onPress}
-    >
-      {/* Row 1: Mechanic badge (left) + "For you" pill (right, slot 1 only) */}
-      <View style={styles.row1}>
-        <Text style={styles.mechanicText}>{drill.mechanic ? MECHANIC_LABELS[drill.mechanic] : ''}</Text>
-        {isRecommended && (
-          <View style={styles.forYouPill}>
-            <Text style={styles.forYouText}>For you</Text>
+    <Pressable onPress={onPress}>
+      {({ pressed }) => (
+        <DrillCardSurface
+          thumbnailUrl={drill.thumbnailUrl}
+          style={[styles.card, pressed && styles.cardPressed]}
+        >
+          {/* Row 1: Mechanic badge (left) + "For you" pill (right, slot 1 only) */}
+          <View style={styles.row1}>
+            <Text style={styles.mechanicText}>{drill.mechanic ? MECHANIC_LABELS[drill.mechanic] : ''}</Text>
+            {isRecommended && (
+              <View style={styles.forYouPill}>
+                <Text style={styles.forYouText}>For you</Text>
+              </View>
+            )}
           </View>
-        )}
-      </View>
 
-      {/* Row 2: Drill title, bold 16px, 2 lines max */}
-      <Text style={styles.drillTitle} numberOfLines={2}>
-        {drill.title}
-      </Text>
+          {/* Row 2: Drill title, bold 16px, 2 lines max */}
+          <Text style={styles.drillTitle} numberOfLines={2}>
+            {drill.title}
+          </Text>
 
-      {/* Row 3: Description, 13px muted, single line truncated (MOST IMPORTANT ROW) */}
-      <Text style={styles.description} numberOfLines={1}>
-        {drill.description}
-      </Text>
+          {/* Row 3: Description, 13px muted, single line truncated (MOST IMPORTANT ROW) */}
+          <Text style={styles.description} numberOfLines={1}>
+            {drill.description}
+          </Text>
 
-      {/* Row 4: Experience level badge (left) + "Start drill →" amber text (right) */}
-      <View style={styles.row4}>
-        <View style={styles.levelBadge}>
-          <Text style={styles.levelText}>{drill.experience_level}</Text>
-        </View>
-        <Text style={styles.startDrillText}>Start drill →</Text>
-      </View>
+          {/* Row 4: Experience level badge (left) + "Start drill →" amber text (right) */}
+          <View style={styles.row4}>
+            <View style={styles.levelBadge}>
+              <Text style={styles.levelText}>{drill.experience_level}</Text>
+            </View>
+            <Text style={styles.startDrillText}>Start drill →</Text>
+          </View>
+        </DrillCardSurface>
+      )}
     </Pressable>
   );
 }
@@ -73,6 +74,7 @@ const styles = StyleSheet.create({
     height: 160,
     backgroundColor: colors.bg.surface,
     borderRadius: radius.card,
+    overflow: 'hidden',
     padding: spacing.cardSm, // 12px internal padding
     justifyContent: 'space-between', // Distribute rows evenly
     marginRight: 20, // 20px gap between cards

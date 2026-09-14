@@ -10,6 +10,7 @@ export interface SupabaseDrill {
   finish_reminders: string
   purpose: string
   video_url: string | null
+  thumbnail_url: string | null
   experience_level: ExperienceLevel
   created_at: string
 }
@@ -25,6 +26,7 @@ export interface DrillCard {
   reps: string
   experience_level: ExperienceLevel
   videoUrl?: string
+  thumbnailUrl?: string
 }
 
 export function mapSupabaseDrillToCard(d: SupabaseDrill): DrillCard {
@@ -44,6 +46,7 @@ export function mapSupabaseDrillToCard(d: SupabaseDrill): DrillCard {
     reps: d.finish_reminders,
     experience_level: d.experience_level,
     videoUrl: d.video_url ?? undefined,
+    thumbnailUrl: d.thumbnail_url ?? undefined,
   }
 }
 
