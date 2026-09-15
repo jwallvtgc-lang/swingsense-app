@@ -1766,7 +1766,20 @@ def _resolve_webhook_supabase_key() -> str:
     fail. We verify the resolved key's own `role` claim rather than trusting the
     env var name/presence alone.
     """
-    key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY") or os.environ.get("SUPABASE_SERVICE_KEY") or ""
+    if os.environ.get("SUPABASE_SERVICE_ROLE_KEY"):
+        key = os.environ["SUPABASE_SERVICE_ROLE_KEY"]
+        source_var = "SUPABASE_SERVICE_ROLE_KEY"
+    elif os.environ.get("SUPABASE_SERVICE_KEY"):
+        key = os.environ["SUPABASE_SERVICE_KEY"]
+        source_var = "SUPABASE_SERVICE_KEY"
+    else:
+        key = ""
+        source_var = "none"
+
+    # TEMPORARY DIAGNOSTIC (remove once root cause is confirmed) — logs only the
+    # resolved key's length and source env var name, never the value itself.
+    _log(f"[RCWebhook][DIAG] resolved key source={source_var} length={len(key)}")
+
     if not key:
         raise RuntimeError(
             "No SUPABASE_SERVICE_ROLE_KEY / SUPABASE_SERVICE_KEY configured"
