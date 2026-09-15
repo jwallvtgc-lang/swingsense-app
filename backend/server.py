@@ -1758,38 +1758,33 @@ def _decode_jwt_role(token: str) -> str | None:
 
 
 def _resolve_webhook_supabase_key() -> str:
-    """Resolve a Supabase key for webhook writes to `subscriptions`.
+    """Resolve the Supabase key for webhook writes to `subscriptions`.
 
-    Unlike other Supabase calls in this file, this deliberately does NOT fall back
-    to the anon key: tier/status are no longer anon/authenticated-writable as of
-    023_restrict_subscriptions_update_columns.sql, so an anon-key write would just
-    fail. We verify the resolved key's own `role` claim rather than trusting the
-    env var name/presence alone.
+    Uses a dedicated SUPABASE_WEBHOOK_SECRET_KEY env var — deliberately separate
+    from SUPABASE_SERVICE_ROLE_KEY / SUPABASE_SERVICE_KEY used elsewhere in this
+    file — expected to hold Supabase's new sb_secret_... format key. A legacy
+    JWT-format key is still accepted here via role-claim decoding, in case this
+    var ends up holding one instead.
     """
-    if os.environ.get("SUPABASE_SERVICE_ROLE_KEY"):
-        key = os.environ["SUPABASE_SERVICE_ROLE_KEY"]
-        source_var = "SUPABASE_SERVICE_ROLE_KEY"
-    elif os.environ.get("SUPABASE_SERVICE_KEY"):
-        key = os.environ["SUPABASE_SERVICE_KEY"]
-        source_var = "SUPABASE_SERVICE_KEY"
-    else:
-        key = ""
-        source_var = "none"
+    key = os.environ.get("SUPABASE_WEBHOOK_SECRET_KEY") or ""
+    source_var = "SUPABASE_WEBHOOK_SECRET_KEY" if key else "none"
 
     # TEMPORARY DIAGNOSTIC (remove once root cause is confirmed) — logs only the
     # resolved key's length and source env var name, never the value itself.
     _log(f"[RCWebhook][DIAG] resolved key source={source_var} length={len(key)}")
 
     if not key:
-        raise RuntimeError(
-            "No SUPABASE_SERVICE_ROLE_KEY / SUPABASE_SERVICE_KEY configured"
-        )
+        raise RuntimeError("No SUPABASE_WEBHOOK_SECRET_KEY configured")
+
+    if key.startswith("sb_secret_"):
+        return key
+
     role = _decode_jwt_role(key)
     if role != "service_role":
         raise RuntimeError(
-            f"Resolved Supabase key is not a service_role key (role claim: {role!r}) — "
-            "webhook writes to subscriptions.tier/status would be rejected. Check "
-            "Render's SUPABASE_SERVICE_ROLE_KEY / SUPABASE_SERVICE_KEY value."
+            f"Resolved SUPABASE_WEBHOOK_SECRET_KEY is not a service_role key "
+            f"(role claim: {role!r}) — webhook writes to subscriptions.tier/status "
+            "would be rejected."
         )
     return key
 
@@ -1833,7 +1828,6 @@ async def revenuecat_webhook(request: Request):
 
     headers = {
         "apikey": SUPABASE_KEY,
-        "Authorization": f"Bearer {SUPABASE_KEY}",
         "Content-Type": "application/json",
     }
 
