@@ -10,13 +10,16 @@ FastAPI server that runs the analysis pipeline:
 MediaPipe reverted — libGLESv2 not available on Render (AI-124).
 """
 
+import base64
 import hashlib
+import hmac
 import json
 import os
 import tempfile
 import time
 import urllib.request
 import uuid
+from datetime import datetime, timezone
 from pathlib import Path
 
 import cv2
@@ -24,7 +27,7 @@ import httpx
 import numpy as np
 from anthropic import Anthropic
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
@@ -46,6 +49,9 @@ _log(
     f"[Startup] SUPABASE_SERVICE_KEY={'set' if os.environ.get('SUPABASE_SERVICE_KEY') else 'NOT SET'}"
 )
 _log(f"[Startup] SUPABASE_ANON_KEY={'set' if os.environ.get('SUPABASE_ANON_KEY') else 'NOT SET'}")
+_log(
+    f"[Startup] REVENUECAT_WEBHOOK_SECRET={'set' if os.environ.get('REVENUECAT_WEBHOOK_SECRET') else 'NOT SET'}"
+)
 _trace_key = (
     os.environ.get("SUPABASE_SERVICE_ROLE_KEY") or
     os.environ.get("SUPABASE_SERVICE_KEY") or
@@ -1715,6 +1721,212 @@ async def health():
         status="ok",
         model_loaded=_interpreter is not None,
     )
+
+
+# ── RevenueCat Webhook ───────────────────────────────────────────
+#
+# Same slot -> product mapping as src/services/purchases.ts SLOT_PRODUCT_IDS.
+# Slot 2 uses "slot2b" — never derive programmatically. Keep this in sync by hand.
+SLOT_PRODUCT_IDS = {
+    1: "com.swingsense.silver.slot1",
+    2: "com.swingsense.silver.slot2b",
+    3: "com.swingsense.silver.slot3",
+    4: "com.swingsense.silver.slot4",
+}
+PRODUCT_ID_TO_SLOT = {v: k for k, v in SLOT_PRODUCT_IDS.items()}
+
+REVENUECAT_HANDLED_EVENT_TYPES = {"INITIAL_PURCHASE", "EXPIRATION"}
+
+
+def _ms_to_iso(ms) -> str | None:
+    if ms is None:
+        return None
+    return datetime.fromtimestamp(ms / 1000, tz=timezone.utc).isoformat()
+
+
+def _decode_jwt_role(token: str) -> str | None:
+    """Best-effort decode of a Supabase JWT's `role` claim — no signature check.
+    Used only to confirm at runtime which kind of key was actually resolved, since
+    which Render env var is actually set could not be confirmed from code alone."""
+    try:
+        payload_b64 = token.split(".")[1]
+        padded = payload_b64 + "=" * (-len(payload_b64) % 4)
+        payload = json.loads(base64.urlsafe_b64decode(padded))
+        return payload.get("role")
+    except Exception:
+        return None
+
+
+def _resolve_webhook_supabase_key() -> str:
+    """Resolve a Supabase key for webhook writes to `subscriptions`.
+
+    Unlike other Supabase calls in this file, this deliberately does NOT fall back
+    to the anon key: tier/status are no longer anon/authenticated-writable as of
+    023_restrict_subscriptions_update_columns.sql, so an anon-key write would just
+    fail. We verify the resolved key's own `role` claim rather than trusting the
+    env var name/presence alone.
+    """
+    key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY") or os.environ.get("SUPABASE_SERVICE_KEY") or ""
+    if not key:
+        raise RuntimeError(
+            "No SUPABASE_SERVICE_ROLE_KEY / SUPABASE_SERVICE_KEY configured"
+        )
+    role = _decode_jwt_role(key)
+    if role != "service_role":
+        raise RuntimeError(
+            f"Resolved Supabase key is not a service_role key (role claim: {role!r}) — "
+            "webhook writes to subscriptions.tier/status would be rejected. Check "
+            "Render's SUPABASE_SERVICE_ROLE_KEY / SUPABASE_SERVICE_KEY value."
+        )
+    return key
+
+
+@app.post("/webhooks/revenuecat")
+async def revenuecat_webhook(request: Request):
+    # 1. Authenticate — the only inbound-request auth check this backend has.
+    expected_secret = os.environ.get("REVENUECAT_WEBHOOK_SECRET", "")
+    auth_header = request.headers.get("authorization", "")
+    if not expected_secret or not hmac.compare_digest(auth_header, expected_secret):
+        _log("[RCWebhook] REJECTED — missing or invalid Authorization header")
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    try:
+        body = await request.json()
+    except Exception:
+        _log("[RCWebhook] REJECTED — invalid JSON body")
+        raise HTTPException(status_code=400, detail="Invalid JSON")
+
+    event = body.get("event") or {}
+    event_id = event.get("id")
+    event_type = event.get("type")
+    app_user_id = event.get("app_user_id")
+    product_id = event.get("product_id")
+
+    if not event_id or not event_type:
+        _log(f"[RCWebhook] REJECTED — missing event.id or event.type: {json.dumps(body)[:300]}")
+        raise HTTPException(status_code=400, detail="Malformed event")
+
+    _log(
+        f"[RCWebhook] event_id={event_id} type={event_type} "
+        f"app_user_id={app_user_id} product_id={product_id}"
+    )
+
+    SUPABASE_URL = (os.environ.get("SUPABASE_URL") or "").rstrip("/")
+    try:
+        SUPABASE_KEY = _resolve_webhook_supabase_key()
+    except RuntimeError as e:
+        _log(f"[RCWebhook] FATAL CONFIG ERROR event_id={event_id} — {e}")
+        raise HTTPException(status_code=500, detail="Backend misconfigured")
+
+    headers = {
+        "apikey": SUPABASE_KEY,
+        "Authorization": f"Bearer {SUPABASE_KEY}",
+        "Content-Type": "application/json",
+    }
+
+    async with httpx.AsyncClient(timeout=10.0) as http:
+        # 2. Idempotency check — read-only. The event is only marked processed after
+        #    it's successfully handled below (step 4), so a resolution failure leaves
+        #    it unmarked and RevenueCat's own retry becomes a real recovery path,
+        #    not just something fixable by manually watching logs.
+        dedupe_resp = await http.get(
+            f"{SUPABASE_URL}/rest/v1/processed_webhook_events",
+            params={"event_id": f"eq.{event_id}", "select": "event_id"},
+            headers=headers,
+        )
+        dedupe_resp.raise_for_status()
+        if dedupe_resp.json():
+            _log(f"[RCWebhook] event_id={event_id} already processed — skipping")
+            return {"status": "duplicate"}
+
+        # 3. Only handle INITIAL_PURCHASE / EXPIRATION this pass — acknowledge others.
+        if event_type not in REVENUECAT_HANDLED_EVENT_TYPES:
+            _log(f"[RCWebhook] event_id={event_id} type={event_type} — no handler yet, acknowledged only")
+            return {"status": "ignored", "type": event_type}
+
+        if not app_user_id:
+            _log(f"[RCWebhook] RESOLUTION FAILURE event_id={event_id} type={event_type} — missing app_user_id")
+            raise HTTPException(status_code=409, detail="missing app_user_id")
+
+        slot_number = PRODUCT_ID_TO_SLOT.get(product_id)
+        if slot_number is None:
+            _log(
+                f"[RCWebhook] RESOLUTION FAILURE event_id={event_id} type={event_type} "
+                f"app_user_id={app_user_id} — unrecognized product_id={product_id!r}"
+            )
+            raise HTTPException(status_code=409, detail="unrecognized product_id")
+
+        # Resolve account_id + slot_number -> profile_id. Relies on profile_relationships
+        # already having slot_number stamped for this account/slot, which today only
+        # happens via the client's own complete_silver_purchase RPC call — if this
+        # webhook is delivered before that call completes, resolution fails here,
+        # logs loudly, and (per the 409 below) leaves the event unmarked so
+        # RevenueCat's retry gets another chance once that call has finished.
+        rel_resp = await http.get(
+            f"{SUPABASE_URL}/rest/v1/profile_relationships",
+            params={
+                "account_id": f"eq.{app_user_id}",
+                "slot_number": f"eq.{slot_number}",
+                "select": "profile_id",
+            },
+            headers=headers,
+        )
+        rel_resp.raise_for_status()
+        rel_rows = rel_resp.json()
+
+        if not rel_rows:
+            _log(
+                f"[RCWebhook] RESOLUTION FAILURE event_id={event_id} type={event_type} "
+                f"app_user_id={app_user_id} slot={slot_number} product_id={product_id} — "
+                "no matching profile_relationships row (account+slot not found)"
+            )
+            raise HTTPException(status_code=409, detail="no matching profile for account+slot")
+
+        profile_id = rel_rows[0]["profile_id"]
+
+        if event_type == "INITIAL_PURCHASE":
+            patch_body = {
+                "tier": "silver",
+                "status": "active",
+                "revenuecat_customer_id": app_user_id,
+                "current_period_start": _ms_to_iso(event.get("purchased_at_ms")),
+                "current_period_end": _ms_to_iso(event.get("expiration_at_ms")),
+            }
+        else:  # EXPIRATION
+            patch_body = {"status": "expired"}
+
+        patch_resp = await http.patch(
+            f"{SUPABASE_URL}/rest/v1/subscriptions",
+            params={"user_id": f"eq.{profile_id}"},
+            json=patch_body,
+            headers={**headers, "Prefer": "return=representation"},
+        )
+        patch_resp.raise_for_status()
+        patched_rows = patch_resp.json()
+
+        if not patched_rows:
+            _log(
+                f"[RCWebhook] RESOLUTION FAILURE event_id={event_id} type={event_type} "
+                f"profile_id={profile_id} — subscriptions row not found for this profile"
+            )
+            raise HTTPException(status_code=409, detail="no subscriptions row for resolved profile")
+
+        # 4. Only now mark the event processed — after the write actually succeeded.
+        #    ignore-duplicates tolerates a concurrent redelivery racing past the
+        #    read-only check in step 2; the subscriptions write above is itself
+        #    idempotent, so a harmless double-write from that race is fine.
+        mark_resp = await http.post(
+            f"{SUPABASE_URL}/rest/v1/processed_webhook_events?on_conflict=event_id",
+            json={"event_id": event_id},
+            headers={**headers, "Prefer": "return=minimal,resolution=ignore-duplicates"},
+        )
+        mark_resp.raise_for_status()
+
+    _log(
+        f"[RCWebhook] event_id={event_id} type={event_type} profile_id={profile_id} "
+        f"applied={patch_body}"
+    )
+    return {"status": "ok", "type": event_type, "profile_id": profile_id}
 
 
 @app.post("/admin/backfill-core5")
