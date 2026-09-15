@@ -1767,11 +1767,6 @@ def _resolve_webhook_supabase_key() -> str:
     var ends up holding one instead.
     """
     key = os.environ.get("SUPABASE_WEBHOOK_SECRET_KEY") or ""
-    source_var = "SUPABASE_WEBHOOK_SECRET_KEY" if key else "none"
-
-    # TEMPORARY DIAGNOSTIC (remove once root cause is confirmed) — logs only the
-    # resolved key's length and source env var name, never the value itself.
-    _log(f"[RCWebhook][DIAG] resolved key source={source_var} length={len(key)}")
 
     if not key:
         raise RuntimeError("No SUPABASE_WEBHOOK_SECRET_KEY configured")
@@ -1832,121 +1827,103 @@ async def revenuecat_webhook(request: Request):
         "Content-Type": "application/json",
     }
 
-    # TEMPORARY DIAGNOSTIC try/except (remove once root cause is confirmed) — wraps
-    # the Supabase REST calls below and returns the underlying httpx error (status
-    # code + response body) directly in the JSON response instead of letting it
-    # propagate to a generic 500, since Render's log stream isn't reachable here.
-    try:
-        async with httpx.AsyncClient(timeout=10.0) as http:
-            # 2. Idempotency check — read-only. The event is only marked processed after
-            #    it's successfully handled below (step 4), so a resolution failure leaves
-            #    it unmarked and RevenueCat's own retry becomes a real recovery path,
-            #    not just something fixable by manually watching logs.
-            dedupe_resp = await http.get(
-                f"{SUPABASE_URL}/rest/v1/processed_webhook_events",
-                params={"event_id": f"eq.{event_id}", "select": "event_id"},
-                headers=headers,
-            )
-            dedupe_resp.raise_for_status()
-            if dedupe_resp.json():
-                _log(f"[RCWebhook] event_id={event_id} already processed — skipping")
-                return {"status": "duplicate"}
-
-            # 3. Only handle INITIAL_PURCHASE / EXPIRATION this pass — acknowledge others.
-            if event_type not in REVENUECAT_HANDLED_EVENT_TYPES:
-                _log(f"[RCWebhook] event_id={event_id} type={event_type} — no handler yet, acknowledged only")
-                return {"status": "ignored", "type": event_type}
-
-            if not app_user_id:
-                _log(f"[RCWebhook] RESOLUTION FAILURE event_id={event_id} type={event_type} — missing app_user_id")
-                raise HTTPException(status_code=409, detail="missing app_user_id")
-
-            slot_number = PRODUCT_ID_TO_SLOT.get(product_id)
-            if slot_number is None:
-                _log(
-                    f"[RCWebhook] RESOLUTION FAILURE event_id={event_id} type={event_type} "
-                    f"app_user_id={app_user_id} — unrecognized product_id={product_id!r}"
-                )
-                raise HTTPException(status_code=409, detail="unrecognized product_id")
-
-            # Resolve account_id + slot_number -> profile_id. Relies on profile_relationships
-            # already having slot_number stamped for this account/slot, which today only
-            # happens via the client's own complete_silver_purchase RPC call — if this
-            # webhook is delivered before that call completes, resolution fails here,
-            # logs loudly, and (per the 409 below) leaves the event unmarked so
-            # RevenueCat's retry gets another chance once that call has finished.
-            rel_resp = await http.get(
-                f"{SUPABASE_URL}/rest/v1/profile_relationships",
-                params={
-                    "account_id": f"eq.{app_user_id}",
-                    "slot_number": f"eq.{slot_number}",
-                    "select": "profile_id",
-                },
-                headers=headers,
-            )
-            rel_resp.raise_for_status()
-            rel_rows = rel_resp.json()
-
-            if not rel_rows:
-                _log(
-                    f"[RCWebhook] RESOLUTION FAILURE event_id={event_id} type={event_type} "
-                    f"app_user_id={app_user_id} slot={slot_number} product_id={product_id} — "
-                    "no matching profile_relationships row (account+slot not found)"
-                )
-                raise HTTPException(status_code=409, detail="no matching profile for account+slot")
-
-            profile_id = rel_rows[0]["profile_id"]
-
-            if event_type == "INITIAL_PURCHASE":
-                patch_body = {
-                    "tier": "silver",
-                    "status": "active",
-                    "revenuecat_customer_id": app_user_id,
-                    "current_period_start": _ms_to_iso(event.get("purchased_at_ms")),
-                    "current_period_end": _ms_to_iso(event.get("expiration_at_ms")),
-                }
-            else:  # EXPIRATION
-                patch_body = {"status": "expired"}
-
-            patch_resp = await http.patch(
-                f"{SUPABASE_URL}/rest/v1/subscriptions",
-                params={"user_id": f"eq.{profile_id}"},
-                json=patch_body,
-                headers={**headers, "Prefer": "return=representation"},
-            )
-            patch_resp.raise_for_status()
-            patched_rows = patch_resp.json()
-
-            if not patched_rows:
-                _log(
-                    f"[RCWebhook] RESOLUTION FAILURE event_id={event_id} type={event_type} "
-                    f"profile_id={profile_id} — subscriptions row not found for this profile"
-                )
-                raise HTTPException(status_code=409, detail="no subscriptions row for resolved profile")
-
-            # 4. Only now mark the event processed — after the write actually succeeded.
-            #    ignore-duplicates tolerates a concurrent redelivery racing past the
-            #    read-only check in step 2; the subscriptions write above is itself
-            #    idempotent, so a harmless double-write from that race is fine.
-            mark_resp = await http.post(
-                f"{SUPABASE_URL}/rest/v1/processed_webhook_events?on_conflict=event_id",
-                json={"event_id": event_id},
-                headers={**headers, "Prefer": "return=minimal,resolution=ignore-duplicates"},
-            )
-            mark_resp.raise_for_status()
-    except httpx.HTTPStatusError as e:
-        _log(
-            f"[RCWebhook][DIAG] Supabase call failed event_id={event_id} "
-            f"status={e.response.status_code} body={e.response.text[:500]}"
+    async with httpx.AsyncClient(timeout=10.0) as http:
+        # 2. Idempotency check — read-only. The event is only marked processed after
+        #    it's successfully handled below (step 4), so a resolution failure leaves
+        #    it unmarked and RevenueCat's own retry becomes a real recovery path,
+        #    not just something fixable by manually watching logs.
+        dedupe_resp = await http.get(
+            f"{SUPABASE_URL}/rest/v1/processed_webhook_events",
+            params={"event_id": f"eq.{event_id}", "select": "event_id"},
+            headers=headers,
         )
-        return {
-            "debug_error": str(e),
-            "status_code": e.response.status_code,
-            "response_body": e.response.text,
-        }
-    except httpx.HTTPError as e:
-        _log(f"[RCWebhook][DIAG] Supabase request error event_id={event_id} — {e}")
-        return {"debug_error": str(e), "status_code": None, "response_body": None}
+        dedupe_resp.raise_for_status()
+        if dedupe_resp.json():
+            _log(f"[RCWebhook] event_id={event_id} already processed — skipping")
+            return {"status": "duplicate"}
+
+        # 3. Only handle INITIAL_PURCHASE / EXPIRATION this pass — acknowledge others.
+        if event_type not in REVENUECAT_HANDLED_EVENT_TYPES:
+            _log(f"[RCWebhook] event_id={event_id} type={event_type} — no handler yet, acknowledged only")
+            return {"status": "ignored", "type": event_type}
+
+        if not app_user_id:
+            _log(f"[RCWebhook] RESOLUTION FAILURE event_id={event_id} type={event_type} — missing app_user_id")
+            raise HTTPException(status_code=409, detail="missing app_user_id")
+
+        slot_number = PRODUCT_ID_TO_SLOT.get(product_id)
+        if slot_number is None:
+            _log(
+                f"[RCWebhook] RESOLUTION FAILURE event_id={event_id} type={event_type} "
+                f"app_user_id={app_user_id} — unrecognized product_id={product_id!r}"
+            )
+            raise HTTPException(status_code=409, detail="unrecognized product_id")
+
+        # Resolve account_id + slot_number -> profile_id. Relies on profile_relationships
+        # already having slot_number stamped for this account/slot, which today only
+        # happens via the client's own complete_silver_purchase RPC call — if this
+        # webhook is delivered before that call completes, resolution fails here,
+        # logs loudly, and (per the 409 below) leaves the event unmarked so
+        # RevenueCat's retry gets another chance once that call has finished.
+        rel_resp = await http.get(
+            f"{SUPABASE_URL}/rest/v1/profile_relationships",
+            params={
+                "account_id": f"eq.{app_user_id}",
+                "slot_number": f"eq.{slot_number}",
+                "select": "profile_id",
+            },
+            headers=headers,
+        )
+        rel_resp.raise_for_status()
+        rel_rows = rel_resp.json()
+
+        if not rel_rows:
+            _log(
+                f"[RCWebhook] RESOLUTION FAILURE event_id={event_id} type={event_type} "
+                f"app_user_id={app_user_id} slot={slot_number} product_id={product_id} — "
+                "no matching profile_relationships row (account+slot not found)"
+            )
+            raise HTTPException(status_code=409, detail="no matching profile for account+slot")
+
+        profile_id = rel_rows[0]["profile_id"]
+
+        if event_type == "INITIAL_PURCHASE":
+            patch_body = {
+                "tier": "silver",
+                "status": "active",
+                "revenuecat_customer_id": app_user_id,
+                "current_period_start": _ms_to_iso(event.get("purchased_at_ms")),
+                "current_period_end": _ms_to_iso(event.get("expiration_at_ms")),
+            }
+        else:  # EXPIRATION
+            patch_body = {"status": "expired"}
+
+        patch_resp = await http.patch(
+            f"{SUPABASE_URL}/rest/v1/subscriptions",
+            params={"user_id": f"eq.{profile_id}"},
+            json=patch_body,
+            headers={**headers, "Prefer": "return=representation"},
+        )
+        patch_resp.raise_for_status()
+        patched_rows = patch_resp.json()
+
+        if not patched_rows:
+            _log(
+                f"[RCWebhook] RESOLUTION FAILURE event_id={event_id} type={event_type} "
+                f"profile_id={profile_id} — subscriptions row not found for this profile"
+            )
+            raise HTTPException(status_code=409, detail="no subscriptions row for resolved profile")
+
+        # 4. Only now mark the event processed — after the write actually succeeded.
+        #    ignore-duplicates tolerates a concurrent redelivery racing past the
+        #    read-only check in step 2; the subscriptions write above is itself
+        #    idempotent, so a harmless double-write from that race is fine.
+        mark_resp = await http.post(
+            f"{SUPABASE_URL}/rest/v1/processed_webhook_events?on_conflict=event_id",
+            json={"event_id": event_id},
+            headers={**headers, "Prefer": "return=minimal,resolution=ignore-duplicates"},
+        )
+        mark_resp.raise_for_status()
 
     _log(
         f"[RCWebhook] event_id={event_id} type={event_type} profile_id={profile_id} "
